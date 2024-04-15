@@ -2,7 +2,6 @@
  Installing
 ############
 
-
 To install the package, you can use the following command:
 
 .. code:: bash
@@ -25,4 +24,3 @@ You may also have to install pandoc on MacOS:
 .. code:: bash
 
    brew install pandoc
-

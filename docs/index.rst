@@ -30,4 +30,3 @@ models from existing recipes but with their own data.
 *Anemoi* is available under the open source `Apache License`__.
 
 .. __: http://www.apache.org/licenses/LICENSE-2.0.html
-
