@@ -33,9 +33,18 @@ install_requires = [
     "tomli",  # Only needed before 3.11
 ]
 
+provenance_requires = [
+    "GitPython",
+    "nvsmi",
+]
 
-all_requires = install_requires
-dev_requires = ["sphinx", "sphinx_rtd_theme", "nbsphinx", "pandoc"] + all_requires
+text_requires = [
+    "termcolor",
+]
+doc_requires = ["sphinx", "sphinx_rtd_theme", "nbsphinx", "pandoc"]
+
+all_requires = install_requires + provenance_requires + text_requires
+dev_requires = doc_requires + all_requires
 
 setuptools.setup(
     name="anemoi-utils",
@@ -51,6 +60,8 @@ setuptools.setup(
     include_package_data=True,
     install_requires=install_requires,
     extras_require={
+        "text": text_requires,
+        "provenance": provenance_requires,
         "dev": dev_requires,
         "all": all_requires,
     },
