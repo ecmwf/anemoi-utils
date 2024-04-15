@@ -1,4 +1,4 @@
-# (C) Copyright 2023 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
 # In applying this licence, ECMWF does not waive the privileges and immunities
@@ -7,11 +7,11 @@
 
 
 import sys
-
-# https://en.wikipedia.org/wiki/Box-drawing_character
 from collections import defaultdict
 
 from termcolor import colored
+
+# https://en.wikipedia.org/wiki/Box-drawing_character
 
 
 def dotted_line(n=84, file=sys.stdout):
