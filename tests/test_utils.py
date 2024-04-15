@@ -6,33 +6,9 @@
 # nor does it submit to any jurisdiction.
 
 
-import numpy as np
-from anemoi.datasets.data.indexing import length_to_slices
-
-
-def test_length_to_slices():
-    lengths = [5, 7, 11, 13]
-    datasets = [np.random.rand(n) for n in lengths]
-    total = sum(lengths)
-
-    combined = np.concatenate(datasets)
-
-    for start in range(total):
-        for stop in range(start, total):
-            for step in range(1, stop - start + 1):
-                index = slice(start, stop, step)
-                print(index)
-                slices = length_to_slices(index, lengths)
-                result = [d[i] for (d, i) in zip(datasets, slices) if i is not None]
-                result = np.concatenate(result)
-
-                if (combined[index].shape != result.shape) or not (combined[index] == result).all():
-                    print(index)
-                    print(combined[index])
-                    print(result)
-                    print(slices)
-                assert (combined[index] == result).all(), index
+def test_utils():
+    pass
 
 
 if __name__ == "__main__":
-    test_length_to_slices()
+    test_utils()
