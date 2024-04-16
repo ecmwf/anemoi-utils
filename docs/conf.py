@@ -79,6 +79,18 @@ intersphinx_mapping = {
         "https://anemoi-datasets.readthedocs.io/en/latest/",
         ("../../anemoi-datasets/docs/_build/html/objects.inv", None),
     ),
+    "anemoi-models": (
+        "https://anemoi-models.readthedocs.io/en/latest/",
+        ("../../anemoi-models/docs/_build/html/objects.inv", None),
+    ),
+    "anemoi-training": (
+        "https://anemoi-training.readthedocs.io/en/latest/",
+        ("../../anemoi-training/docs/_build/html/objects.inv", None),
+    ),
+    "anemoi-inference": (
+        "https://anemoi-inference.readthedocs.io/en/latest/",
+        ("../../anemoi-inference/docs/_build/html/objects.inv", None),
+    ),
 }
 
 
