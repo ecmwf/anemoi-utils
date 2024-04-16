@@ -29,7 +29,7 @@ def lookup_git_repo(path):
     return None
 
 
-def check_for_git(paths, full):
+def _check_for_git(paths, full):
     versions = {}
     for name, path in paths:
         repo = lookup_git_repo(path)
@@ -106,7 +106,7 @@ def version(versions, name, module, roots, namespaces, paths, full):
     versions[name] = str(module)
 
 
-def module_versions(full):
+def _module_versions(full):
     # https://docs.python.org/3/library/sysconfig.html
 
     roots = {}
@@ -131,9 +131,18 @@ def module_versions(full):
         if len(bits) == 2 and bits[0] in namespaces:
             version(versions, k, v, roots, namespaces, paths, full)
 
-    git_versions = check_for_git(paths, full)
+    return versions, paths
 
+
+def module_versions(full):
+    versions, paths = _module_versions(full)
+    git_versions = _check_for_git(paths, full)
     return versions, git_versions
+
+
+def git_check():
+    _, paths = _module_versions(full=False)
+    return _check_for_git(paths, full=True)
 
 
 def platform_info():

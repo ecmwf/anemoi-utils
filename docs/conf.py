@@ -71,6 +71,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "'**.ipynb_checkpoints'"
 
 intersphinx_mapping = {
     "python": ("https://python.readthedocs.io/en/latest", None),
+    "anemoi-datasets": (
+        "https://anemoi-datasets.readthedocs.io/en/latest/",
+        ("../../anemoi-datasets/docs/_build/html/objects.inv", None),
+    ),
 }
 
 

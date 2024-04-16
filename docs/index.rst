@@ -1,3 +1,5 @@
+.. _anemoi-utils:
+
 ####################################
  Welcome to Anemoi's documentation!
 ####################################
@@ -15,6 +17,9 @@ framework it seeks to handle many of the complexities that
 meteorological organisations will share, allowing them to easily train
 models from existing recipes but with their own data.
 
+This package provides a series of utility functions for used by the rest
+of the *Anemoi* packages.
+
 -  :doc:`installing`
 
 .. toctree::
@@ -22,6 +27,16 @@ models from existing recipes but with their own data.
    :hidden:
 
    installing
+
+*****************
+ Anemoi packages
+*****************
+
+-  :doc:`anemoi-utils`
+-  :doc:`anemoi-datasets`
+-  anemoi-models
+-  anemoi-training
+-  anemoi-inference
 
 *********
  License
