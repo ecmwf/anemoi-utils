@@ -140,9 +140,65 @@ def module_versions(full):
     return versions, git_versions
 
 
-def git_check():
-    _, paths = _module_versions(full=False)
-    return _check_for_git(paths, full=True)
+def _name(obj):
+    if hasattr(obj, "__name__"):
+        if hasattr(obj, "__module__"):
+            return f"{obj.__module__}.{obj.__name__}"
+        return obj.__name__
+    if hasattr(obj, "__class__"):
+        return _name(obj.__class__)
+    return str(obj)
+
+
+def _paths(path_or_object):
+
+    if path_or_object is None:
+        _, paths = _module_versions(full=False)
+        return paths
+
+    if isinstance(path_or_object, (list, tuple, set)):
+        paths = []
+        for p in path_or_object:
+            paths.extend(_paths(p))
+        return paths
+
+    if isinstance(path_or_object, str):
+        module = sys.modules.get(path_or_object)
+        if module is not None:
+            return _paths(module)
+        return [(path_or_object, path_or_object)]
+
+    if hasattr(path_or_object, "__module__"):
+        module = sys.modules.get(path_or_object.__module__)
+        return [(path_or_object.__module__, module.__file__)]
+
+    name = _name(path_or_object)
+    paths = []
+    if hasattr(path_or_object, "__file__"):
+        paths.append((name, path_or_object.__file__))
+
+    if hasattr(path_or_object, "__code__"):
+        paths.append((name, path_or_object.__code__.co_filename))
+
+    if hasattr(path_or_object, "__module__"):
+        module = sys.modules.get(path_or_object.__module__)
+        paths.append((name, module.__file__))
+
+    if not paths:
+        raise ValueError(f"Could not find path for {name} {path_or_object} {type(path_or_object)}")
+
+    return paths
+
+
+def git_check(*args):
+    paths = _paths(args if len(args) > 0 else None)
+
+    git = _check_for_git(paths, full=True)
+    result = {}
+    for k, v in git.items():
+        result[k] = v["git"]
+
+    return result
 
 
 def platform_info():

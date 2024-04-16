@@ -41,6 +41,7 @@ provenance_requires = [
 text_requires = [
     "termcolor",
 ]
+
 doc_requires = ["sphinx", "sphinx_rtd_theme", "nbsphinx", "pandoc"]
 
 all_requires = install_requires + provenance_requires + text_requires
