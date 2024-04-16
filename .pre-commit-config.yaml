@@ -51,6 +51,11 @@ repos:
     - --exit-non-zero-on-fix
     - --preview
 
+- repo: https://github.com/sphinx-contrib/sphinx-lint
+  rev: v0.9.1
+  hooks:
+    - id: sphinx-lint
+
 # For now, we use it. But it does not support a lot of sphinx features
 - repo: https://github.com/dzhu/rstfmt
   rev: v0.0.14
