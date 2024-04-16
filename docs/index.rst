@@ -30,6 +30,14 @@ of the *Anemoi* packages.
 
    installing
 
+***********
+ functions
+***********
+
+.. currentmodule:: anemoi.utils.provenance
+
+.. autofunction:: git_check
+
 *****************
  Anemoi packages
 *****************

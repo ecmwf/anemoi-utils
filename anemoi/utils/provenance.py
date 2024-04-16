@@ -191,6 +191,13 @@ def _paths(path_or_object):
 
 
 def git_check(*args):
+    """_summary_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     paths = _paths(args if len(args) > 0 else None)
 
     git = _check_for_git(paths, full=True)
