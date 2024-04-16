@@ -34,8 +34,8 @@ of the *Anemoi* packages.
  Anemoi packages
 *****************
 
--  :doc:`anemoi-utils:index-page`
--  :doc:`anemoi-datasets:index-page`
+-  :external+anemoi-utils:doc:`anemoi-utils <index-page>`
+-  :external+anemoi-datasets:doc:`anemoi-datasets <index-page>`
 -  anemoi-models
 -  anemoi-training
 -  anemoi-inference
