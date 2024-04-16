@@ -1,5 +1,7 @@
 .. _anemoi-utils:
 
+.. _index-page:
+
 ####################################
  Welcome to Anemoi's documentation!
 ####################################
@@ -32,8 +34,8 @@ of the *Anemoi* packages.
  Anemoi packages
 *****************
 
--  :doc:`anemoi-utils`
--  :doc:`anemoi-datasets`
+-  :doc:`anemoi-utils:index-page`
+-  :doc:`anemoi-datasets:index-page`
 -  anemoi-models
 -  anemoi-training
 -  anemoi-inference
