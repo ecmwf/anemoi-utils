@@ -44,8 +44,12 @@ else:
 
 copyright = "%s, ECMWF" % (years,)
 
+try:
+    import anemoi.utils
 
-release = "0.1.0"
+    release = anemoi.utils.__version__
+except ImportError:
+    release = "0.0.0"
 
 
 # -- General configuration ---------------------------------------------------
