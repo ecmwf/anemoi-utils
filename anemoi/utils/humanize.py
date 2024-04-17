@@ -7,18 +7,40 @@
 # nor does it submit to any jurisdiction.
 #
 
+"""
+Generate human readable strings
+"""
+
 import datetime
 import re
 from collections import defaultdict
 
 
-def bytes(n):
-    """
+def bytes(n: float) -> str:
+    """Convert a number of bytes to a human readable string
+
     >>> bytes(4096)
     '4 KiB'
     >>> bytes(4000)
     '3.9 KiB'
+
+    Parameters
+    ----------
+    n : float
+        the number of bytes
+
+    Returns
+    -------
+    str
+        a human readable string
     """
+
+    """
+
+
+
+    """
+
     if n < 0:
         sign = "-"
         n -= 0
@@ -33,13 +55,10 @@ def bytes(n):
     return "%s%g%s" % (sign, int(n * 10 + 0.5) / 10.0, u[i])
 
 
-def base2(n):
+def base2(n) -> str:
     """
-    >>> base2(4096)
-    '4K'
-    >>> base2(4000)
-    '3.9K'
-    """
+    Convert a number to a human readable string using base 2
+    >>> base2(4096)"""
 
     u = ["", "K", "M", "G", "T", " P", "E", "Z", "Y"]
     i = 0
@@ -65,7 +84,19 @@ def _plural(count):
         return ""
 
 
-def seconds(seconds):
+def seconds(seconds: float) -> str:
+    """_summary_
+
+    Parameters
+    ----------
+    seconds : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     if isinstance(seconds, datetime.timedelta):
         seconds = seconds.total_seconds()
 
@@ -113,6 +144,20 @@ def number(value):
 
 
 def plural(value, what):
+    """_summary_
+
+    Parameters
+    ----------
+    value : _type_
+        _description_
+    what : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     return f"{number(value)} {what}{_plural(value)}"
 
 
@@ -159,6 +204,22 @@ def __(n):
 
 
 def when(then, now=None, short=True):
+    """_summary_
+
+    Parameters
+    ----------
+    then : _type_
+        _description_
+    now : _type_, optional
+        _description_, by default None
+    short : bool, optional
+        _description_, by default True
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     last = "last"
 
     if now is None:

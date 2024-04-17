@@ -30,31 +30,15 @@ of the *Anemoi* packages.
 
    installing
 
-***********
- functions
-***********
+*********
+ Modules
+*********
 
-.. currentmodule:: anemoi.utils.provenance
+.. toctree::
+   :maxdepth: 1
+   :glob:
 
-..
-   .. autofunction:: git_check
-
-.. automodule:: anemoi.utils.provenance
-   :members:
-   :no-undoc-members:
-   :show-inheritance:
-
-..
-   .. automodule:: anemoi.utils.humanize
-
-..
-   :members:
-
-..
-   :no-undoc-members:
-
-..
-   :show-inheritance:
+   modules/*
 
 *****************
  Anemoi packages

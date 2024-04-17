@@ -4,7 +4,15 @@
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+"""
+Collect information about the current environment, like:
 
+ - The Python version
+ - The versions of the modules which are currently loaded
+ - The git information for the modules which are currently loaded from a git repository
+ - ...
+
+"""
 import datetime
 import json
 import logging
@@ -191,12 +199,33 @@ def _paths(path_or_object):
 
 
 def git_check(*args):
-    """Return the git information for the given paths.
+    """Return the git information for the given arguments.
+
+    Arguments can be:
+        - an empty list, in that case all loaded modules are checked
+        - a module name
+        - a module object
+        - an object or a class
+        - a path to a directory
 
     Returns
     -------
     dict
-        _description_
+        An object with the git information for the given arguments.
+
+
+    >>> {
+            "anemoi.utils": {
+                "sha1": "c999d83ae283bcbb99f68d92c42d24315922129f",
+                "remotes": [
+                    "git@github.com:ecmwf/anemoi-utils.git"
+                ],
+                "modified_files": [
+                    "anemoi/utils/checkpoints.py"
+                ],
+                "untracked_files": []
+            }
+        }
     """
     paths = _paths(args if len(args) > 0 else None)
 
@@ -281,8 +310,21 @@ def assets_info(paths):
     return result
 
 
-def gather_provenance_info(assets=[], full=False):
-    """Gather provenance information about the current environment."""
+def gather_provenance_info(assets=[], full=False) -> dict:
+    """Gather information about the current environment
+
+    Parameters
+    ----------
+    assets : list, optional
+        A list of file paths for which to collect the MD5 sum, the size and time attributes, by default []
+    full : bool, optional
+        If true, will also collect various paths, by default False
+
+    Returns
+    -------
+    dict
+        A dictionary with the collected information
+    """
     executable = sys.executable
 
     versions, git_versions = module_versions(full)

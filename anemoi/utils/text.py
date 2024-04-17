@@ -5,7 +5,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-
+"""
+Text utilities
+"""
 import sys
 from collections import defaultdict
 
@@ -18,7 +20,24 @@ def dotted_line(n=84, file=sys.stdout):
     print("┈" * n, file=file)
 
 
-def boxed(text, min_width=80, max_width=80):
+def boxed(text, min_width=80, max_width=80) -> str:
+    """_summary_
+
+    Parameters
+    ----------
+    text : _type_
+        _description_
+    min_width : int, optional
+        _description_, by default 80
+    max_width : int, optional
+        _description_, by default 80
+
+    Returns
+    -------
+    str
+        _description_
+    """
+
     lines = text.split("\n")
     width = max(len(_) for _ in lines)
 
@@ -231,6 +250,22 @@ def table(rows, header, align, margin=0):
     return "\n".join(result)
 
 
-def progress(done, todo, width=80):
+def progress(done, todo, width=80) -> str:
+    """_summary_
+
+    Parameters
+    ----------
+    done : function
+        _description_
+    todo : _type_
+        _description_
+    width : int, optional
+        _description_, by default 80
+
+    Returns
+    -------
+    str
+        _description_
+    """
     done = min(int(done / todo * width + 0.5), width)
     return green("█" * done) + red("█" * (width - done))
