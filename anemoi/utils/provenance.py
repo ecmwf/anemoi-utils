@@ -191,11 +191,11 @@ def _paths(path_or_object):
 
 
 def git_check(*args):
-    """_summary_
+    """Return the git information for the given paths.
 
     Returns
     -------
-    _type_
+    dict
         _description_
     """
     paths = _paths(args if len(args) > 0 else None)
@@ -282,6 +282,7 @@ def assets_info(paths):
 
 
 def gather_provenance_info(assets=[], full=False):
+    """Gather provenance information about the current environment."""
     executable = sys.executable
 
     versions, git_versions = module_versions(full)

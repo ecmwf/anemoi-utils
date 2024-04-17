@@ -36,7 +36,25 @@ of the *Anemoi* packages.
 
 .. currentmodule:: anemoi.utils.provenance
 
-.. autofunction:: git_check
+..
+   .. autofunction:: git_check
+
+.. automodule:: anemoi.utils.provenance
+   :members:
+   :no-undoc-members:
+   :show-inheritance:
+
+..
+   .. automodule:: anemoi.utils.humanize
+
+..
+   :members:
+
+..
+   :no-undoc-members:
+
+..
+   :show-inheritance:
 
 *****************
  Anemoi packages
