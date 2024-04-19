@@ -56,9 +56,6 @@ def bytes(n: float) -> str:
 
 
 def base2(n) -> str:
-    """
-    Convert a number to a human readable string using base 2
-    >>> base2(4096)"""
 
     u = ["", "K", "M", "G", "T", " P", "E", "Z", "Y"]
     i = 0
