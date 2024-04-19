@@ -15,17 +15,20 @@ from collections import defaultdict
 # https://en.wikipedia.org/wiki/Box-drawing_character
 
 
-def dotted_line(n=84, file=sys.stdout):
+def dotted_line(n=84) -> str:
     """_summary_
 
     Parameters
     ----------
     n : int, optional
         _description_, by default 84
-    file : _type_, optional
-        _description_, by default sys.stdout
+
+    Returns
+    -------
+    str
+        _description_
     """
-    print("┈" * n, file=file)
+    return "┈" * n
 
 
 def boxed(text, min_width=80, max_width=80) -> str:

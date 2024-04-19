@@ -6,4 +6,4 @@
 # nor does it submit to any jurisdiction.
 
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
