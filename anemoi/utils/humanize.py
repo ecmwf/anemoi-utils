@@ -82,17 +82,20 @@ def _plural(count):
 
 
 def seconds(seconds: float) -> str:
-    """_summary_
+    """Convert a number of seconds to a human readable string
 
     Parameters
     ----------
-    seconds : _type_
-        _description_
+    seconds : float
+        The number of seconds
 
     Returns
     -------
-    _type_
-        _description_
+    str
+        A human readable string
+
+    >>> seconds(4000)
+    '1 hour 6 minutes 40 seconds'
     """
     if isinstance(seconds, datetime.timedelta):
         seconds = seconds.total_seconds()
@@ -201,21 +204,37 @@ def __(n):
 
 
 def when(then, now=None, short=True):
-    """_summary_
+    """Generate a human readable string for a date, relative to now
 
     Parameters
     ----------
-    then : _type_
-        _description_
-    now : _type_, optional
-        _description_, by default None
+    then : datetime.datetime
+        A datetime
+    now : datetime.datetime, optional
+        The reference date, by default NOW
     short : bool, optional
-        _description_, by default True
+        Genererate shorter strings, by default True
 
     Returns
     -------
-    _type_
-        _description_
+    str
+        A human readable string
+
+    >>> when(datetime.datetime.now() - datetime.timedelta(hours=2))
+    '2 hours ago'
+
+    >>> when(datetime.datetime.now() - datetime.timedelta(days=1))
+    'yesterday at 08:46'
+
+    >>> when(datetime.datetime.now() - datetime.timedelta(days=5))
+    'last Sunday'
+
+    >>> when(datetime.datetime.now() - datetime.timedelta(days=365))
+    'last year'
+
+    >>> when(datetime.datetime.now() - datetime.timedelta(days=365))
+    'next year'
+
     """
     last = "last"
 
