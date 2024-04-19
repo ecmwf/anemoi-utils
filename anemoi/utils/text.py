@@ -17,6 +17,15 @@ from termcolor import colored
 
 
 def dotted_line(n=84, file=sys.stdout):
+    """_summary_
+
+    Parameters
+    ----------
+    n : int, optional
+        _description_, by default 84
+    file : _type_, optional
+        _description_, by default sys.stdout
+    """
     print("┈" * n, file=file)
 
 
@@ -218,6 +227,20 @@ class Tree:
 
 
 def table(rows, header, align, margin=0):
+    """_summary_
+
+    Parameters
+    ----------
+    rows : _type_
+        _description_
+    header : _type_
+        _description_
+    align : _type_
+        _description_
+    margin : int, optional
+        _description_, by default 0
+    """
+
     def _(x):
         try:
             x = float(x)
@@ -274,6 +297,9 @@ def progress(done, todo, width=80) -> str:
     -------
     str
         _description_
+
+    >>> print(progress(10, 100,width=50))
+    █████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
     """
     done = min(int(done / todo * width + 0.5), width)
     return green("█" * done) + red("█" * (width - done))
