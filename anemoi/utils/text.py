@@ -38,11 +38,12 @@ def boxed(text, min_width=80, max_width=80) -> str:
         A boxed version of the input text
 
 
-    >>> print(boxed("Hello,\nWorld!", max_width=40))
+    >>> print(boxed("Hello,\\nWorld!", max_width=40))
     ┌──────────────────────────────────────────┐
     │ Hello,                                   │
     │ World!                                   │
     └──────────────────────────────────────────┘
+
     """
 
     lines = text.split("\n")
