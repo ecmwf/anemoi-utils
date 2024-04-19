@@ -8,6 +8,7 @@
 """
 Text utilities
 """
+
 import sys
 from collections import defaultdict
 
@@ -47,7 +48,11 @@ def boxed(text, min_width=80, max_width=80) -> str:
         A boxed version of the input text
 
 
-
+    >>> print(boxed("Hello,\\nWorld!", max_width=40))
+    ┌──────────────────────────────────────────┐
+    │ Hello,                                   │
+    │ World!                                   │
+    └──────────────────────────────────────────┘
 
     """
 
@@ -294,7 +299,8 @@ def progress(done, todo, width=80) -> str:
     str
         _description_
 
-
+    >>> print(progress(10, 100,width=50))
+    █████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
     """
     done = min(int(done / todo * width + 0.5), width)
     return green("█" * done) + red("█" * (width - done))
