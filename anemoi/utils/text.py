@@ -15,26 +15,30 @@ from collections import defaultdict
 # https://en.wikipedia.org/wiki/Box-drawing_character
 
 
-def dotted_line(n=84) -> str:
-    """_summary_
+def dotted_line(width=84) -> str:
+    """Return a dotted line using '┈'
+
+    >>> dotted_line(40)
+    ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
     Parameters
     ----------
-    n : int, optional
-        _description_, by default 84
+    width : int, optional
+        Number of characters, by default 84
 
     Returns
     -------
     str
-        _description_
+        The dotted line
     """
-    return "┈" * n
+
+    return "┈" * width
 
 
 def boxed(text, min_width=80, max_width=80) -> str:
     """Put a box around a text
 
-    >>> print(boxed("Hello,\\nWorld!", max_width=40))
+    >>> boxed("Hello,\\nWorld!", max_width=40)
     ┌──────────────────────────────────────────┐
     │ Hello,                                   │
     │ World!                                   │
@@ -239,16 +243,34 @@ class Tree:
 def table(rows, header, align, margin=0):
     """_summary_
 
+    >>> table([['Aa', 12, 5],
+               ['B', 120, 1],
+               ['C', 9, 123]],
+               ['C1', 'C2', 'C3'],
+               ['<', '>', '>']))
+        C1 │  C2 │  C3
+        ───┼─────┼────
+        Aa │  12 │   5
+        B  │ 120 │   1
+        C  │   9 │ 123
+        ───┴─────┴────
+
     Parameters
     ----------
-    rows : _type_
-        _description_
-    header : _type_
-        _description_
-    align : _type_
-        _description_
+    rows : list of lists (or tuples)
+        The rows of the table
+    header : A list or tuple of strings
+        The header of the table
+    align : A list of '<', '>', or '^'
+        To align the columns to the left, right, or center
     margin : int, optional
-        _description_, by default 0
+        Extra spaces on the left side of the table, by default 0
+
+
+    Returns
+    -------
+    str
+        A table as a string
     """
 
     def _(x):
@@ -277,9 +299,15 @@ def table(rows, header, align, margin=0):
 
     result = []
     for i, row in enumerate(all_rows):
-        result.append(
-            " │ ".join([x.ljust(i) if align[j] == "<" else x.rjust(i) for j, (x, i) in enumerate(zip(row, lens))])
-        )
+
+        def _(x, i, j):
+            if align[j] == "<":
+                return x.ljust(i)
+            if align[j] == ">":
+                return x.rjust(i)
+            return x.center(i)
+
+        result.append(" │ ".join([_(x, i, j) for j, (x, i) in enumerate(zip(row, lens))]))
         if i == 0:
             result.append("─┼─".join(["─" * i for i in lens]))
 
