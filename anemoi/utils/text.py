@@ -12,8 +12,6 @@ Text utilities
 import sys
 from collections import defaultdict
 
-from termcolor import colored
-
 # https://en.wikipedia.org/wiki/Box-drawing_character
 
 
@@ -83,14 +81,20 @@ def boxed(text, min_width=80, max_width=80) -> str:
 
 
 def bold(text):
+    from termcolor import colored
+
     return colored(text, attrs=["bold"])
 
 
 def red(text):
+    from termcolor import colored
+
     return colored(text, "red")
 
 
 def green(text):
+    from termcolor import colored
+
     return colored(text, "green")
 
 
