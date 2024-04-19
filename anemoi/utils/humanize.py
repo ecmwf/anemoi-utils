@@ -147,20 +147,6 @@ def number(value):
 
 
 def plural(value, what):
-    """_summary_
-
-    Parameters
-    ----------
-    value : _type_
-        _description_
-    what : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-    """
     return f"{number(value)} {what}{_plural(value)}"
 
 
@@ -354,6 +340,23 @@ def string_distance(s, t):
 
 
 def did_you_mean(word, vocabulary):
+    """Pick the closest word in a vocabulary
+
+    >>> did_you_mean("aple", ["banana", "lemon", "apple", "orange"])
+    'apple'
+
+    Parameters
+    ----------
+    word : str
+        The word to look for
+    vocabulary : list of strings
+        The list of known words
+
+    Returns
+    -------
+    str
+        The closest word in the vocabulary
+    """
     _, best = min((string_distance(word, w), w) for w in vocabulary)
     # if distance < min(len(word), len(best)):
     return best
@@ -366,6 +369,24 @@ def dict_to_human(query):
 
 
 def list_to_human(lst, conjunction="and"):
+    """Convert a list of strings to a human readable string
+
+    >>> list_to_human(["banana", "lemon", "apple", "orange"])
+    'banana, lemon, apple and orange'
+
+
+    Parameters
+    ----------
+    lst : list of str
+        The list of strings to concatenate
+    conjunction : str, optional
+        The word to connect the last word in the list (like "or" or "and"), by default "and"
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     if not lst:
         return "??"
 

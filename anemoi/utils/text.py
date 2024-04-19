@@ -241,7 +241,7 @@ class Tree:
 
 
 def table(rows, header, align, margin=0):
-    """_summary_
+    """Format a table
 
     >>> table([['Aa', 12, 5],
                ['B', 120, 1],
