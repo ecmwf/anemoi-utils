@@ -7,3 +7,5 @@ nbsphinx
 pandoc
 
 rstfmt
+
+termcolor
