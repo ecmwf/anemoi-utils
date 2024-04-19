@@ -21,6 +21,7 @@ def bytes(n: float) -> str:
 
     >>> bytes(4096)
     '4 KiB'
+
     >>> bytes(4000)
     '3.9 KiB'
 
@@ -84,6 +85,10 @@ def _plural(count):
 def seconds(seconds: float) -> str:
     """Convert a number of seconds to a human readable string
 
+    >>> seconds(4000)
+    '1 hour 6 minutes 40 seconds'
+
+
     Parameters
     ----------
     seconds : float
@@ -94,8 +99,6 @@ def seconds(seconds: float) -> str:
     str
         A human readable string
 
-    >>> seconds(4000)
-    '1 hour 6 minutes 40 seconds'
     """
     if isinstance(seconds, datetime.timedelta):
         seconds = seconds.total_seconds()
@@ -206,19 +209,6 @@ def __(n):
 def when(then, now=None, short=True):
     """Generate a human readable string for a date, relative to now
 
-    Parameters
-    ----------
-    then : datetime.datetime
-        A datetime
-    now : datetime.datetime, optional
-        The reference date, by default NOW
-    short : bool, optional
-        Genererate shorter strings, by default True
-
-    Returns
-    -------
-    str
-        A human readable string
 
     >>> when(datetime.datetime.now() - datetime.timedelta(hours=2))
     '2 hours ago'
@@ -232,8 +222,22 @@ def when(then, now=None, short=True):
     >>> when(datetime.datetime.now() - datetime.timedelta(days=365))
     'last year'
 
-    >>> when(datetime.datetime.now() - datetime.timedelta(days=365))
+    >>> when(datetime.datetime.now() + datetime.timedelta(days=365))
     'next year'
+
+    Parameters
+    ----------
+    then : datetime.datetime
+        A datetime
+    now : datetime.datetime, optional
+        The reference date, by default NOW
+    short : bool, optional
+        Genererate shorter strings, by default True
+
+    Returns
+    -------
+    str
+        A human readable string
 
     """
     last = "last"

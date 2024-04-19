@@ -33,6 +33,12 @@ def dotted_line(n=84, file=sys.stdout):
 def boxed(text, min_width=80, max_width=80) -> str:
     """Put a box around a text
 
+    >>> print(boxed("Hello,\\nWorld!", max_width=40))
+    ┌──────────────────────────────────────────┐
+    │ Hello,                                   │
+    │ World!                                   │
+    └──────────────────────────────────────────┘
+
     Parameters
     ----------
     text : str
@@ -48,11 +54,7 @@ def boxed(text, min_width=80, max_width=80) -> str:
         A boxed version of the input text
 
 
-    >>> print(boxed("Hello,\\nWorld!", max_width=40))
-    ┌──────────────────────────────────────────┐
-    │ Hello,                                   │
-    │ World!                                   │
-    └──────────────────────────────────────────┘
+
 
     """
 
@@ -285,6 +287,9 @@ def table(rows, header, align, margin=0):
 def progress(done, todo, width=80) -> str:
     """_summary_
 
+    >>> print(progress(10, 100,width=50))
+    █████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+
     Parameters
     ----------
     done : function
@@ -299,8 +304,7 @@ def progress(done, todo, width=80) -> str:
     str
         _description_
 
-    >>> print(progress(10, 100,width=50))
-    █████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+
     """
     done = min(int(done / todo * width + 0.5), width)
     return green("█" * done) + red("█" * (width - done))
