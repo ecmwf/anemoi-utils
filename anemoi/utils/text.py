@@ -21,21 +21,28 @@ def dotted_line(n=84, file=sys.stdout):
 
 
 def boxed(text, min_width=80, max_width=80) -> str:
-    """_summary_
+    """Put a box around a text
 
     Parameters
     ----------
-    text : _type_
-        _description_
+    text : str
+        The text to box
     min_width : int, optional
-        _description_, by default 80
+        The minimum width of the box, by default 80
     max_width : int, optional
-        _description_, by default 80
+        The maximum width of the box, by default 80
 
     Returns
     -------
     str
-        _description_
+        A boxed version of the input text
+
+
+    >>> print(boxed("Hello,\nWorld!", max_width=40))
+    ┌──────────────────────────────────────────┐
+    │ Hello,                                   │
+    │ World!                                   │
+    └──────────────────────────────────────────┘
     """
 
     lines = text.split("\n")
