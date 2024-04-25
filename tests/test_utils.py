@@ -6,9 +6,25 @@
 # nor does it submit to any jurisdiction.
 
 
-def test_utils():
-    pass
+from anemoi.utils.config import DotDict
+
+
+def test_dotdict():
+    d = DotDict(a=1, b=2, c=dict(d=3, e=4))
+    assert d.a == 1
+    assert d.b == 2
+    assert d.c.d == 3
+    assert d.c.e == 4
+
+    d.a = 10
+    assert d.a == 10
+
+    d.d = dict(f=5)
+    assert d.d.f == 5
+
+    d.d.x = 6
+    assert d.d.x == 6
 
 
 if __name__ == "__main__":
-    test_utils()
+    test_dotdict()

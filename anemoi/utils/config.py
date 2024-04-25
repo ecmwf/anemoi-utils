@@ -21,11 +21,11 @@ LOG = logging.getLogger(__name__)
 class DotDict(dict):
     """A dictionary that allows access to its keys as attributes"""
 
-    def __getitem__(self, key):
-        item = super().__getitem__(key)
-        if isinstance(item, dict):
-            return DotDict(item)
-        return item
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for k, v in self.items():
+            if isinstance(v, dict):
+                self[k] = DotDict(v)
 
     def __getattr__(self, attr):
         try:
@@ -34,7 +34,12 @@ class DotDict(dict):
             raise AttributeError(attr)
 
     def __setattr__(self, attr, value):
+        if isinstance(value, dict):
+            value = DotDict(value)
         self[attr] = value
+
+    def __repr__(self) -> str:
+        return f"DotDict({super().__repr__()})"
 
 
 CONFIG = None
