@@ -10,7 +10,7 @@ import re
 import requests
 
 
-def shortname_to_paramid(name):
+def _search(name):
     name = re.escape(name)
     r = requests.get(f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true")
     r.raise_for_status()
@@ -21,4 +21,36 @@ def shortname_to_paramid(name):
     if len(results) > 1:
         raise ValueError(f"{name} is ambiguous")
 
-    return results[0]["id"]
+    return results[0]
+
+
+def shortname_to_paramid(shortname: str) -> int:
+    """Return the GRIB parameter id given its shortname.
+
+    Parameters
+    ----------
+    shortname : str
+        Parameter shortname.
+
+    Returns
+    -------
+    int
+        Parameter id.
+    """
+    return _search(shortname)["id"]
+
+
+def paramid_to_shortname(paramid: int) -> str:
+    """Return the shortname of a GRIB parameter given its id.
+
+    Parameters
+    ----------
+    paramid : int
+        Parameter id.
+
+    Returns
+    -------
+    str
+        Parameter shortname.
+    """
+    return _search(str(paramid))["shortname"]
