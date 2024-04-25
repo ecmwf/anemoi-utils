@@ -1,6 +1,6 @@
-######
- text
-######
+#######
+ dates
+#######
 
 .. automodule:: anemoi.utils.dates
    :members:
