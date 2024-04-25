@@ -42,9 +42,11 @@ text_requires = [
     "termcolor",
 ]
 
+grib_requires = ["requests"]
+
 doc_requires = ["sphinx", "sphinx_rtd_theme", "nbsphinx", "pandoc"]
 
-all_requires = install_requires + provenance_requires + text_requires
+all_requires = install_requires + provenance_requires + text_requires + grib_requires
 dev_requires = doc_requires + all_requires
 
 setuptools.setup(
@@ -63,6 +65,7 @@ setuptools.setup(
     extras_require={
         "text": text_requires,
         "provenance": provenance_requires,
+        "grib": grib_requires,
         "dev": dev_requires,
         "all": all_requires,
     },
