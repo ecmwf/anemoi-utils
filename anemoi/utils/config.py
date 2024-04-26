@@ -19,7 +19,17 @@ LOG = logging.getLogger(__name__)
 
 
 class DotDict(dict):
-    """A dictionary that allows access to its keys as attributes"""
+    """A dictionary that allows access to its keys as attributes.
+
+    >>> d = DotDict({"a": 1, "b": {"c": 2}})
+    >>> d.a
+    1
+    >>> d.b.c
+    2
+    >>> d.b = 3
+    >>> d.b
+    3
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
