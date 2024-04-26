@@ -29,6 +29,13 @@ class DotDict(dict):
     >>> d.b = 3
     >>> d.b
     3
+
+    The class is recursive, so nested dictionaries are also DotDicts.
+
+    The DotDict class has the same constructor as the dict class.
+
+    >>> d = DotDict(a=1, b=2)
+
     """
 
     def __init__(self, *args, **kwargs):
