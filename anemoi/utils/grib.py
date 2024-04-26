@@ -19,7 +19,8 @@ def _search(name):
         raise KeyError(name)
 
     if len(results) > 1:
-        raise ValueError(f"{name} is ambiguous")
+        names = [f'{r.get("id")} ({r.get("name")})' for r in results]
+        raise ValueError(f"{name} is ambiguous: {', '.join(names)}")
 
     return results[0]
 
