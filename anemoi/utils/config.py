@@ -63,7 +63,7 @@ CONFIG = None
 
 
 def load_config():
-    """Load the configuration from disk
+    """Load the configuration from `~/.anemoi.toml`.
 
     Returns
     -------
@@ -87,7 +87,7 @@ def load_config():
 
 
 def save_config():
-    """Save the configuration to disk"""
+    """Save the configuration to `~/.anemoi.toml`."""
 
     conf = os.path.expanduser("~/.anemoi.toml")
     with open(conf, "w") as f:
