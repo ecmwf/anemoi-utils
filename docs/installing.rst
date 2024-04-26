@@ -6,7 +6,15 @@ To install the package, you can use the following command:
 
 .. code:: bash
 
-   pip install anemoi-utils
+   pip install anemoi-utils[...options...]
+
+The options are:
+
+-  ``dev``: install the development dependencies
+-  ``all``: install all the dependencies
+-  ``text``: install the dependencies for text processing
+-  ``provenance``: install the dependencies for provenance tracking
+-  ``grib``: install the dependencies for looking up GRIB parameters
 
 **************
  Contributing
