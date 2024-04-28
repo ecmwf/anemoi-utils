@@ -7,9 +7,7 @@
 # nor does it submit to any jurisdiction.
 #
 
-"""
-Generate human readable strings
-"""
+"""Generate human readable strings"""
 
 import datetime
 import re
@@ -87,7 +85,6 @@ def seconds(seconds: float) -> str:
 
     >>> seconds(4000)
     '1 hour 6 minutes 40 seconds'
-
 
     Parameters
     ----------
@@ -194,7 +191,6 @@ def __(n):
 
 def when(then, now=None, short=True):
     """Generate a human readable string for a date, relative to now
-
 
     >>> when(datetime.datetime.now() - datetime.timedelta(hours=2))
     '2 hours ago'
@@ -373,7 +369,6 @@ def list_to_human(lst, conjunction="and"):
 
     >>> list_to_human(["banana", "lemon", "apple", "orange"])
     'banana, lemon, apple and orange'
-
 
     Parameters
     ----------
