@@ -58,6 +58,6 @@ def paramid_to_shortname(paramid: int) -> str:
         Parameter shortname.
 
     >>> paramid_to_shortname(167)
-    "2t"
+    '2t'
     """
     return _search(str(paramid))["shortname"]
