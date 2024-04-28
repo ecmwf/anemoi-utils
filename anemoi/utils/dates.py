@@ -11,6 +11,7 @@ import datetime
 
 
 def no_time_zone(date):
+    """Remove time zone information from a date."""
     return date.replace(tzinfo=None)
 
 
@@ -94,8 +95,26 @@ def _make_months(months):
 
 
 class DateTimes:
+    """The DateTimes class is an iterator that generates datetime objects within a given range."""
 
     def __init__(self, start, end, increment=24, *, day_of_month=None, day_of_week=None, calendar_months=None):
+        """_summary_
+
+        Parameters
+        ----------
+        start : _type_
+            _description_
+        end : _type_
+            _description_
+        increment : int, optional
+            _description_, by default 24
+        day_of_month : _type_, optional
+            _description_, by default None
+        day_of_week : _type_, optional
+            _description_, by default None
+        calendar_months : _type_, optional
+            _description_, by default None
+        """
         self.start = as_datetime(start)
         self.end = as_datetime(end)
         self.increment = datetime.timedelta(hours=increment)
@@ -117,8 +136,18 @@ class DateTimes:
 
 
 class HindcastDatesTimes:
+    """The HindcastDatesTimes class is an iterator that generates datetime objects within a given range."""
 
     def __init__(self, reference_dates, years=20):
+        """_summary_
+
+        Parameters
+        ----------
+        reference_dates : _type_
+            _description_
+        years : int, optional
+            _description_, by default 20
+        """
 
         self.reference_dates = reference_dates
         self.years = (1, years + 1)
@@ -134,14 +163,30 @@ class HindcastDatesTimes:
 
 
 class Year(DateTimes):
+    """Year is defined as the months of January to December."""
 
     def __init__(self, year, **kwargs):
+        """_summary_
+
+        Parameters
+        ----------
+        year : int
+            _description_
+        """
         super().__init__(datetime.datetime(year, 1, 1), datetime.datetime(year, 12, 31), **kwargs)
 
 
 class Winter(DateTimes):
+    """Winter is defined as the months of December, January and February."""
 
     def __init__(self, year, **kwargs):
+        """_summary_
+
+        Parameters
+        ----------
+        year : int
+            _description_
+        """
         super().__init__(
             datetime.datetime(year, 12, 1),
             datetime.datetime(year + 1, 2, calendar.monthrange(year + 1, 2)[1]),
@@ -150,18 +195,42 @@ class Winter(DateTimes):
 
 
 class Spring(DateTimes):
+    """Spring is defined as the months of March, April and May."""
 
     def __init__(self, year, **kwargs):
+        """_summary_
+
+        Parameters
+        ----------
+        year : int
+            _description_
+        """
         super().__init__(datetime.datetime(year, 3, 1), datetime.datetime(year, 5, 31), **kwargs)
 
 
 class Summer(DateTimes):
+    """Summer is defined as the months of June, July and August."""
 
     def __init__(self, year, **kwargs):
+        """_summary_
+
+        Parameters
+        ----------
+        year : int
+            _description_
+        """
         super().__init__(datetime.datetime(year, 6, 1), datetime.datetime(year, 8, 31), **kwargs)
 
 
 class Autumn(DateTimes):
+    """Autumn is defined as the months of September, October and November."""
 
     def __init__(self, year, **kwargs):
+        """_summary_
+
+        Parameters
+        ----------
+        year : int
+            _description_
+        """
         super().__init__(datetime.datetime(year, 9, 1), datetime.datetime(year, 11, 30), **kwargs)
