@@ -5,8 +5,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-"""
-Collect information about the current environment, like:
+"""Collect information about the current environment, like:
 
  - The Python version
  - The versions of the modules which are currently loaded
@@ -214,7 +213,6 @@ def git_check(*args):
     -------
     dict
         An object with the git information for the given arguments.
-
 
     >>> {
             "anemoi.utils": {
