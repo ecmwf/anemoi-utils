@@ -50,7 +50,13 @@ text = ["termcolor"]
 
 grib = ["requests"]
 
-docs = ["sphinx", "sphinx_rtd_theme", "nbsphinx", "pandoc"]
+# Loaded by read-the-docs
+# `pip install .[docs]`
+docs = [
+    "tomli",     # Only needed before 3.11
+    "termcolor",
+    "requests",
+]
 
 all = [
     "tomli",     # Only needed before 3.11
