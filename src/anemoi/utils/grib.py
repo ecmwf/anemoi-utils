@@ -5,6 +5,12 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+"""Utilities for working with GRIB parameters.
+
+See https://codes.ecmwf.int/grib/param-db/ for more information.
+
+"""
+
 import re
 
 import requests

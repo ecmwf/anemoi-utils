@@ -11,7 +11,19 @@ import datetime
 
 
 def no_time_zone(date):
-    """Remove time zone information from a date."""
+    """Remove time zone information from a date.
+
+    Parameters
+    ----------
+    date : datetime.datetime
+        A datetime object.
+
+    Returns
+    -------
+    datetime.datetime
+        The datetime object without time zone information.
+    """
+
     return date.replace(tzinfo=None)
 
 
