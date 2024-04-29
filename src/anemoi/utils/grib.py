@@ -44,7 +44,6 @@ def shortname_to_paramid(shortname: str) -> int:
     int
         Parameter id.
 
-
     >>> shortname_to_paramid("2t")
     167
 
@@ -64,7 +63,6 @@ def paramid_to_shortname(paramid: int) -> str:
     -------
     str
         Parameter shortname.
-
 
     >>> paramid_to_shortname(167)
     '2t'
