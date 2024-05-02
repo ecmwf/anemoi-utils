@@ -11,8 +11,8 @@ See https://codes.ecmwf.int/grib/param-db/ for more information.
 
 """
 
-import re
 import logging
+import re
 
 import requests
 
