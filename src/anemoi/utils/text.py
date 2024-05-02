@@ -5,9 +5,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-"""
-Text utilities
-"""
+"""Text utilities"""
 
 import sys
 from collections import defaultdict
@@ -57,9 +55,6 @@ def boxed(text, min_width=80, max_width=80) -> str:
     -------
     str
         A boxed version of the input text
-
-
-
 
     """
 
@@ -266,7 +261,6 @@ def table(rows, header, align, margin=0):
     margin : int, optional
         Extra spaces on the left side of the table, by default 0
 
-
     Returns
     -------
     str
@@ -338,7 +332,6 @@ def progress(done, todo, width=80) -> str:
     -------
     str
         _description_
-
 
     """
     done = min(int(done / todo * width + 0.5), width)

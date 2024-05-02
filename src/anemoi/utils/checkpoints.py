@@ -6,8 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-"""
-Read and write extra metadata in PyTorch checkpoints files. These files
+"""Read and write extra metadata in PyTorch checkpoints files. These files
 are zip archives containing the model weights.
 """
 

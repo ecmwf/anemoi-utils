@@ -62,8 +62,8 @@ repos:
   hooks:
     - id: rstfmt
 
-# - repo: ../pre-commit-docconvert
-#   rev: 07f5748
-#   hooks:
-#   - id: docconvert
-#     args: ["--in-place", "--output", "numpy"]
+- repo: https://github.com/b8raoult/pre-commit-docconvert
+  rev: "0.1.4"
+  hooks:
+  - id: docconvert
+    args: ["numpy"]
