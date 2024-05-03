@@ -15,7 +15,10 @@ import re
 
 import requests
 
+from .caching import cached
 
+
+@cached(collection="grib", expires=30 * 24 * 60 * 60)
 def _search(name):
     name = re.escape(name)
     r = requests.get(f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true")
@@ -71,3 +74,24 @@ def paramid_to_shortname(paramid: int) -> str:
 
     """
     return _search(str(paramid))["shortname"]
+
+
+def units(param) -> str:
+    """Return the units of a GRIB parameter given its name or id.
+
+    Parameters
+    ----------
+    paramid : int or str
+        Parameter id ir name.
+
+    Returns
+    -------
+    str
+        Parameter unit.
+
+
+    >>> unit(167)
+    'K'
+
+    """
+    return _search(str(param))["units"]

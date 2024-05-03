@@ -7,6 +7,8 @@
 
 
 from anemoi.utils.config import DotDict
+from anemoi.utils.grib import paramid_to_shortname
+from anemoi.utils.grib import shortname_to_paramid
 
 
 def test_dotdict():
@@ -26,5 +28,10 @@ def test_dotdict():
     assert d.d.x == 6
 
 
+def test_grib():
+    assert shortname_to_paramid("2t") == 167
+    assert paramid_to_shortname(167) == "2t"
+
+
 if __name__ == "__main__":
-    test_dotdict()
+    test_grib()
