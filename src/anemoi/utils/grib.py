@@ -11,11 +11,14 @@ See https://codes.ecmwf.int/grib/param-db/ for more information.
 
 """
 
+import logging
 import re
 
 import requests
 
 from .caching import cached
+
+LOG = logging.getLogger(__name__)
 
 
 @cached(collection="grib", expires=30 * 24 * 60 * 60)
@@ -29,7 +32,12 @@ def _search(name):
 
     if len(results) > 1:
         names = [f'{r.get("id")} ({r.get("name")})' for r in results]
-        raise ValueError(f"{name} is ambiguous: {', '.join(names)}")
+        dissemination = [r for r in results if "dissemination" in r.get("access_ids", [])]
+        if len(dissemination) == 1:
+            return dissemination[0]
+
+        results = sorted(results, key=lambda x: x["id"])
+        LOG.warning(f"{name} is ambiguous: {', '.join(names)}. Using param_id={results[0]['id']}")
 
     return results[0]
 
@@ -46,7 +54,6 @@ def shortname_to_paramid(shortname: str) -> int:
     -------
     int
         Parameter id.
-
 
     >>> shortname_to_paramid("2t")
     167
@@ -68,7 +75,6 @@ def paramid_to_shortname(paramid: int) -> str:
     str
         Parameter shortname.
 
-
     >>> paramid_to_shortname(167)
     '2t'
 
@@ -88,7 +94,6 @@ def units(param) -> str:
     -------
     str
         Parameter unit.
-
 
     >>> unit(167)
     'K'
