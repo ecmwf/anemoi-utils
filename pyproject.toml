@@ -88,3 +88,6 @@ Issues = "https://github.com/ecmwf/anemoi-utils/issues"
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
+
+[tool.setuptools.package-data]
+"anemoi.utils.mars" = ["*.yaml"]
