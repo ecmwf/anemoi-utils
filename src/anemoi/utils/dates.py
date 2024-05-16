@@ -10,6 +10,16 @@ import calendar
 import datetime
 
 
+def _normalise_frequency(frequency):
+    if isinstance(frequency, int):
+        return frequency
+    assert isinstance(frequency, str), (type(frequency), frequency)
+
+    unit = frequency[-1].lower()
+    v = int(frequency[:-1])
+    return {"h": v, "d": v * 24}[unit]
+
+
 def no_time_zone(date):
     """Remove time zone information from a date.
 
@@ -27,6 +37,7 @@ def no_time_zone(date):
     return date.replace(tzinfo=None)
 
 
+# this function is use in anemoi-datasets
 def as_datetime(date):
     """Convert a date to a datetime object, removing any time zone information.
 
@@ -273,24 +284,38 @@ class EnumDateTimes:
             yield as_datetime(date)
 
 
-def datetimes_factory(args):
-    if isinstance(args, dict):
-        name = args.get("name")
+def datetimes_factory(*args, **kwargs):
+    if args and kwargs:
+        raise ValueError("Cannot provide both args and kwargs for a list of dates")
+
+    if not args and not kwargs:
+        raise ValueError("No dates provided")
+
+    if kwargs:
+        name = kwargs.get("name")
 
         if name == "hindcast":
-            reference_dates = args["reference_dates"]
+            reference_dates = kwargs["reference_dates"]
             reference_dates = datetimes_factory(reference_dates)
-            years = args["years"]
+            years = kwargs["years"]
             return HindcastDatesTimes(reference_dates=reference_dates, years=years)
 
-        args = args.copy()
-        frequency = args.pop("frequency", 24)
-        args["increment"] = frequency
-        return DateTimes(**args)
+        kwargs = kwargs.copy()
+        if "frequency" in kwargs:
+            freq = kwargs.pop("frequency")
+            kwargs["increment"] = _normalise_frequency(freq)
+        return DateTimes(**kwargs)
 
-    if isinstance(args, list):
-        if all(isinstance(arg, dict) for arg in args):
-            return ConcatDateTimes(*[datetimes_factory(arg) for arg in args])
-        else:
-            return EnumDateTimes(args)
-    raise ValueError(f"Invalid dates provided : {args}")
+    if not any((isinstance(x, dict) or isinstance(x, list)) for x in args):
+        return EnumDateTimes(args)
+
+    if len(args) == 1:
+        a = args[0]
+
+        if isinstance(a, dict):
+            return datetimes_factory(**a)
+
+        if isinstance(a, list):
+            return datetimes_factory(*a)
+
+    return ConcatDateTimes(*[datetimes_factory(a) for a in args])
