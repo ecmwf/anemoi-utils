@@ -41,6 +41,7 @@ classifiers = [
 
 dependencies = [
     "tomli", # Only needed before 3.11
+    "pyyaml",
 ]
 
 [project.optional-dependencies]
