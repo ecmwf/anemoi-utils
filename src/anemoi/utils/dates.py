@@ -10,7 +10,7 @@ import calendar
 import datetime
 
 
-def _normalise_frequency(frequency):
+def normalise_frequency(frequency):
     if isinstance(frequency, int):
         return frequency
     assert isinstance(frequency, str), (type(frequency), frequency)
@@ -303,7 +303,7 @@ def datetimes_factory(*args, **kwargs):
         kwargs = kwargs.copy()
         if "frequency" in kwargs:
             freq = kwargs.pop("frequency")
-            kwargs["increment"] = _normalise_frequency(freq)
+            kwargs["increment"] = normalise_frequency(freq)
         return DateTimes(**kwargs)
 
     if not any((isinstance(x, dict) or isinstance(x, list)) for x in args):
