@@ -41,6 +41,7 @@ classifiers = [
 
 dependencies = [
     "tomli", # Only needed before 3.11
+    "pyyaml",
 ]
 
 [project.optional-dependencies]
@@ -88,3 +89,6 @@ Issues = "https://github.com/ecmwf/anemoi-utils/issues"
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
+
+[tool.setuptools.package-data]
+"anemoi.utils.mars" = ["*.yaml"]

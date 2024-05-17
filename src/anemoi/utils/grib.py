@@ -16,10 +16,21 @@ import re
 
 import requests
 
+from .caching import cached
+
 LOG = logging.getLogger(__name__)
 
 
-def _search(name):
+@cached(collection="grib", expires=30 * 24 * 60 * 60)
+def _units():
+    r = requests.get("https://codes.ecmwf.int/parameter-database/api/v1/unit/")
+    r.raise_for_status()
+    units = r.json()
+    return {str(u["id"]): u["name"] for u in units}
+
+
+@cached(collection="grib", expires=30 * 24 * 60 * 60)
+def _search_param(name):
     name = re.escape(name)
     r = requests.get(f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true")
     r.raise_for_status()
@@ -56,7 +67,7 @@ def shortname_to_paramid(shortname: str) -> int:
     167
 
     """
-    return _search(shortname)["id"]
+    return _search_param(shortname)["id"]
 
 
 def paramid_to_shortname(paramid: int) -> str:
@@ -76,4 +87,46 @@ def paramid_to_shortname(paramid: int) -> str:
     '2t'
 
     """
-    return _search(str(paramid))["shortname"]
+    return _search_param(str(paramid))["shortname"]
+
+
+def units(param) -> str:
+    """Return the units of a GRIB parameter given its name or id.
+
+    Parameters
+    ----------
+    paramid : int or str
+        Parameter id ir name.
+
+    Returns
+    -------
+    str
+        Parameter unit.
+
+    >>> unit(167)
+    'K'
+
+    """
+
+    unit_id = str(_search_param(str(param))["unit_id"])
+    return _units()[unit_id]
+
+
+def must_be_positive(param):
+    """Check if a parameter must be positive.
+
+    Parameters
+    ----------
+    param : int or str
+        Parameter id or shortname.
+
+    Returns
+    -------
+    bool
+        True if the parameter must be positive.
+
+    >>> must_be_positive("tp")
+    True
+
+    """
+    return units(param) in ["m", "kg kg**-1", "m of water equivalent"]

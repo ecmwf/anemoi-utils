@@ -10,6 +10,16 @@ import calendar
 import datetime
 
 
+def normalise_frequency(frequency):
+    if isinstance(frequency, int):
+        return frequency
+    assert isinstance(frequency, str), (type(frequency), frequency)
+
+    unit = frequency[-1].lower()
+    v = int(frequency[:-1])
+    return {"h": v, "d": v * 24}[unit]
+
+
 def no_time_zone(date):
     """Remove time zone information from a date.
 
@@ -27,6 +37,7 @@ def no_time_zone(date):
     return date.replace(tzinfo=None)
 
 
+# this function is use in anemoi-datasets
 def as_datetime(date):
     """Convert a date to a datetime object, removing any time zone information.
 
@@ -162,11 +173,15 @@ class HindcastDatesTimes:
         """
 
         self.reference_dates = reference_dates
-        self.years = (1, years + 1)
+
+        if isinstance(years, list):
+            self.years = years
+        else:
+            self.years = range(1, years + 1)
 
     def __iter__(self):
         for reference_date in self.reference_dates:
-            for year in range(*self.years):
+            for year in self.years:
                 if reference_date.month == 2 and reference_date.day == 29:
                     date = datetime.datetime(reference_date.year - year, 2, 28)
                 else:
@@ -246,3 +261,61 @@ class Autumn(DateTimes):
             _description_
         """
         super().__init__(datetime.datetime(year, 9, 1), datetime.datetime(year, 11, 30), **kwargs)
+
+
+class ConcatDateTimes:
+    def __init__(self, *dates):
+        if len(dates) == 1 and isinstance(dates[0], list):
+            dates = dates[0]
+
+        self.dates = dates
+
+    def __iter__(self):
+        for date in self.dates:
+            yield from date
+
+
+class EnumDateTimes:
+    def __init__(self, dates):
+        self.dates = dates
+
+    def __iter__(self):
+        for date in self.dates:
+            yield as_datetime(date)
+
+
+def datetimes_factory(*args, **kwargs):
+    if args and kwargs:
+        raise ValueError("Cannot provide both args and kwargs for a list of dates")
+
+    if not args and not kwargs:
+        raise ValueError("No dates provided")
+
+    if kwargs:
+        name = kwargs.get("name")
+
+        if name == "hindcast":
+            reference_dates = kwargs["reference_dates"]
+            reference_dates = datetimes_factory(reference_dates)
+            years = kwargs["years"]
+            return HindcastDatesTimes(reference_dates=reference_dates, years=years)
+
+        kwargs = kwargs.copy()
+        if "frequency" in kwargs:
+            freq = kwargs.pop("frequency")
+            kwargs["increment"] = normalise_frequency(freq)
+        return DateTimes(**kwargs)
+
+    if not any((isinstance(x, dict) or isinstance(x, list)) for x in args):
+        return EnumDateTimes(args)
+
+    if len(args) == 1:
+        a = args[0]
+
+        if isinstance(a, dict):
+            return datetimes_factory(**a)
+
+        if isinstance(a, list):
+            return datetimes_factory(*a)
+
+    return ConcatDateTimes(*[datetimes_factory(a) for a in args])
