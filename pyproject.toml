@@ -85,6 +85,8 @@ Repository = "https://github.com/ecmwf/anemoi-utils/"
 Issues = "https://github.com/ecmwf/anemoi-utils/issues"
 # Changelog = "https://github.com/ecmwf/anemoi-utils/CHANGELOG.md"
 
+[project.scripts]
+anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
