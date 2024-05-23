@@ -10,11 +10,11 @@
 are zip archives containing the model weights.
 """
 
+import fnmatch
 import json
 import logging
 import os
 import zipfile
-import fnmatch
 
 LOG = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def load_metadata(path: str, name: str = DEFAULT_NAME):
     with zipfile.ZipFile(path, "r") as f:
         metadata = None
         for b in f.namelist():
-            if fnmatch.fnmatch(os.path.basename(b) ,name):
+            if fnmatch.fnmatch(os.path.basename(b), name):
                 if metadata is not None:
                     LOG.warning(f"Found two '{name}' if {path}")
                 metadata = b
