@@ -22,10 +22,7 @@ class Checkpoint(Command):
     def run(self, args):
         from anemoi.utils.checkpoints import load_metadata
 
-        try:
-            checkpoint = load_metadata(args.path)
-        except ValueError:
-            checkpoint = load_metadata(args.path, "ai-models.json")
+        checkpoint = load_metadata(args.path, "*.json")
         print(json.dumps(checkpoint, sort_keys=True, indent=4))
 
 
