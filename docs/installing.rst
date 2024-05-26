@@ -1,34 +1,32 @@
-############
- Installing
-############
+Installing
+==========
 
 To install the package, you can use the following command:
 
-.. code:: bash
+.. code-block:: bash
 
-   pip install anemoi-utils[...options...]
+    pip install anemoi-utils[...options...]
 
 The options are:
 
--  ``dev``: install the development dependencies
--  ``all``: install all the dependencies
--  ``text``: install the dependencies for text processing
--  ``provenance``: install the dependencies for provenance tracking
--  ``grib``: install the dependencies for looking up GRIB parameters
+- ``dev``: install the development dependencies
+- ``all``: install all the dependencies
+- ``text``: install the dependencies for text processing
+- ``provenance``: install the dependencies for provenance tracking
+- ``grib``: install the dependencies for looking up GRIB parameters
 
-**************
- Contributing
-**************
+Contributing
+------------
 
-.. code:: bash
+.. code-block:: bash
 
-   git clone ...
-   cd anemoi-utils
-   pip install .[dev]
-   pip install -r docs/requirements.txt
+    git clone ...
+    cd anemoi-utils
+    pip install .[dev]
+    pip install -r docs/requirements.txt
 
 You may also have to install pandoc on MacOS:
 
-.. code:: bash
+.. code-block:: bash
 
-   brew install pandoc
+    brew install pandoc

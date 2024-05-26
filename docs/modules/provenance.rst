@@ -1,8 +1,7 @@
-############
- provenance
-############
+provenance
+==========
 
 .. automodule:: anemoi.utils.provenance
-   :members:
-   :no-undoc-members:
-   :show-inheritance:
+    :members:
+    :no-undoc-members:
+    :show-inheritance:
