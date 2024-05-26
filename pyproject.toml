@@ -40,7 +40,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "tomli", # Only needed before 3.11
+    "tomli",  # Only needed before 3.11
     "pyyaml",
 ]
 
@@ -54,9 +54,14 @@ grib = ["requests"]
 # Loaded by read-the-docs
 # `pip install .[docs]`
 docs = [
-    "tomli",     # Only needed before 3.11
+    "tomli",            # Only needed before 3.11
     "termcolor",
     "requests",
+    "sphinx",
+    "sphinx_rtd_theme",
+    "nbsphinx",
+    "pandoc",
+    "sphinx_argparse",
 ]
 
 all = [
@@ -73,10 +78,6 @@ dev = [
     "nvsmi",
     "termcolor",
     "requests",
-    "sphinx",
-    "sphinx_rtd_theme",
-    "nbsphinx",
-    "pandoc",
 ]
 
 [project.urls]
