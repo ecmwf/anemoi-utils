@@ -95,7 +95,7 @@ def save_metadata(path, metadata, name=DEFAULT_NAME):
         )
 
 
-def replace_metadata(path, metadata, name):
+def replace_metadata(path, metadata, name, rename=None):
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
     with TemporaryDirectory() as temp_dir:
@@ -106,6 +106,8 @@ def replace_metadata(path, metadata, name):
                 if f == name:
                     with open(full, "w") as f:
                         json.dump(metadata, f)
+                    if rename is not None:
+                        os.rename(full, os.path.join(root, os.path.basename(rename)))
 
         with zipfile.ZipFile(new_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(temp_dir):
