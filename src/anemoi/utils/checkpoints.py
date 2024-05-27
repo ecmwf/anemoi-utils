@@ -96,7 +96,7 @@ def save_metadata(path, metadata, name=DEFAULT_NAME):
 
 
 def replace_metadata(path, metadata, name):
-    new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}"
+    new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
     with TemporaryDirectory() as temp_dir:
         zipfile.ZipFile(path, "r").extractall(temp_dir)
