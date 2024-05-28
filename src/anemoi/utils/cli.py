@@ -41,7 +41,7 @@ def make_parser(description, commands):
 
     subparsers = parser.add_subparsers(help="commands:", dest="command")
     for name, command in commands.items():
-        command_parser = subparsers.add_parser(name, help=command.__doc__)
+        command_parser = subparsers.add_parser(name, description=command.__doc__, help=command.__doc__)
         command.add_arguments(command_parser)
 
     return parser
