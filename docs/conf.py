@@ -14,14 +14,9 @@ import datetime
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.abspath(".."), "src"))
-
-
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
 
-# top = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
-# sys.path.insert(0, top)
-
+sys.path.insert(0, os.path.join(os.path.abspath(".."), "src"))
 
 source_suffix = ".rst"
 master_doc = "index"
@@ -65,6 +60,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinxarg.ext",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
