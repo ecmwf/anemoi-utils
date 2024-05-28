@@ -45,9 +45,9 @@ else:
 copyright = "%s, ECMWF" % (years,)
 
 try:
-    import anemoi.utils
+    from anemoi.utils._version import __version__
 
-    release = anemoi.utils.__version__
+    release = __version__
 except ImportError:
     release = "0.0.0"
 
