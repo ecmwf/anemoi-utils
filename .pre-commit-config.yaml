@@ -68,3 +68,8 @@ repos:
   hooks:
   - id: docconvert
     args: ["numpy"]
+
+- repo: https://github.com/tox-dev/pyproject-fmt
+  rev: "2.0.4"
+  hooks:
+    - id: pyproject-fmt
