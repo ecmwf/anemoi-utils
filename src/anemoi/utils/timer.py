@@ -16,6 +16,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Timer:
+    """Context manager to measure elapsed time."""
+
     def __init__(self, title, logger=LOGGER):
         self.title = title
         self.start = time.time()
