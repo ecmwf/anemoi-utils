@@ -69,6 +69,12 @@ repos:
   - id: docconvert
     args: ["numpy"]
 
+- repo: https://github.com/b8raoult/optional-dependencies-all
+  rev: "0.0.1"
+  hooks:
+  - id: optional-dependencies-all
+    args: ["--inplace", "--all-key", "all", "--exclude-keys", "dev,docs"]
+
 - repo: https://github.com/tox-dev/pyproject-fmt
   rev: "2.0.4"
   hooks:

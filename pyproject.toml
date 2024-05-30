@@ -57,9 +57,11 @@ dependencies = [
 optional-dependencies.all = [
   "gitpython",
   "nvsmi",
+  "pyyaml",
   "requests",
   "termcolor",
-  "tomli",     # Only needed before 3.11
+  "tomli",
+  "tqdm",
 ]
 optional-dependencies.dev = [
   "gitpython",
@@ -83,7 +85,7 @@ optional-dependencies.docs = [
 optional-dependencies.grib = [
   "requests",
 ]
-# Changelog = "https://github.com/ecmwf/anemoi-utils/CHANGELOG.md"
+
 optional-dependencies.provenance = [
   "gitpython",
   "nvsmi",
