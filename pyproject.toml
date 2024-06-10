@@ -57,6 +57,7 @@ dependencies = [
 optional-dependencies.all = [
   "gitpython",
   "nvsmi",
+  "pytest",
   "pyyaml",
   "requests",
   "termcolor",
@@ -90,6 +91,10 @@ optional-dependencies.provenance = [
   "gitpython",
   "nvsmi",
 ]
+optional-dependencies.test = [
+  "pytest",
+]
+
 optional-dependencies.text = [
   "termcolor",
 ]

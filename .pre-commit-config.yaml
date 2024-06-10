@@ -73,7 +73,7 @@ repos:
   rev: "0.0.2"
   hooks:
   - id: optional-dependencies-all
-    args: ["--inplace", "--all-key", "all", "--exclude-keys", "dev,docs"]
+    args: ["--inplace", "--all-key", "all", "--exclude-keys", "dev,docs,test"]
 
 - repo: https://github.com/tox-dev/pyproject-fmt
   rev: "2.1.3"
