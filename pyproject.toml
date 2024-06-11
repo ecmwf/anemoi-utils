@@ -57,19 +57,19 @@ dependencies = [
 optional-dependencies.all = [
   "gitpython",
   "nvsmi",
-  "pytest",
-  "pyyaml",
   "requests",
   "termcolor",
-  "tomli",
-  "tqdm",
 ]
 optional-dependencies.dev = [
-  "gitpython",
-  "nvsmi",
+  "nbsphinx",
+  "pandoc",
+  "pytest",
   "requests",
+  "sphinx",
+  "sphinx-argparse",
+  "sphinx-rtd-theme",
   "termcolor",
-  "tomli",     # Only needed before 3.11
+  "tomli",
 ]
 # Loaded by read-the-docs
 # `pip install .[docs]`
@@ -81,7 +81,7 @@ optional-dependencies.docs = [
   "sphinx-argparse",
   "sphinx-rtd-theme",
   "termcolor",
-  "tomli",            # Only needed before 3.11
+  "tomli",
 ]
 optional-dependencies.grib = [
   "requests",
@@ -91,7 +91,7 @@ optional-dependencies.provenance = [
   "gitpython",
   "nvsmi",
 ]
-optional-dependencies.test = [
+optional-dependencies.tests = [
   "pytest",
 ]
 
