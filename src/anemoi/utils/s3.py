@@ -14,7 +14,7 @@ import tqdm
 LOG = logging.getLogger(__name__)
 
 
-def upload(source, target, overwrite=False, ignore_existing=False):
+def _upload(source, target, overwrite=False, ignore_existing=False):
     # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
     assert target.startswith("s3://")
 
@@ -37,6 +37,18 @@ def upload(source, target, overwrite=False, ignore_existing=False):
         s3_client.upload_file(source, bucket, key, Callback=lambda x: t.update(x))
 
     LOG.info(f"{target} is ready")
+
+
+def upload(source, target, overwrite=False, ignore_existing=False):
+    if os.path.isdir(source):
+        for root, _, files in os.walk(source):
+            for file in files:
+                local_path = os.path.join(root, file)
+                relative_path = os.path.relpath(local_path, source)
+                s3_path = os.path.join(target, relative_path)
+                _upload(local_path, s3_path, overwrite, ignore_existing)
+    else:
+        _upload(source, target, overwrite, ignore_existing)
 
 
 def download(source, target, overwrite=False):
