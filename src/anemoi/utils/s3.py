@@ -9,14 +9,12 @@
 The functions of this package expect that the AWS credentials are set up in the environment
 typicaly by setting the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables or
 by creating a `~/.aws/credentials` file. It is also possible to set the `endpoint_url` in the same file
-to use a different S3 compatible service.
+to use a different S3 compatible service::
 
-'''
-[default]
-endpoint_url = https://some-object-storage.somewhere.else
-aws_access_key_id = xxxxxxxxxxxxxxxxxxxxxxxx
-aws_secret_access_key = xxxxxxxxxxxxxxxxxxxxxxxx
-'''
+    [default]
+    endpoint_url = https://some-object-storage.somewhere.else
+    aws_access_key_id = xxxxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key = xxxxxxxxxxxxxxxxxxxxxxxx
 
 """
 
