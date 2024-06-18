@@ -27,7 +27,7 @@ LOGGER = logging.getLogger(__name__)
 thread_local = threading.local()
 
 
-def get_s3_client():
+def _s3_client():
     import boto3
 
     if not hasattr(thread_local, "s3_client"):
@@ -43,7 +43,7 @@ def _upload_file(source, target, overwrite=False, ignore_existing=False):
     _, _, bucket, key = target.split("/", 3)
 
     LOGGER.info(f"Uploading {source} to {target}")
-    s3_client = get_s3_client()
+    s3_client = _s3_client()
 
     size = os.path.getsize(source)
     try:
@@ -114,7 +114,7 @@ def upload(source, target, overwrite=False, ignore_existing=False, threads=1):
 
 
 def _download_file(source, target, overwrite=False):
-    s3_client = get_s3_client()
+    s3_client = _s3_client()
     _, _, bucket, key = source.split("/", 3)
 
     response = s3_client.head_object(Bucket=bucket, Key=key)
@@ -171,7 +171,7 @@ def download(source, target, overwrite=False, threads=1):
 
 
 def _list_folder(target, batch=False):
-    s3_client = get_s3_client()
+    s3_client = _s3_client()
     _, _, bucket, prefix = target.split("/", 3)
 
     paginator = s3_client.get_paginator("list_objects_v2")
@@ -189,7 +189,7 @@ def _count_objects_in_folder(target):
 
 
 def _delete_folder(target, threads):
-    s3_client = get_s3_client()
+    s3_client = _s3_client()
     _, _, bucket, _ = target.split("/", 3)
 
     for batch in _list_folder(target, batch=True):
@@ -198,7 +198,7 @@ def _delete_folder(target, threads):
 
 
 def _delete_file(target):
-    s3_client = get_s3_client()
+    s3_client = _s3_client()
     _, _, bucket, key = target.split("/", 3)
 
     LOGGER.info(f"Deleting {target}")
