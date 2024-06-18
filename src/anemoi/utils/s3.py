@@ -12,7 +12,7 @@ by creating a `~/.aws/credentials` file. It is also possible to set the `endpoin
 to use a different S3 compatible service::
 
     [default]
-    endpoint_url = https://some-object-storage.somewhere.else
+    endpoint_url = https://some-storage.somewhere.world
     aws_access_key_id = xxxxxxxxxxxxxxxxxxxxxxxx
     aws_secret_access_key = xxxxxxxxxxxxxxxxxxxxxxxx
 
