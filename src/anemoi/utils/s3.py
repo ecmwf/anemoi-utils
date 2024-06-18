@@ -8,7 +8,16 @@
 """This module provides functions to upload, download, list and delete files and folders on S3.
 The functions of this package expect that the AWS credentials are set up in the environment
 typicaly by setting the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables or
-by create a `~/.aws/credentials` file.
+by creating a `~/.aws/credentials` file. It is also possible to set the `endpoint_url` in the same file
+to use a different S3 compatible service.
+
+'''
+[default]
+endpoint_url = https://object-store.somewhere.else
+aws_access_key_id = xxxxxxxxxxxxxxxxxxxxxxxx
+aws_secret_access_key = xxxxxxxxxxxxxxxxxxxxxxxx
+'''
+
 """
 
 import logging
