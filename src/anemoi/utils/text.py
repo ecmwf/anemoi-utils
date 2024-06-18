@@ -7,7 +7,6 @@
 
 """Text utilities"""
 
-import sys
 from collections import defaultdict
 
 # https://en.wikipedia.org/wiki/Box-drawing_character
@@ -143,13 +142,13 @@ class Tree:
             self._kids.append(node)
         return node
 
-    def print(self, file=sys.stdout):
+    def print(self):
         padding = []
 
         while self._factorise():
             pass
 
-        self._print(padding, file=file)
+        self._print(padding)
 
     def _leaves(self, result):
         if self.is_leaf:
@@ -206,21 +205,21 @@ class Tree:
 
         return result
 
-    def _print(self, padding, file=sys.stdout):
+    def _print(self, padding):
         for i, p in enumerate(padding[:-1]):
             if p == " └":
                 padding[i] = "  "
             if p == " ├":
                 padding[i] = " │"
         if padding:
-            print(f"{''.join(padding)}─{self._text}", file=file)
+            print(f"{''.join(padding)}─{self._text}")
         else:
-            print(self._text, file=file)
+            print(self._text)
         padding.append(" ")
         for i, k in enumerate(self._kids):
             sep = " ├" if i < len(self._kids) - 1 else " └"
             padding[-1] = sep
-            k._print(padding, file=file)
+            k._print(padding)
 
         padding.pop()
 
