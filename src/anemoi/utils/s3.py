@@ -4,6 +4,13 @@
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
+"""This module provides functions to upload, download, list and delete files and folders on S3.
+The functions of this package expect that the AWS credentials are set up in the environment
+typicaly by setting the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables or
+by create a `~/.aws/credentials` file.
+"""
+
 import logging
 import os
 import threading
@@ -14,7 +21,7 @@ import boto3
 import tqdm
 from botocore.exceptions import ClientError
 
-LOG = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 # s3_clients are not thread-safe, so we need to create a new client for each thread
@@ -34,7 +41,7 @@ def _upload_file(source, target, overwrite=False, ignore_existing=False):
 
     _, _, bucket, key = target.split("/", 3)
 
-    LOG.info(f"Uploading {source} to {target}")
+    LOGGER.info(f"Uploading {source} to {target}")
     s3_client = get_s3_client()
 
     size = os.path.getsize(source)
@@ -48,11 +55,11 @@ def _upload_file(source, target, overwrite=False, ignore_existing=False):
 
     if remote_size is not None:
         if remote_size != size:
-            LOG.warning(f"{target} already exists, but with different size, re-uploading")
+            LOGGER.warning(f"{target} already exists, but with different size, re-uploading")
             overwrite = True
 
         if ignore_existing:
-            LOG.info(f"{target} already exists, skipping")
+            LOGGER.info(f"{target} already exists, skipping")
             return
 
     if remote_size is not None and not overwrite:
@@ -83,6 +90,22 @@ def _upload_folder(source, target, overwrite=False, ignore_existing=False, threa
 
 
 def upload(source, target, overwrite=False, ignore_existing=False, threads=1):
+    """Upload a file or a folder to S3.
+
+    Parameters
+    ----------
+    source : str
+        A path to a file or a folder to upload.
+    target : str
+        A URL to a file or a folder on S3. The url should start with 's3://'.
+    overwrite : bool, optional
+        If the data is alreay on S3 it will be overwritten, by default False
+    ignore_existing : bool, optional
+        If the data is alreay on S3 it will not be uploaded, unless the remote file
+        has a different size, by default False
+    threads : int, optional
+        The number of threads to use when uploading a directory, by default 1
+    """
     if os.path.isdir(source):
         _upload_folder(source, target, overwrite, ignore_existing, threads)
     else:
@@ -98,7 +121,7 @@ def _download_file(source, target, overwrite=False):
 
     if not overwrite:
         if os.path.exists(target) and os.path.getsize(target) == size:
-            LOG.info(f"{target} already exists, skipping")
+            LOGGER.info(f"{target} already exists, skipping")
             return
 
     with closing(tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False)) as t:
@@ -123,6 +146,21 @@ def _download_folder(source, target, overwrite=False, threads=1):
 
 
 def download(source, target, overwrite=False, threads=1):
+    """Download a file or a folder from S3.
+
+    Parameters
+    ----------
+    source : str
+        The URL of a file or a folder on S3. The url should start with 's3://'. If the URL ends with a '/' it is
+        assumed to be a folder, otherwise it is assumed to be a file.
+    target : str
+        The local path where the file or folder will be downloaded.
+    overwrite : bool, optional
+        If false, files which have already been download will be skipped, unless their size
+        does not match their size on S3 , by default False
+    threads : int, optional
+        The number of threads to use when downloading a directory, by default 1
+    """
     assert source.startswith("s3://")
 
     if source.endswith("/"):
@@ -155,34 +193,67 @@ def _delete_folder(target, threads):
 
     for batch in _list_folder(target, batch=True):
         s3_client.delete_objects(Bucket=bucket, Delete={"Objects": batch})
-        LOG.info(f"Deleted {len(batch)} objects")
+        LOGGER.info(f"Deleted {len(batch)} objects")
 
 
 def _delete_file(target):
     s3_client = get_s3_client()
     _, _, bucket, key = target.split("/", 3)
 
-    LOG.info(f"Deleting {target}")
+    LOGGER.info(f"Deleting {target}")
     s3_client.delete_object(Bucket=bucket, Key=key)
-    LOG.info(f"{target} is deleted")
+    LOGGER.info(f"{target} is deleted")
 
 
-def delete(target, threads=1):
-    """Delete a file or a folder from S3."""
+def delete(target):
+    """Delete a file or a folder from S3.
+
+    Parameters
+    ----------
+    target : str
+        The URL of a file or a folder on S3. The url should start with 's3://'. If the URL ends with a '/' it is
+        assumed to be a folder, otherwise it is assumed to be a file.
+    """
 
     assert target.startswith("s3://")
 
     if target.endswith("/"):
-        _delete_folder(target, threads)
+        _delete_folder(target)
     else:
         _delete_file(target)
 
 
-def list_folder(target, batch=False):
+def list_folder(target):
+    """List the objects in a folder on S3.
+
+    Parameters
+    ----------
+    target : str
+        The URL of a folder on S3. The url should start with 's3://'.
+
+    Returns
+    -------
+    list
+        A list of the objects names in the folder.
+    """
+
     assert target.startswith("s3://")
-    return _list_folder(target, batch)
+    return [o["Key"] for o in _list_folder(target)]
 
 
 def count_objects_in_folder(target):
+    """Count the objects in a folder on S3.
+
+    Parameters
+    ----------
+    target : str
+        The URL of a folder on S3. The url should start with 's3://'.
+
+    Returns
+    -------
+    int
+        The number of objects in the folder.
+    """
+
     assert target.startswith("s3://")
     return _count_objects_in_folder(target)
