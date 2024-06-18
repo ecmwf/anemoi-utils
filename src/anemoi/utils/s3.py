@@ -17,9 +17,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 
-import boto3
 import tqdm
-from botocore.exceptions import ClientError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,12 +28,15 @@ thread_local = threading.local()
 
 
 def get_s3_client():
+    import boto3
+
     if not hasattr(thread_local, "s3_client"):
         thread_local.s3_client = boto3.client("s3")
     return thread_local.s3_client
 
 
 def _upload_file(source, target, overwrite=False, ignore_existing=False):
+    from botocore.exceptions import ClientError
 
     assert target.startswith("s3://")
 
