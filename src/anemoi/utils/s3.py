@@ -49,7 +49,7 @@ def _upload_file(source, target, overwrite=False, ignore_existing=False, show_pr
 
     _, _, bucket, key = target.split("/", 3)
 
-    LOGGER.info(f"Uploading {source} to {target}")
+    # LOGGER.info(f"Uploading {source} to {target}")
     s3_client = _s3_client()
 
     size = os.path.getsize(source)
@@ -173,7 +173,8 @@ def _download_file(source, target, overwrite=False, ignore_existing=False, show_
         s3_client.download_file(bucket, key, target)
 
 
-def _download_folder(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=1):
+def _download_folder(source, target, *, overwrite=False, ignore_existing=False, show_progress=1, threads=1):
+    assert show_progress > 0
     source = source.rstrip("/")
     _, _, bucket, folder = source.split("/", 3)
 
@@ -220,7 +221,7 @@ def _download_folder(source, target, overwrite=False, ignore_existing=False, thr
             raise
 
 
-def download(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=1):
+def download(source, target, *, overwrite=False, ignore_existing=False, show_progress=1, threads=1):
     """Download a file or a folder from S3.
 
     Parameters
@@ -242,9 +243,18 @@ def download(source, target, overwrite=False, ignore_existing=False, threads=1, 
     assert source.startswith("s3://")
 
     if source.endswith("/"):
-        _download_folder(source, target, overwrite, ignore_existing, threads, show_progress)
+        _download_folder(
+            source,
+            target,
+            overwrite=overwrite,
+            ignore_existing=ignore_existing,
+            show_progress=show_progress,
+            threads=threads,
+        )
     else:
-        _download_file(source, target, overwrite, ignore_existing, show_progress)
+        _download_file(
+            source, target, overwrite=overwrite, ignore_existing=ignore_existing, show_progress=show_progress
+        )
 
 
 def _list_objects(target, batch=False):
@@ -261,7 +271,7 @@ def _list_objects(target, batch=False):
                 yield from objects
 
 
-def _delete_folder(target, threads):
+def _delete_folder(target):
     s3_client = _s3_client()
     _, _, bucket, _ = target.split("/", 3)
 
