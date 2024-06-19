@@ -120,15 +120,23 @@ def upload(source, target, overwrite=False, ignore_existing=False, threads=1):
         _upload_file(source, target, overwrite, ignore_existing)
 
 
-def _download_file(source, target, overwrite=False):
+def _download_file(source, target, overwrite=False, ignore_existing=False):
     s3_client = _s3_client()
     _, _, bucket, key = source.split("/", 3)
 
     response = s3_client.head_object(Bucket=bucket, Key=key)
     size = int(response["ContentLength"])
 
-    if not overwrite:
-        if os.path.exists(target) and os.path.getsize(target) == size:
+    if os.path.exists(target):
+
+        if os.path.exists(target) and os.path.getsize(target) != size:
+            LOGGER.info(f"{target} already with different size, re-downloading")
+            overwrite = True
+
+        if not overwrite and not ignore_existing:
+            raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'ignore_existing' to skip")
+
+        if ignore_existing:
             LOGGER.info(f"{target} already exists, skipping")
             return
 
@@ -136,7 +144,7 @@ def _download_file(source, target, overwrite=False):
         s3_client.download_file(bucket, key, target, Callback=lambda x: t.update(x))
 
 
-def _download_folder(source, target, overwrite=False, threads=1):
+def _download_folder(source, target, overwrite=False, ignore_existing=False, threads=1):
     source = source.rstrip("/")
     _, _, bucket, folder = source.split("/", 3)
     total = _count_objects_in_folder(source)
@@ -147,13 +155,15 @@ def _download_folder(source, target, overwrite=False, threads=1):
             name = o["Key"]
             local_path = os.path.join(target, os.path.relpath(name, folder))
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            futures.append(executor.submit(_download_file, f"s3://{bucket}/{name}", local_path, overwrite))
+            futures.append(
+                executor.submit(_download_file, f"s3://{bucket}/{name}", local_path, overwrite, ignore_existing)
+            )
 
         for future in tqdm.tqdm(futures, total=total):
             future.result()
 
 
-def download(source, target, overwrite=False, threads=1):
+def download(source, target, overwrite=False, ignore_existing=False, threads=1):
     """Download a file or a folder from S3.
 
     Parameters
@@ -166,15 +176,18 @@ def download(source, target, overwrite=False, threads=1):
     overwrite : bool, optional
         If false, files which have already been download will be skipped, unless their size
         does not match their size on S3 , by default False
+    ignore_existing : bool, optional
+        If the data is alreay on local it will not be downloaded, unless the remote file
+        has a different size, by default False
     threads : int, optional
         The number of threads to use when downloading a directory, by default 1
     """
     assert source.startswith("s3://")
 
     if source.endswith("/"):
-        _download_folder(source, target, overwrite, threads)
+        _download_folder(source, target, overwrite, ignore_existing, threads)
     else:
-        _download_file(source, target, overwrite)
+        _download_file(source, target, overwrite, ignore_existing)
 
 
 def _list_folder(target, batch=False):
