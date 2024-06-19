@@ -22,7 +22,6 @@ import concurrent
 import logging
 import os
 import threading
-from contextlib import closing
 
 import tqdm
 
@@ -44,17 +43,20 @@ def _s3_client():
     return thread_local.s3_client
 
 
-def _upload_file(source, target, overwrite=False, ignore_existing=False, show_progress=1):
+def _upload_file(source, target, overwrite=False, resume=False, verbosity=1):
     from botocore.exceptions import ClientError
 
     assert target.startswith("s3://")
 
     _, _, bucket, key = target.split("/", 3)
 
-    # LOGGER.info(f"Uploading {source} to {target}")
+    size = os.path.getsize(source)
+
+    if verbosity > 0:
+        LOGGER.info(f"Uploading {source} to {target} ({bytes(size)})")
+
     s3_client = _s3_client()
 
-    size = os.path.getsize(source)
     try:
         results = s3_client.head_object(Bucket=bucket, Key=key)
         remote_size = int(results["ContentLength"])
@@ -68,16 +70,16 @@ def _upload_file(source, target, overwrite=False, ignore_existing=False, show_pr
             LOGGER.warning(f"{target} already exists, but with different size, re-uploading")
             overwrite = True
 
-        if ignore_existing:
+        if resume:
             LOGGER.info(f"{target} already exists, skipping")
             return
 
     if remote_size is not None and not overwrite:
-        raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'ignore_existing' to skip")
+        raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
-    if show_progress > 0:
-        with closing(tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False)) as t:
-            s3_client.upload_file(source, bucket, key, Callback=lambda x: t.update(x))
+    if verbosity > 0:
+        with tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False) as pbar:
+            s3_client.upload_file(source, bucket, key, Callback=lambda x: pbar.update(x))
     else:
         s3_client.upload_file(source, bucket, key)
 
@@ -90,11 +92,13 @@ def _local_file_list(source):
             yield os.path.join(root, file)
 
 
-def _upload_folder(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=1):
+def _upload_folder(source, target, overwrite=False, resume=False, threads=1, verbosity=1):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         try:
-            LOGGER.info(f"Uploading {source} to {target}")
+            if verbosity > 0:
+                LOGGER.info(f"Uploading {source} to {target}")
+
             total = 0
             ready = 0
 
@@ -108,14 +112,15 @@ def _upload_folder(source, target, overwrite=False, ignore_existing=False, threa
                         local_path,
                         s3_path,
                         overwrite,
-                        ignore_existing,
-                        show_progress - 1,
+                        resume,
+                        verbosity - 1,
                     )
                 )
                 total += os.path.getsize(local_path)
 
                 if len(futures) % 10000 == 0:
-                    LOGGER.info(f"Preparing upload, {len(futures):,} files... ({bytes(total)})")
+                    if verbosity > 0:
+                        LOGGER.info(f"Preparing upload, {len(futures):,} files... ({bytes(total)})")
                     done, _ = concurrent.futures.wait(
                         futures,
                         timeout=0.001,
@@ -125,9 +130,8 @@ def _upload_folder(source, target, overwrite=False, ignore_existing=False, threa
                     for n in done:
                         ready += n.result()
 
-            LOGGER.info(f"Uploading {len(futures):,} files ({bytes(total)})")
-
-            if show_progress > 0:
+            if verbosity > 0:
+                LOGGER.info(f"Uploading {len(futures):,} files ({bytes(total)})")
                 with tqdm.tqdm(total=total, initial=ready, unit="B", unit_scale=True) as pbar:
                     for future in futures:
                         pbar.update(future.result())
@@ -140,7 +144,7 @@ def _upload_folder(source, target, overwrite=False, ignore_existing=False, threa
             raise
 
 
-def upload(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=True):
+def upload(source, target, overwrite=False, resume=False, threads=1, verbosity=True):
     """Upload a file or a folder to S3.
 
     Parameters
@@ -151,55 +155,62 @@ def upload(source, target, overwrite=False, ignore_existing=False, threads=1, sh
         A URL to a file or a folder on S3. The url should start with 's3://'.
     overwrite : bool, optional
         If the data is alreay on S3 it will be overwritten, by default False
-    ignore_existing : bool, optional
+    resume : bool, optional
         If the data is alreay on S3 it will not be uploaded, unless the remote file
         has a different size, by default False
     threads : int, optional
         The number of threads to use when uploading a directory, by default 1
     """
     if os.path.isdir(source):
-        _upload_folder(source, target, overwrite, ignore_existing, threads)
+        _upload_folder(source, target, overwrite, resume, threads)
     else:
-        _upload_file(source, target, overwrite, ignore_existing)
+        _upload_file(source, target, overwrite, resume)
 
 
-def _download_file(source, target, overwrite=False, ignore_existing=False, show_progress=0):
+def _download_file(source, target, overwrite=False, resume=False, verbosity=0):
     s3_client = _s3_client()
     _, _, bucket, key = source.split("/", 3)
 
     response = s3_client.head_object(Bucket=bucket, Key=key)
     size = int(response["ContentLength"])
 
-    if os.path.exists(target):
+    if verbosity > 0:
+        LOGGER.info(f"Downloading {source} to {target} ({bytes(size)})")
 
-        if os.path.exists(target) and os.path.getsize(target) != size:
-            LOGGER.warning(f"{target} already with different size, re-downloading")
-            overwrite = True
+    if overwrite:
+        resume = False
 
-        if not overwrite and not ignore_existing:
-            raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'ignore_existing' to skip")
+    if resume:
+        if os.path.exists(target):
+            if os.path.getsize(target) != size:
+                LOGGER.warning(f"{target} already with different size, re-downloading")
+            else:
+                if verbosity > 0:
+                    LOGGER.info(f"{target} already exists, skipping")
+                return
 
-        if ignore_existing and not overwrite:
-            LOGGER.debug(f"{target} already exists, skipping")
-            return
+    if os.path.exists(target) and not overwrite:
+        raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
-    if show_progress > 0:
-        with closing(tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False)) as t:
-            s3_client.download_file(bucket, key, target, Callback=lambda x: t.update(x))
+    if verbosity > 0:
+        with tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False) as pbar:
+            s3_client.download_file(bucket, key, target, Callback=lambda x: pbar.update(x))
     else:
         s3_client.download_file(bucket, key, target)
 
     return size
 
 
-def _download_folder(source, target, *, overwrite=False, ignore_existing=False, show_progress=1, threads=1):
-    assert show_progress > 0
+def _download_folder(source, target, *, overwrite=False, resume=False, verbosity=1, threads=1):
+    assert verbosity > 0
     source = source.rstrip("/")
     _, _, bucket, folder = source.split("/", 3)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         try:
-            LOGGER.info(f"Downloading {source} to {target}")
+            if verbosity > 0:
+                LOGGER.info(f"Downloading {source} to {target}")
+
             total = 0
             ready = 0
 
@@ -214,13 +225,15 @@ def _download_folder(source, target, *, overwrite=False, ignore_existing=False, 
                         f"s3://{bucket}/{name}",
                         local_path,
                         overwrite,
-                        ignore_existing,
-                        show_progress - 1,
+                        resume,
+                        verbosity - 1,
                     )
                 )
                 total += size
                 if len(futures) % 10000 == 0:
-                    LOGGER.info(f"Preparing download, {len(futures):,} files... ({bytes(total)})")
+                    if verbosity > 0:
+                        LOGGER.info(f"Preparing download, {len(futures):,} files... ({bytes(total)})")
+
                     done, _ = concurrent.futures.wait(
                         futures,
                         timeout=0.001,
@@ -230,9 +243,8 @@ def _download_folder(source, target, *, overwrite=False, ignore_existing=False, 
                     for n in done:
                         ready += n.result()
 
-            LOGGER.info(f"Downloading {len(futures):,} files ({bytes(total)})")
-
-            if show_progress > 0:
+            if verbosity > 0:
+                LOGGER.info(f"Downloading {len(futures):,} files ({bytes(total)})")
                 with tqdm.tqdm(total=total, initial=ready, unit="B", unit_scale=True) as pbar:
                     for future in futures:
                         pbar.update(future.result())
@@ -245,7 +257,7 @@ def _download_folder(source, target, *, overwrite=False, ignore_existing=False, 
             raise
 
 
-def download(source, target, *, overwrite=False, ignore_existing=False, show_progress=1, threads=1):
+def download(source, target, *, overwrite=False, resume=False, verbosity=1, threads=1):
     """Download a file or a folder from S3.
 
     Parameters
@@ -258,7 +270,7 @@ def download(source, target, *, overwrite=False, ignore_existing=False, show_pro
     overwrite : bool, optional
         If false, files which have already been download will be skipped, unless their size
         does not match their size on S3 , by default False
-    ignore_existing : bool, optional
+    resume : bool, optional
         If the data is alreay on local it will not be downloaded, unless the remote file
         has a different size, by default False
     threads : int, optional
@@ -271,14 +283,12 @@ def download(source, target, *, overwrite=False, ignore_existing=False, show_pro
             source,
             target,
             overwrite=overwrite,
-            ignore_existing=ignore_existing,
-            show_progress=show_progress,
+            resume=resume,
+            verbosity=verbosity,
             threads=threads,
         )
     else:
-        _download_file(
-            source, target, overwrite=overwrite, ignore_existing=ignore_existing, show_progress=show_progress
-        )
+        _download_file(source, target, overwrite=overwrite, resume=resume, verbosity=verbosity)
 
 
 def _list_objects(target, batch=False):
@@ -306,11 +316,25 @@ def _delete_folder(target):
 
 
 def _delete_file(target):
+    from botocore.exceptions import ClientError
+
     s3_client = _s3_client()
     _, _, bucket, key = target.split("/", 3)
 
+    try:
+        s3_client.head_object(Bucket=bucket, Key=key)
+        exits = True
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "404":
+            raise
+        exits = False
+
+    if not exits:
+        LOGGER.warning(f"{target} does not exist. Did you mean to delete a folder? Then add a trailing '/'")
+        return
+
     LOGGER.info(f"Deleting {target}")
-    s3_client.delete_object(Bucket=bucket, Key=key)
+    print(s3_client.delete_object(Bucket=bucket, Key=key))
     LOGGER.info(f"{target} is deleted")
 
 
@@ -354,6 +378,7 @@ def list_folders(folder):
 
     s3_client = _s3_client()
     paginator = s3_client.get_paginator("list_objects_v2")
+
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter="/"):
         if "CommonPrefixes" in page:
             yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes")]
