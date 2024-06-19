@@ -97,7 +97,7 @@ def _upload_folder(source, target, overwrite=False, ignore_existing=False, threa
             future.result()
 
 
-def upload(source, target, overwrite=False, ignore_existing=False, threads=1):
+def upload(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=True):
     """Upload a file or a folder to S3.
 
     Parameters
@@ -163,7 +163,7 @@ def _download_folder(source, target, overwrite=False, ignore_existing=False, thr
             future.result()
 
 
-def download(source, target, overwrite=False, ignore_existing=False, threads=1):
+def download(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=True):
     """Download a file or a folder from S3.
 
     Parameters
