@@ -18,10 +18,10 @@ to use a different S3 compatible service::
 
 """
 
+import concurrent
 import logging
 import os
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 
 import tqdm
@@ -42,7 +42,7 @@ def _s3_client():
     return thread_local.s3_client
 
 
-def _upload_file(source, target, overwrite=False, ignore_existing=False):
+def _upload_file(source, target, overwrite=False, ignore_existing=False, show_progress=1):
     from botocore.exceptions import ClientError
 
     assert target.startswith("s3://")
@@ -73,8 +73,11 @@ def _upload_file(source, target, overwrite=False, ignore_existing=False):
     if remote_size is not None and not overwrite:
         raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'ignore_existing' to skip")
 
-    with closing(tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False)) as t:
-        s3_client.upload_file(source, bucket, key, Callback=lambda x: t.update(x))
+    if show_progress > 0:
+        with closing(tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False)) as t:
+            s3_client.upload_file(source, bucket, key, Callback=lambda x: t.update(x))
+    else:
+        s3_client.upload_file(source, bucket, key)
 
 
 def _local_file_list(source):
@@ -83,18 +86,41 @@ def _local_file_list(source):
             yield os.path.join(root, file)
 
 
-def _upload_folder(source, target, overwrite=False, ignore_existing=False, threads=1):
-    total = sum(1 for _ in _local_file_list(source))
+def _upload_folder(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=1):
 
-    with ThreadPoolExecutor(max_workers=threads) as executor:
-        futures = []
-        for local_path in _local_file_list(source):
-            relative_path = os.path.relpath(local_path, source)
-            s3_path = os.path.join(target, relative_path)
-            futures.append(executor.submit(_upload_file, local_path, s3_path, overwrite, ignore_existing))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        try:
+            LOGGER.info(f"Uploading {source} to {target}")
 
-        for future in tqdm.tqdm(futures, total=total):
-            future.result()
+            futures = []
+            for local_path in _local_file_list(source):
+                relative_path = os.path.relpath(local_path, source)
+                s3_path = os.path.join(target, relative_path)
+                futures.append(executor.submit(_upload_file, local_path, s3_path, overwrite, ignore_existing))
+
+                if len(futures) % 10000 == 0:
+                    LOGGER.info(f"Preparing upload, {len(futures):,} files...")
+                    done, _ = concurrent.futures.wait(
+                        futures,
+                        timeout=0.001,
+                        return_when=concurrent.futures.FIRST_EXCEPTION,
+                    )
+                    # Trigger exceptions if any
+                    for n in done:
+                        n.result()
+
+            LOGGER.info(f"Uploading {len(futures):,} files")
+
+            if show_progress > 0:
+                for future in tqdm.tqdm(futures, total=len(futures)):
+                    future.result()
+            else:
+                for future in futures:
+                    future.result()
+
+        except Exception:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
 
 
 def upload(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=True):
@@ -120,7 +146,7 @@ def upload(source, target, overwrite=False, ignore_existing=False, threads=1, sh
         _upload_file(source, target, overwrite, ignore_existing)
 
 
-def _download_file(source, target, overwrite=False, ignore_existing=False):
+def _download_file(source, target, overwrite=False, ignore_existing=False, show_progress=0):
     s3_client = _s3_client()
     _, _, bucket, key = source.split("/", 3)
 
@@ -140,30 +166,61 @@ def _download_file(source, target, overwrite=False, ignore_existing=False):
             LOGGER.info(f"{target} already exists, skipping")
             return
 
-    with closing(tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False)) as t:
-        s3_client.download_file(bucket, key, target, Callback=lambda x: t.update(x))
+    if show_progress > 0:
+        with closing(tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False)) as t:
+            s3_client.download_file(bucket, key, target, Callback=lambda x: t.update(x))
+    else:
+        s3_client.download_file(bucket, key, target)
 
 
-def _download_folder(source, target, overwrite=False, ignore_existing=False, threads=1):
+def _download_folder(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=1):
     source = source.rstrip("/")
     _, _, bucket, folder = source.split("/", 3)
-    total = _count_objects_in_folder(source)
 
-    with ThreadPoolExecutor(max_workers=threads) as executor:
-        futures = []
-        for o in _list_folder(source):
-            name = o["Key"]
-            local_path = os.path.join(target, os.path.relpath(name, folder))
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            futures.append(
-                executor.submit(_download_file, f"s3://{bucket}/{name}", local_path, overwrite, ignore_existing)
-            )
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        try:
+            LOGGER.info(f"Downloading {source} to {target}")
 
-        for future in tqdm.tqdm(futures, total=total):
-            future.result()
+            futures = []
+            for o in _list_objects(source):
+                name = o["Key"]
+                local_path = os.path.join(target, os.path.relpath(name, folder))
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                futures.append(
+                    executor.submit(
+                        _download_file,
+                        f"s3://{bucket}/{name}",
+                        local_path,
+                        overwrite,
+                        ignore_existing,
+                        show_progress - 1,
+                    )
+                )
+                if len(futures) % 10000 == 0:
+                    LOGGER.info(f"Preparing download, {len(futures):,} files...")
+                    done, _ = concurrent.futures.wait(
+                        futures,
+                        timeout=0.001,
+                        return_when=concurrent.futures.FIRST_EXCEPTION,
+                    )
+                    # Trigger exceptions if any
+                    for n in done:
+                        n.result()
+
+            LOGGER.info(f"Downloading {len(futures):,} files %s", show_progress)
+            if show_progress > 0:
+                for future in tqdm.tqdm(futures, total=len(futures)):
+                    future.result()
+            else:
+                for future in futures:
+                    future.result()
+
+        except Exception:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
 
 
-def download(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=True):
+def download(source, target, overwrite=False, ignore_existing=False, threads=1, show_progress=1):
     """Download a file or a folder from S3.
 
     Parameters
@@ -185,12 +242,12 @@ def download(source, target, overwrite=False, ignore_existing=False, threads=1, 
     assert source.startswith("s3://")
 
     if source.endswith("/"):
-        _download_folder(source, target, overwrite, ignore_existing, threads)
+        _download_folder(source, target, overwrite, ignore_existing, threads, show_progress)
     else:
-        _download_file(source, target, overwrite, ignore_existing)
+        _download_file(source, target, overwrite, ignore_existing, show_progress)
 
 
-def _list_folder(target, batch=False):
+def _list_objects(target, batch=False):
     s3_client = _s3_client()
     _, _, bucket, prefix = target.split("/", 3)
 
@@ -204,15 +261,11 @@ def _list_folder(target, batch=False):
                 yield from objects
 
 
-def _count_objects_in_folder(target):
-    return sum(len(_) for _ in _list_folder(target, batch=True))
-
-
 def _delete_folder(target, threads):
     s3_client = _s3_client()
     _, _, bucket, _ = target.split("/", 3)
 
-    for batch in _list_folder(target, batch=True):
+    for batch in _list_objects(target, batch=True):
         s3_client.delete_objects(Bucket=bucket, Delete={"Objects": batch})
         LOGGER.info(f"Deleted {len(batch)} objects")
 
@@ -244,37 +297,28 @@ def delete(target):
         _delete_file(target)
 
 
-def list_folder(target):
-    """List the objects in a folder on S3.
+def list_folders(folder):
+    """List the sub folders in a folder on S3.
 
     Parameters
     ----------
-    target : str
+    folder : str
         The URL of a folder on S3. The url should start with 's3://'.
 
     Returns
     -------
     list
-        A list of the objects names in the folder.
+        A list of the subfolders names in the folder.
     """
 
-    assert target.startswith("s3://")
-    return [o["Key"] for o in _list_folder(target)]
+    assert folder.startswith("s3://")
+    if not folder.endswith("/"):
+        folder += "/"
 
+    _, _, bucket, prefix = folder.split("/", 3)
 
-def count_objects_in_folder(target):
-    """Count the objects in a folder on S3.
-
-    Parameters
-    ----------
-    target : str
-        The URL of a folder on S3. The url should start with 's3://'.
-
-    Returns
-    -------
-    int
-        The number of objects in the folder.
-    """
-
-    assert target.startswith("s3://")
-    return _count_objects_in_folder(target)
+    s3_client = _s3_client()
+    paginator = s3_client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter="/"):
+        if "CommonPrefixes" in page:
+            yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes")]
