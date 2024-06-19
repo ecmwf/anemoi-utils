@@ -156,14 +156,14 @@ def _download_file(source, target, overwrite=False, ignore_existing=False, show_
     if os.path.exists(target):
 
         if os.path.exists(target) and os.path.getsize(target) != size:
-            LOGGER.info(f"{target} already with different size, re-downloading")
+            LOGGER.warning(f"{target} already with different size, re-downloading")
             overwrite = True
 
         if not overwrite and not ignore_existing:
             raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'ignore_existing' to skip")
 
         if ignore_existing and not overwrite:
-            LOGGER.info(f"{target} already exists, skipping")
+            LOGGER.debug(f"{target} already exists, skipping")
             return
 
     if show_progress > 0:
