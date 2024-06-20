@@ -64,7 +64,7 @@ def register_commands(here, package, select, fail=None):
     result = {}
     not_available = {}
 
-    for p in os.listdir(here):
+    for p in sorted(os.listdir(here)):
         full = os.path.join(here, p)
         if p.startswith("_"):
             continue
