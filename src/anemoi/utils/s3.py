@@ -44,107 +44,184 @@ def _s3_client():
     return thread_local.s3_client
 
 
-def _upload_file(source, target, overwrite=False, resume=False, verbosity=1, config=None):
-    # from boto3.s3.transfer import TransferConfig
-    # TransferConfig(use_threads=False)
-    from botocore.exceptions import ClientError
+class Transfer:
 
-    assert target.startswith("s3://")
+    def transfer_folder(self, source, target, overwrite=False, resume=False, verbosity=1, threads=1):
+        # from boto3.s3.transfer import TransferConfig
+        # config = TransferConfig(use_threads=False)
+        config = None
+        with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+            try:
+                if verbosity > 0:
+                    LOGGER.info(f"{self.action} {source} to {target}")
 
-    _, _, bucket, key = target.split("/", 3)
+                total = 0
 
-    size = os.path.getsize(source)
+                futures = []
+                for name in self.list_source(source):
 
-    if verbosity > 0:
-        LOGGER.info(f"Uploading {source} to {target} ({bytes(size)})")
-
-    s3_client = _s3_client()
-
-    try:
-        results = s3_client.head_object(Bucket=bucket, Key=key)
-        remote_size = int(results["ContentLength"])
-    except ClientError as e:
-        if e.response["Error"]["Code"] != "404":
-            raise
-        remote_size = None
-
-    if remote_size is not None:
-        if remote_size != size:
-            LOGGER.warning(
-                f"{target} already exists, but with different size, re-uploading (remote={remote_size}, local={size})"
-            )
-        elif resume:
-            # LOGGER.info(f"{target} already exists, skipping")
-            return size
-
-    if remote_size is not None and not overwrite and not resume:
-        raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
-
-    if verbosity > 0:
-        with tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False) as pbar:
-            s3_client.upload_file(source, bucket, key, Callback=lambda x: pbar.update(x), Config=config)
-    else:
-        s3_client.upload_file(source, bucket, key, Config=config)
-
-    return size
-
-
-def _local_file_list(source):
-    for root, _, files in os.walk(source):
-        for file in files:
-            yield os.path.join(root, file)
-
-
-def _upload_folder(source, target, overwrite=False, resume=False, threads=1, verbosity=1):
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
-        try:
-            if verbosity > 0:
-                LOGGER.info(f"Uploading {source} to {target}")
-
-            total = 0
-            ready = 0
-
-            futures = []
-            for local_path in _local_file_list(source):
-                relative_path = os.path.relpath(local_path, source)
-                s3_path = os.path.join(target, relative_path)
-                futures.append(
-                    executor.submit(
-                        _upload_file,
-                        local_path,
-                        s3_path,
-                        overwrite,
-                        resume,
-                        verbosity - 1,
+                    futures.append(
+                        executor.submit(
+                            self.source_path(name, source, target),
+                            self.target_path(name, source, target),
+                            overwrite,
+                            resume,
+                            verbosity - 1,
+                            config=config,
+                        )
                     )
-                )
-                total += os.path.getsize(local_path)
+                    total += self.source_size(name)
 
-                if len(futures) % 10000 == 0:
-                    if verbosity > 0:
-                        LOGGER.info(f"Preparing upload, {len(futures):,} files... ({bytes(total)})")
-                    done, _ = concurrent.futures.wait(
-                        futures,
-                        timeout=0.001,
-                        return_when=concurrent.futures.FIRST_EXCEPTION,
-                    )
-                    # Trigger exceptions if any
-                    for n in done:
-                        ready += n.result()
+                    if len(futures) % 10000 == 0:
+                        if verbosity > 0:
+                            LOGGER.info(f"Preparing transfer, {len(futures):,} files... ({bytes(total)})")
+                        done, _ = concurrent.futures.wait(
+                            futures,
+                            timeout=0.001,
+                            return_when=concurrent.futures.FIRST_EXCEPTION,
+                        )
+                        # Trigger exceptions if any
+                        for n in done:
+                            n.result()
 
-            if verbosity > 0:
-                LOGGER.info(f"Uploading {len(futures):,} files ({bytes(total)})")
-                with tqdm.tqdm(total=total, initial=ready, unit="B", unit_scale=True) as pbar:
+                if verbosity > 0:
+                    LOGGER.info(f"{self.verb} {len(futures):,} files ({bytes(total)})")
+                    with tqdm.tqdm(total=total, unit="B", unit_scale=True) as pbar:
+                        for future in futures:
+                            pbar.update(future.result())
+                else:
                     for future in futures:
-                        pbar.update(future.result())
-            else:
-                for future in futures:
-                    future.result()
+                        future.result()
 
-        except Exception:
-            executor.shutdown(wait=False, cancel_futures=True)
+            except Exception:
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
+
+
+class Upload(Transfer):
+    action = "Uploading"
+
+    def list_source(self, source):
+        for root, _, files in os.walk(source):
+            for file in files:
+                yield os.path.join(root, file)
+
+    def source_path(self, local_path, source):
+        return local_path
+
+    def target_path(self, source_path, source, target):
+        relative_path = os.path.relpath(source_path, source)
+        s3_path = os.path.join(target, relative_path)
+        return s3_path
+
+    def source_size(self, local_path):
+        return os.path.getsize(local_path)
+
+    def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+
+        from botocore.exceptions import ClientError
+
+        assert target.startswith("s3://")
+
+        _, _, bucket, key = target.split("/", 3)
+
+        size = os.path.getsize(source)
+
+        if verbosity > 0:
+            LOGGER.info(f" {source} to {target} ({bytes(size)})")
+
+        s3_client = _s3_client()
+
+        try:
+            results = s3_client.head_object(Bucket=bucket, Key=key)
+            remote_size = int(results["ContentLength"])
+        except ClientError as e:
+            if e.response["Error"]["Code"] != "404":
+                raise
+            remote_size = None
+
+        if remote_size is not None:
+            if remote_size != size:
+                LOGGER.warning(
+                    f"{target} already exists, but with different size, re-uploading (remote={remote_size}, local={size})"
+                )
+            elif resume:
+                # LOGGER.info(f"{target} already exists, skipping")
+                return size
+
+        if remote_size is not None and not overwrite and not resume:
+            raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
+
+        if verbosity > 0:
+            with tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False) as pbar:
+                s3_client.upload_file(source, bucket, key, Callback=lambda x: pbar.update(x), Config=config)
+        else:
+            s3_client.upload_file(source, bucket, key, Config=config)
+
+        return size
+
+
+class Download(Transfer):
+    def list_source(self, source):
+        yield from _list_objects(source)
+
+    def source_path(self, s3_object, source):
+        _, _, bucket, _ = source.split("/", 3)
+        return f"s3://{bucket}/{s3_object['Key']}"
+
+    def target_path(self, s3_object, source, target):
+        _, _, _, folder = source.split("/", 3)
+        local_path = os.path.join(target, os.path.relpath(s3_object["Key"], folder))
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        return local_path
+
+    def source_size(self, s3_object):
+        return s3_object["Size"]
+
+    def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+        # from boto3.s3.transfer import TransferConfig
+
+        s3_client = _s3_client()
+        _, _, bucket, key = source.split("/", 3)
+
+        try:
+            response = s3_client.head_object(Bucket=bucket, Key=key)
+        except s3_client.exceptions.ClientError as e:
+            print(e.response["Error"]["Code"], e.response["Error"]["Message"], bucket, key)
+            if e.response["Error"]["Code"] == "404":
+                raise ValueError(f"{source} does not exist ({bucket}, {key})")
             raise
+
+        size = int(response["ContentLength"])
+
+        if verbosity > 0:
+            LOGGER.info(f"Downloading {source} to {target} ({bytes(size)})")
+
+        if overwrite:
+            resume = False
+
+        if resume:
+            if os.path.exists(target):
+                local_size = os.path.getsize(target)
+                if local_size != size:
+                    LOGGER.warning(
+                        f"{target} already with different size, re-downloading (remote={size}, local={size})"
+                    )
+                else:
+                    # if verbosity > 0:
+                    #     LOGGER.info(f"{target} already exists, skipping")
+                    return size
+
+        if os.path.exists(target) and not overwrite:
+            raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
+
+        if verbosity > 0:
+            with tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False) as pbar:
+                s3_client.download_file(bucket, key, target, Callback=lambda x: pbar.update(x), Config=config)
+        else:
+            s3_client.download_file(bucket, key, target, Config=config)
+
+        return size
 
 
 def upload(source, target, overwrite=False, resume=False, threads=1, verbosity=True):
@@ -164,110 +241,12 @@ def upload(source, target, overwrite=False, resume=False, threads=1, verbosity=T
     threads : int, optional
         The number of threads to use when uploading a directory, by default 1
     """
+
+    uploader = Upload()
     if os.path.isdir(source):
-        _upload_folder(source, target, overwrite, resume, threads)
+        uploader.transfer_folder(source, target, overwrite, resume, threads)
     else:
-        _upload_file(source, target, overwrite, resume)
-
-
-def _download_file(source, target, overwrite=False, resume=False, verbosity=0, config=None):
-    # from boto3.s3.transfer import TransferConfig
-
-    s3_client = _s3_client()
-    _, _, bucket, key = source.split("/", 3)
-
-    try:
-        response = s3_client.head_object(Bucket=bucket, Key=key)
-    except s3_client.exceptions.ClientError as e:
-        print(e.response["Error"]["Code"], e.response["Error"]["Message"], bucket, key)
-        if e.response["Error"]["Code"] == "404":
-            raise ValueError(f"{source} does not exist ({bucket}, {key})")
-        raise
-
-    size = int(response["ContentLength"])
-
-    if verbosity > 0:
-        LOGGER.info(f"Downloading {source} to {target} ({bytes(size)})")
-
-    if overwrite:
-        resume = False
-
-    if resume:
-        if os.path.exists(target):
-            local_size = os.path.getsize(target)
-            if local_size != size:
-                LOGGER.warning(f"{target} already with different size, re-downloading (remote={size}, local={size})")
-            else:
-                # if verbosity > 0:
-                #     LOGGER.info(f"{target} already exists, skipping")
-                return size
-
-    if os.path.exists(target) and not overwrite:
-        raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
-
-    if verbosity > 0:
-        with tqdm.tqdm(total=size, unit="B", unit_scale=True, leave=False) as pbar:
-            s3_client.download_file(bucket, key, target, Callback=lambda x: pbar.update(x), Config=config)
-    else:
-        s3_client.download_file(bucket, key, target, Config=config)
-
-    return size
-
-
-def _download_folder(source, target, *, overwrite=False, resume=False, verbosity=1, threads=1):
-    assert verbosity > 0
-    source = source.rstrip("/")
-    _, _, bucket, folder = source.split("/", 3)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
-        try:
-            if verbosity > 0:
-                LOGGER.info(f"Downloading {source} to {target}")
-
-            total = 0
-            ready = 0
-
-            futures = []
-            for o in _list_objects(source):
-                name, size = o["Key"], o["Size"]
-                local_path = os.path.join(target, os.path.relpath(name, folder))
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                futures.append(
-                    executor.submit(
-                        _download_file,
-                        f"s3://{bucket}/{name}",
-                        local_path,
-                        overwrite,
-                        resume,
-                        verbosity - 1,
-                    )
-                )
-                total += size
-                if len(futures) % 10000 == 0:
-                    if verbosity > 0:
-                        LOGGER.info(f"Preparing download, {len(futures):,} files... ({bytes(total)})")
-
-                    done, _ = concurrent.futures.wait(
-                        futures,
-                        timeout=0.001,
-                        return_when=concurrent.futures.FIRST_EXCEPTION,
-                    )
-                    # Trigger exceptions if any
-                    for n in done:
-                        ready += n.result()
-
-            if verbosity > 0:
-                LOGGER.info(f"Downloading {len(futures):,} files ({bytes(total)})")
-                with tqdm.tqdm(total=total, initial=ready, unit="B", unit_scale=True) as pbar:
-                    for future in futures:
-                        pbar.update(future.result())
-            else:
-                for future in futures:
-                    future.result()
-
-        except Exception:
-            executor.shutdown(wait=False, cancel_futures=True)
-            raise
+        uploader.transfer_file(source, target, overwrite, resume)
 
 
 def download(source, target, *, overwrite=False, resume=False, verbosity=1, threads=1):
@@ -291,8 +270,10 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, thre
     """
     assert source.startswith("s3://")
 
+    downloader = Download()
+
     if source.endswith("/"):
-        _download_folder(
+        downloader.transfer_folder(
             source,
             target,
             overwrite=overwrite,
@@ -301,7 +282,13 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, thre
             threads=threads,
         )
     else:
-        _download_file(source, target, overwrite=overwrite, resume=resume, verbosity=verbosity)
+        downloader.transfer_file(
+            source,
+            target,
+            overwrite=overwrite,
+            resume=resume,
+            verbosity=verbosity,
+        )
 
 
 def _list_objects(target, batch=False):
@@ -369,7 +356,7 @@ def delete(target):
         _delete_file(target)
 
 
-def list_folders(folder):
+def list_folder(folder):
     """List the sub folders in a folder on S3.
 
     Parameters
