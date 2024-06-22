@@ -315,9 +315,12 @@ def _delete_folder(target):
     s3_client = _s3_client()
     _, _, bucket, _ = target.split("/", 3)
 
+    total = 0
     for batch in _list_objects(target, batch=True):
-        s3_client.delete_objects(Bucket=bucket, Delete={"Objects": batch})
-        LOGGER.info(f"Deleted {len(batch)} objects")
+        LOGGER.info(f"Deleting {len(batch):,} objects from {target}")
+        s3_client.delete_objects(Bucket=bucket, Delete={"Objects": [{"Key": o["Key"]} for o in batch]})
+        total += len(batch)
+        LOGGER.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
 def _delete_file(target):
@@ -412,3 +415,23 @@ def object_info(target):
         if e.response["Error"]["Code"] == "404":
             raise ValueError(f"{target} does not exist")
         raise
+
+
+def object_acl(target):
+    """Get information about an object's ACL on S3.
+
+    Parameters
+    ----------
+    target : str
+        The URL of a file or a folder on S3. The url should start with 's3://'.
+
+    Returns
+    -------
+    dict
+        A dictionary with information about the object's ACL.
+    """
+
+    s3_client = _s3_client()
+    _, _, bucket, key = target.split("/", 3)
+
+    return s3_client.get_object_acl(Bucket=bucket, Key=key)
