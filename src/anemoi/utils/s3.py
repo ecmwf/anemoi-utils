@@ -165,6 +165,8 @@ class Upload(Transfer):
 
 
 class Download(Transfer):
+    action = "Downloading"
+
     def list_source(self, source):
         yield from _list_objects(source)
 
