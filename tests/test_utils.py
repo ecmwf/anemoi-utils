@@ -12,7 +12,7 @@ from anemoi.utils.grib import shortname_to_paramid
 
 
 def test_dotdict():
-    d = DotDict(a=1, b=2, c=dict(d=3, e=4))
+    d = DotDict(a=1, b=2, c=dict(d=3, e=4), e=[1, dict(a=3), 3])
     assert d.a == 1
     assert d.b == 2
     assert d.c.d == 3
@@ -26,6 +26,8 @@ def test_dotdict():
 
     d.d.x = 6
     assert d.d.x == 6
+
+    assert d.e[1].a == 3
 
 
 def test_grib():

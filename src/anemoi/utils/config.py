@@ -6,9 +6,12 @@
 # nor does it submit to any jurisdiction.
 
 
+import json
 import logging
 import os
 import threading
+
+import yaml
 
 try:
     import tomllib  # Only available since 3.11
@@ -17,6 +20,14 @@ except ImportError:
 
 
 LOG = logging.getLogger(__name__)
+
+
+class DotList(list):
+    pass
+
+
+class DotTuple(tuple):
+    pass
 
 
 class DotDict(dict):
@@ -41,9 +52,48 @@ class DotDict(dict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         for k, v in self.items():
             if isinstance(v, dict):
                 self[k] = DotDict(v)
+
+            if isinstance(v, list):
+                self[k] = [DotDict(i) if isinstance(i, dict) else i for i in v]
+
+            if isinstance(v, tuple):
+                self[k] = [DotDict(i) if isinstance(i, dict) else i for i in v]
+
+    @classmethod
+    def from_file(cls, path: str):
+        _, ext = os.path.splitext(path)
+        if ext == ".yaml" or ext == ".yml":
+            return cls.from_yaml_file(path)
+        elif ext == ".json":
+            return cls.from_json_file(path)
+        elif ext == ".toml":
+            return cls.from_toml_file(path)
+        else:
+            raise ValueError(f"Unknown file extension {ext}")
+
+    @classmethod
+    def from_yaml_file(cls, path: str):
+        with open(path, "r") as file:
+            data = yaml.safe_load(file)
+
+        return cls(data)
+
+    @classmethod
+    def from_json_file(cls, path: str):
+        with open(path, "r") as file:
+            data = json.load(file)
+
+        return cls(data)
+
+    @classmethod
+    def from_toml_file(cls, path: str):
+        with open(path, "r") as file:
+            data = tomllib.load(file)
+        return cls(data)
 
     def __getattr__(self, attr):
         try:
