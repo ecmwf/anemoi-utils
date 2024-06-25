@@ -26,6 +26,8 @@ from copy import deepcopy
 
 import tqdm
 
+from .config import check_config_mode
+from .config import load_config
 from .humanize import bytes
 
 LOGGER = logging.getLogger(__name__)
@@ -36,12 +38,35 @@ LOGGER = logging.getLogger(__name__)
 thread_local = threading.local()
 
 
-def _s3_client():
+def s3_client(bucket):
     import boto3
 
-    if not hasattr(thread_local, "s3_client"):
-        thread_local.s3_client = boto3.client("s3")
-    return thread_local.s3_client
+    config = load_config()
+    if "object-storage" in config:
+        check_config_mode()
+
+    if not hasattr(thread_local, "s3_clients"):
+        thread_local.s3_clients = {}
+
+    if bucket not in thread_local.s3_clients:
+
+        options = {}
+        options.update(config.get("object-storage", {}))
+        options.update(config.get("object-storage", {}).get(bucket, {}))
+
+        type = options.pop("type", "s3")
+        if type != "s3":
+            raise ValueError(f"Unsupported object storage type {type}")
+
+        if "config" in options:
+            from botocore.client import Config
+
+            options["config"] = Config(**options["config"])
+            del options["config"]
+
+        thread_local.s3_clients[bucket] = boto3.client("s3", **options)
+
+    return thread_local.s3_clients[bucket]
 
 
 class Transfer:
@@ -127,16 +152,15 @@ class Upload(Transfer):
         assert target.startswith("s3://")
 
         _, _, bucket, key = target.split("/", 3)
+        s3 = s3_client(bucket)
 
         size = os.path.getsize(source)
 
         if verbosity > 0:
             LOGGER.info(f"{self.action} {source} to {target} ({bytes(size)})")
 
-        s3_client = _s3_client()
-
         try:
-            results = s3_client.head_object(Bucket=bucket, Key=key)
+            results = s3.head_object(Bucket=bucket, Key=key)
             remote_size = int(results["ContentLength"])
         except ClientError as e:
             if e.response["Error"]["Code"] != "404":
@@ -157,9 +181,9 @@ class Upload(Transfer):
 
         if verbosity > 0:
             with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3_client.upload_file(source, bucket, key, Callback=lambda x: pbar.update(x), Config=config)
+                s3.upload_file(source, bucket, key, Callback=lambda x: pbar.update(x), Config=config)
         else:
-            s3_client.upload_file(source, bucket, key, Config=config)
+            s3.upload_file(source, bucket, key, Config=config)
 
         return size
 
@@ -184,12 +208,12 @@ class Download(Transfer):
     def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
         # from boto3.s3.transfer import TransferConfig
 
-        s3_client = _s3_client()
         _, _, bucket, key = source.split("/", 3)
+        s3 = s3_client(bucket)
 
         try:
-            response = s3_client.head_object(Bucket=bucket, Key=key)
-        except s3_client.exceptions.ClientError as e:
+            response = s3.head_object(Bucket=bucket, Key=key)
+        except s3.exceptions.ClientError as e:
             print(e.response["Error"]["Code"], e.response["Error"]["Message"], bucket, key)
             if e.response["Error"]["Code"] == "404":
                 raise ValueError(f"{source} does not exist ({bucket}, {key})")
@@ -220,9 +244,9 @@ class Download(Transfer):
 
         if verbosity > 0:
             with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3_client.download_file(bucket, key, target, Callback=lambda x: pbar.update(x), Config=config)
+                s3.download_file(bucket, key, target, Callback=lambda x: pbar.update(x), Config=config)
         else:
-            s3_client.download_file(bucket, key, target, Config=config)
+            s3.download_file(bucket, key, target, Config=config)
 
         return size
 
@@ -297,10 +321,10 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, thre
 
 
 def _list_objects(target, batch=False):
-    s3_client = _s3_client()
     _, _, bucket, prefix = target.split("/", 3)
+    s3 = s3_client(bucket)
 
-    paginator = s3_client.get_paginator("list_objects_v2")
+    paginator = s3.get_paginator("list_objects_v2")
 
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         if "Contents" in page:
@@ -312,22 +336,22 @@ def _list_objects(target, batch=False):
 
 
 def _delete_folder(target):
-    s3_client = _s3_client()
     _, _, bucket, _ = target.split("/", 3)
+    s3 = s3_client(bucket)
 
     for batch in _list_objects(target, batch=True):
-        s3_client.delete_objects(Bucket=bucket, Delete={"Objects": batch})
+        s3.delete_objects(Bucket=bucket, Delete={"Objects": batch})
         LOGGER.info(f"Deleted {len(batch)} objects")
 
 
 def _delete_file(target):
     from botocore.exceptions import ClientError
 
-    s3_client = _s3_client()
     _, _, bucket, key = target.split("/", 3)
+    s3 = s3_client(bucket)
 
     try:
-        s3_client.head_object(Bucket=bucket, Key=key)
+        s3.head_object(Bucket=bucket, Key=key)
         exits = True
     except ClientError as e:
         if e.response["Error"]["Code"] != "404":
@@ -339,7 +363,7 @@ def _delete_file(target):
         return
 
     LOGGER.info(f"Deleting {target}")
-    print(s3_client.delete_object(Bucket=bucket, Key=key))
+    print(s3.delete_object(Bucket=bucket, Key=key))
     LOGGER.info(f"{target} is deleted")
 
 
@@ -381,8 +405,8 @@ def list_folder(folder):
 
     _, _, bucket, prefix = folder.split("/", 3)
 
-    s3_client = _s3_client()
-    paginator = s3_client.get_paginator("list_objects_v2")
+    s3 = s3_client(bucket)
+    paginator = s3.get_paginator("list_objects_v2")
 
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter="/"):
         if "CommonPrefixes" in page:
@@ -403,12 +427,12 @@ def object_info(target):
         A dictionary with information about the object.
     """
 
-    s3_client = _s3_client()
     _, _, bucket, key = target.split("/", 3)
+    s3 = s3_client(bucket)
 
     try:
-        return s3_client.head_object(Bucket=bucket, Key=key)
-    except s3_client.exceptions.ClientError as e:
+        return s3.head_object(Bucket=bucket, Key=key)
+    except s3.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "404":
             raise ValueError(f"{target} does not exist")
         raise

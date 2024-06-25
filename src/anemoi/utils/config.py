@@ -8,6 +8,7 @@
 
 import logging
 import os
+import threading
 
 try:
     import tomllib  # Only available since 3.11
@@ -60,16 +61,10 @@ class DotDict(dict):
 
 
 CONFIG = None
+CONFIG_LOCK = threading.Lock()
 
 
-def load_config():
-    """Load the configuration from `~/.anemoi.toml`.
-
-    Returns
-    -------
-    DotDict
-        The configuration
-    """
+def _load_config():
     global CONFIG
     if CONFIG is not None:
         return CONFIG
@@ -86,9 +81,20 @@ def load_config():
     return DotDict(CONFIG)
 
 
-def save_config():
-    """Save the configuration to `~/.anemoi.toml`."""
+def load_config():
+    """Load the configuration from `~/.anemoi.toml`.
 
+    Returns
+    -------
+    DotDict
+        The configuration
+    """
+    with CONFIG_LOCK:
+        return _load_config()
+
+
+def check_config_mode():
     conf = os.path.expanduser("~/.anemoi.toml")
-    with open(conf, "w") as f:
-        tomllib.dump(CONFIG, f)
+    mode = os.stat(conf).st_mode
+    if mode & 0o777 != 0o600:
+        raise SystemError(f"Configuration file {conf} is not secure. " "Please run `chmod 600 ~/.anemoi.toml`.")
