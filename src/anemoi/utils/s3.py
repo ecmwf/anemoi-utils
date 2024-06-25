@@ -189,6 +189,8 @@ class Upload(Transfer):
 
 
 class Download(Transfer):
+    action = "Downloading"
+
     def list_source(self, source):
         yield from _list_objects(source)
 
@@ -339,9 +341,12 @@ def _delete_folder(target):
     _, _, bucket, _ = target.split("/", 3)
     s3 = s3_client(bucket)
 
+    total = 0
     for batch in _list_objects(target, batch=True):
-        s3.delete_objects(Bucket=bucket, Delete={"Objects": batch})
-        LOGGER.info(f"Deleted {len(batch)} objects")
+        LOGGER.info(f"Deleting {len(batch):,} objects from {target}")
+        s3.delete_objects(Bucket=bucket, Delete={"Objects": [{"Key": o["Key"]} for o in batch]})
+        total += len(batch)
+        LOGGER.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
 def _delete_file(target):
@@ -436,3 +441,23 @@ def object_info(target):
         if e.response["Error"]["Code"] == "404":
             raise ValueError(f"{target} does not exist")
         raise
+
+
+def object_acl(target):
+    """Get information about an object's ACL on S3.
+
+    Parameters
+    ----------
+    target : str
+        The URL of a file or a folder on S3. The url should start with 's3://'.
+
+    Returns
+    -------
+    dict
+        A dictionary with information about the object's ACL.
+    """
+
+    _, _, bucket, key = target.split("/", 3)
+    s3 = s3_client()
+
+    return s3.get_object_acl(Bucket=bucket, Key=key)
