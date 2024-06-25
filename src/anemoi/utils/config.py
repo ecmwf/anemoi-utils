@@ -22,14 +22,6 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
-class DotList(list):
-    pass
-
-
-class DotTuple(tuple):
-    pass
-
-
 class DotDict(dict):
     """A dictionary that allows access to its keys as attributes.
 
