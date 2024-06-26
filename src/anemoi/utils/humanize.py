@@ -10,6 +10,7 @@
 """Generate human readable strings"""
 
 import datetime
+import json
 import re
 from collections import defaultdict
 
@@ -472,3 +473,57 @@ def rounded_datetime(d):
         d = d + datetime.timedelta(seconds=1)
     d = d.replace(microsecond=0)
     return d
+
+
+def json_pretty_dump(obj, max_line_length=120, default=str):
+    """Custom JSON dump function that keeps dicts and lists on one line if they are short enough.
+
+    Parameters
+    ----------
+    obj
+        The object to be dumped as JSON.
+    max_line_length
+        Maximum allowed line length for pretty-printing.
+
+    Returns
+    -------
+    unknown
+        JSON string.
+    """
+
+    def _format_json(obj, indent_level=0):
+        """Helper function to format JSON objects with custom pretty-print rules.
+
+        Parameters
+        ----------
+        obj
+            The object to format.
+        indent_level
+            Current indentation level.
+
+        Returns
+        -------
+        unknown
+            Formatted JSON string.
+        """
+        indent = " " * 4 * indent_level
+        if isinstance(obj, dict):
+            items = []
+            for key, value in obj.items():
+                items.append(f'"{key}": {_format_json(value, indent_level + 1)}')
+            line = "{" + ", ".join(items) + "}"
+            if len(line) <= max_line_length:
+                return line
+            else:
+                return "{\n" + ",\n".join([f"{indent}    {item}" for item in items]) + "\n" + indent + "}"
+        elif isinstance(obj, list):
+            items = [_format_json(item, indent_level + 1) for item in obj]
+            line = "[" + ", ".join(items) + "]"
+            if len(line) <= max_line_length:
+                return line
+            else:
+                return "[\n" + ",\n".join([f"{indent}    {item}" for item in items]) + "\n" + indent + "]"
+        else:
+            return json.dumps(obj, default=default)
+
+    return _format_json(obj)
