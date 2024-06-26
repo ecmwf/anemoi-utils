@@ -146,6 +146,14 @@ class Upload(Transfer):
         return os.path.getsize(local_path)
 
     def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+        try:
+            return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
+        except Exception as e:
+            LOGGER.exception(f"Error transferring {source} to {target}")
+            LOGGER.error(e)
+            raise
+
+    def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
 
         from botocore.exceptions import ClientError
 
@@ -208,6 +216,14 @@ class Download(Transfer):
         return s3_object["Size"]
 
     def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+        try:
+            return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
+        except Exception as e:
+            LOGGER.exception(f"Error transferring {source} to {target}")
+            LOGGER.error(e)
+            raise
+
+    def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
         # from boto3.s3.transfer import TransferConfig
 
         _, _, bucket, key = source.split("/", 3)

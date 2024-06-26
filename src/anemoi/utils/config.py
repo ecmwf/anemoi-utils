@@ -106,15 +106,29 @@ CONFIG = None
 CONFIG_LOCK = threading.Lock()
 
 
+def config_path(name="settings.toml"):
+    full = os.path.join(os.path.expanduser("~"), ".config", "anemoi", name)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    return full
+
+
 def _load_config():
     global CONFIG
     if CONFIG is not None:
         return CONFIG
 
-    conf = os.path.expanduser("~/.anemoi.toml")
+    conf = config_path()
+    if not os.path.exists(conf):
+        if os.path.exists(os.path.expanduser("~/.anemoi.toml")):
+            LOG.warning("Configuration file found at ~/.anemoi.toml. Please move it to ~/.config/anemoi/settings.toml")
+            conf = os.path.expanduser("~/.anemoi.toml")
+    else:
+        if os.path.exists(os.path.expanduser("~/.anemoi.toml")):
+            LOG.warning(
+                "Configuration file found at ~/.anemoi.toml and ~/.config/anemoi/settings.toml, ignoring the former"
+            )
 
     if os.path.exists(conf):
-
         with open(conf, "rb") as f:
             CONFIG = tomllib.load(f)
     else:
@@ -124,7 +138,7 @@ def _load_config():
 
 
 def load_config():
-    """Load the configuration from `~/.anemoi.toml`.
+    """Load the configuration`.
 
     Returns
     -------
@@ -136,7 +150,7 @@ def load_config():
 
 
 def check_config_mode():
-    conf = os.path.expanduser("~/.anemoi.toml")
+    conf = config_path()
     mode = os.stat(conf).st_mode
     if mode & 0o777 != 0o600:
         raise SystemError(f"Configuration file {conf} is not secure. " "Please run `chmod 600 ~/.anemoi.toml`.")
