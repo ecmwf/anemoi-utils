@@ -134,17 +134,21 @@ def config_path(name="settings.toml"):
 
 
 def _load(path):
-    if path.endswith(".json"):
-        with open(path, "rb") as f:
-            return json.load(f)
+    try:
+        if path.endswith(".json"):
+            with open(path, "rb") as f:
+                return json.load(f)
 
-    if path.endswith(".yaml") or path.endswith(".yml"):
-        with open(path, "rb") as f:
-            return yaml.safe_load(f)
+        if path.endswith(".yaml") or path.endswith(".yml"):
+            with open(path, "rb") as f:
+                return yaml.safe_load(f)
 
-    if path.endswith(".toml"):
-        with open(path, "rb") as f:
-            return tomllib.load(f)
+        if path.endswith(".toml"):
+            with open(path, "rb") as f:
+                return tomllib.load(f)
+    except (json.JSONDecodeError, yaml.YAMLError, tomllib.TOMLDecodeError) as e:
+        LOG.warning(f"Failed to parse config file {path}", exc_info=e)
+        return {}
 
     return open(path).read()
 
