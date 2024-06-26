@@ -102,55 +102,146 @@ class DotDict(dict):
         return f"DotDict({super().__repr__()})"
 
 
-CONFIG = None
+CONFIG = {}
+CHECKED = {}
 CONFIG_LOCK = threading.Lock()
+QUIET = False
 
 
 def config_path(name="settings.toml"):
+    global QUIET
     full = os.path.join(os.path.expanduser("~"), ".config", "anemoi", name)
     os.makedirs(os.path.dirname(full), exist_ok=True)
+
+    if name == "settings.toml":
+        old = os.path.join(os.path.expanduser("~"), ".anemoi.toml")
+        if not os.path.exists(full) and os.path.exists(old):
+            if not QUIET:
+                LOG.warning(
+                    "Configuration file found at ~/.anemoi.toml. Please move it to ~/.config/anemoi/settings.toml"
+                )
+                QUIET = True
+            return old
+        else:
+            if os.path.exists(old):
+                if not QUIET:
+                    LOG.warning(
+                        "Configuration file found at ~/.anemoi.toml and ~/.config/anemoi/settings.toml, ignoring the former"
+                    )
+                    QUIET = True
+
     return full
 
 
-def _load_config():
-    global CONFIG
-    if CONFIG is not None:
-        return CONFIG
+def _load(path):
+    if path.endswith(".json"):
+        with open(path, "rb") as f:
+            return json.load(f)
 
-    conf = config_path()
-    if not os.path.exists(conf):
-        if os.path.exists(os.path.expanduser("~/.anemoi.toml")):
-            LOG.warning("Configuration file found at ~/.anemoi.toml. Please move it to ~/.config/anemoi/settings.toml")
-            conf = os.path.expanduser("~/.anemoi.toml")
-    else:
-        if os.path.exists(os.path.expanduser("~/.anemoi.toml")):
-            LOG.warning(
-                "Configuration file found at ~/.anemoi.toml and ~/.config/anemoi/settings.toml, ignoring the former"
-            )
+    if path.endswith(".yaml") or path.endswith(".yml"):
+        with open(path, "rb") as f:
+            return yaml.safe_load(f)
+
+    if path.endswith(".toml"):
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+
+    return open(path).read()
+
+
+def _load_config(name="settings.toml"):
+
+    if name in CONFIG:
+        return CONFIG[name]
+
+    conf = config_path(name)
 
     if os.path.exists(conf):
-        with open(conf, "rb") as f:
-            CONFIG = tomllib.load(f)
+        config = _load(conf)
     else:
-        CONFIG = {}
+        config = {}
 
-    return DotDict(CONFIG)
+    if isinstance(config, dict):
+        CONFIG[name] = DotDict(config)
+    else:
+        CONFIG[name] = config
+
+    return CONFIG[name]
 
 
-def load_config():
-    """Load the configuration`.
+def _save_config(name, data):
+    CONFIG.pop(name, None)
+
+    conf = config_path(name)
+
+    if conf.endswith(".json"):
+        with open(conf, "w") as f:
+            json.dump(data, f, indent=4)
+        return
+
+    if conf.endswith(".yaml") or conf.endswith(".yml"):
+        with open(conf, "w") as f:
+            yaml.dump(data, f)
+        return
+
+    if conf.endswith(".toml"):
+        raise NotImplementedError("Saving to TOML is not implemented yet")
+
+    with open(conf, "w") as f:
+        f.write(data)
+
+
+def save_config(name, data):
+    """Save a configuration file.
+
+    Parameters
+    ----------
+    name : str
+        The name of the configuration file to save.
+
+    data : Any
+        The data to save.
+
+    """
+    with CONFIG_LOCK:
+        _save_config(name, data)
+
+
+def load_config(name="settings.toml"):
+    """Read a configuration file.
+
+    Parameters
+    ----------
+    name : str, optional
+        The name of the config file to read, by default "settings.toml"
 
     Returns
     -------
-    DotDict
-        The configuration
+    DotDict or str
+        Return DotDict if it is a dictionary, otherwise the raw data
     """
     with CONFIG_LOCK:
-        return _load_config()
+        return _load_config(name)
 
 
-def check_config_mode():
-    conf = config_path()
-    mode = os.stat(conf).st_mode
-    if mode & 0o777 != 0o600:
-        raise SystemError(f"Configuration file {conf} is not secure. " "Please run `chmod 600 ~/.anemoi.toml`.")
+def check_config_mode(name="settings.toml"):
+    """Check that a configuration file is secure.
+
+    Parameters
+    ----------
+    name : str, optional
+        The name of the configuration file, by default "settings.toml"
+
+    Raises
+    ------
+    SystemError
+        If the configuration file is not secure.
+    """
+    with CONFIG_LOCK:
+        if name in CHECKED:
+            return
+        conf = config_path(name)
+        mode = os.stat(conf).st_mode
+        if mode & 0o777 != 0o600:
+            raise SystemError(f"Configuration file {conf} is not secure. " "Please run `chmod 600 {conf}`.")
+        CHECKED[name] = True

@@ -104,6 +104,7 @@ urls.Documentation = "https://anemoi-utils.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/anemoi-utils/"
 urls.Issues = "https://github.com/ecmwf/anemoi-utils/issues"
 urls.Repository = "https://github.com/ecmwf/anemoi-utils/"
+
 scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools.package-data]
