@@ -9,6 +9,8 @@
 import calendar
 import datetime
 
+from .hindcasts import HindcastDatesTimes
+
 
 def normalise_frequency(frequency):
     if isinstance(frequency, int):
@@ -156,37 +158,6 @@ class DateTimes:
 
                 yield date
             date += self.increment
-
-
-class HindcastDatesTimes:
-    """The HindcastDatesTimes class is an iterator that generates datetime objects within a given range."""
-
-    def __init__(self, reference_dates, years=20):
-        """_summary_
-
-        Parameters
-        ----------
-        reference_dates : _type_
-            _description_
-        years : int, optional
-            _description_, by default 20
-        """
-
-        self.reference_dates = reference_dates
-
-        if isinstance(years, list):
-            self.years = years
-        else:
-            self.years = range(1, years + 1)
-
-    def __iter__(self):
-        for reference_date in self.reference_dates:
-            for year in self.years:
-                if reference_date.month == 2 and reference_date.day == 29:
-                    date = datetime.datetime(reference_date.year - year, 2, 28)
-                else:
-                    date = datetime.datetime(reference_date.year - year, reference_date.month, reference_date.day)
-                yield (date, reference_date)
 
 
 class Year(DateTimes):
