@@ -97,7 +97,7 @@ def register_commands(here, package, select, fail=None):
 
 def cli_main(version, description, commands):
     parser = make_parser(description, commands)
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     if args.version:
         print(version)
@@ -115,8 +115,15 @@ def cli_main(version, description, commands):
         level=logging.DEBUG if args.debug else logging.INFO,
     )
 
+    if unknown and not cmd.accept_unknown_args:
+        # This should trigger an error
+        parser.parse_args()
+
     try:
-        cmd.run(args)
+        if unknown:
+            cmd.run(args, unknown)
+        else:
+            cmd.run(args)
     except ValueError as e:
         traceback.print_exc()
         LOG.error("\n💣 %s", str(e).lstrip())
