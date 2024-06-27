@@ -148,7 +148,7 @@ def _load(path):
                 return tomllib.load(f)
     except (json.JSONDecodeError, yaml.YAMLError, tomllib.TOMLDecodeError) as e:
         LOG.warning(f"Failed to parse config file {path}", exc_info=e)
-        return {}
+        return ValueError(f"Failed to parse config file {path} [{e}]")
 
     return open(path).read()
 
@@ -226,6 +226,15 @@ def load_config(name="settings.toml"):
     """
     with CONFIG_LOCK:
         return _load_config(name)
+
+
+def load_raw_config(name, default=None):
+
+    path = config_path(name)
+    if os.path.exists(path):
+        return _load(path)
+
+    return default
 
 
 def check_config_mode(name="settings.toml"):
