@@ -190,7 +190,7 @@ def __(n):
     return "th"
 
 
-def when(then, now=None, short=True):
+def when(then, now=None, short=True, use_utc=False):
     """Generate a human readable string for a date, relative to now
 
     >>> when(datetime.datetime.now() - datetime.timedelta(hours=2))
@@ -226,7 +226,10 @@ def when(then, now=None, short=True):
     last = "last"
 
     if now is None:
-        now = datetime.datetime.now()
+        if use_utc:
+            now = datetime.datetime.utcnow()
+        else:
+            now = datetime.datetime.now()
 
     diff = (now - then).total_seconds()
 

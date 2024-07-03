@@ -16,6 +16,8 @@ LOG = logging.getLogger(__name__)
 
 
 class Command:
+    accept_unknown_args = False
+
     def run(self, args):
         raise NotImplementedError(f"Command not implemented: {args.command}")
 
