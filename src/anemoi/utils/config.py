@@ -211,7 +211,7 @@ def save_config(name, data):
         _save_config(name, data)
 
 
-def load_config(name="settings.toml"):
+def load_config(name="settings.toml", secrets=None):
     """Read a configuration file.
 
     Parameters
