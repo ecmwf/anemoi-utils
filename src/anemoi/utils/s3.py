@@ -48,11 +48,12 @@ def s3_client(bucket):
     if bucket not in thread_local.s3_clients:
 
         options = {}
-        for k, v in config.get("object-storage", {}):
+        cfg = config.get("object-storage", {})
+        for k, v in cfg.items():
             if isinstance(v, (str, int, float, bool)):
                 options[k] = v
 
-        for k, v in options.update(config.get("object-storage", {}).get(bucket, {})):
+        for k, v in cfg.get(bucket, {}).items():
             if isinstance(v, (str, int, float, bool)):
                 options[k] = v
 
