@@ -18,7 +18,7 @@ to use a different S3 compatible service::
 
 """
 
-import concurrent
+import concurrent.futures
 import logging
 import os
 import threading
