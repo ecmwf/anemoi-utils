@@ -175,7 +175,15 @@ def _config_path(name="settings.toml"):
     return full
 
 
-def _load(path):
+def load_any_dict_format(path):
+    """Load a configuration file in any supported format: JSON, YAML and TOML.
+
+    Returns
+    -------
+    dict
+        The decoded configuration file.
+    """
+
     try:
         if path.endswith(".json"):
             with open(path, "rb") as f:
@@ -202,7 +210,7 @@ def _load_config(name="settings.toml", secrets=None, defaults=None):
 
     path = _config_path(name)
     if os.path.exists(path):
-        config = _load(path)
+        config = load_any_dict_format(path)
     else:
         config = {}
 
@@ -294,7 +302,7 @@ def load_raw_config(name, default=None):
 
     path = _config_path(name)
     if os.path.exists(path):
-        return _load(path)
+        return load_any_dict_format(path)
 
     return default
 
