@@ -41,7 +41,6 @@ def s3_client(bucket):
     import boto3
 
     config = load_config(secrets=["aws_access_key_id", "aws_secret_access_key"])
-    print(config)
 
     if not hasattr(thread_local, "s3_clients"):
         thread_local.s3_clients = {}
