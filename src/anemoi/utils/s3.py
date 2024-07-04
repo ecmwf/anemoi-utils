@@ -48,8 +48,13 @@ def s3_client(bucket):
     if bucket not in thread_local.s3_clients:
 
         options = {}
-        options.update(config.get("object-storage", {}))
-        options.update(config.get("object-storage", {}).get(bucket, {}))
+        for k, v in config.get("object-storage", {}):
+            if isinstance(v, (str, int, float, bool)):
+                options[k] = v
+
+        for k, v in options.update(config.get("object-storage", {}).get(bucket, {})):
+            if isinstance(v, (str, int, float, bool)):
+                options[k] = v
 
         type = options.pop("type", "s3")
         if type != "s3":
