@@ -26,7 +26,6 @@ from copy import deepcopy
 
 import tqdm
 
-from .config import check_config_mode
 from .config import load_config
 from .humanize import bytes
 
@@ -41,9 +40,8 @@ thread_local = threading.local()
 def s3_client(bucket):
     import boto3
 
-    config = load_config()
-    if "object-storage" in config:
-        check_config_mode()
+    config = load_config(secrets=["aws_access_key_id", "aws_secret_access_key"])
+    print(config)
 
     if not hasattr(thread_local, "s3_clients"):
         thread_local.s3_clients = {}
@@ -420,11 +418,13 @@ def list_folder(folder):
         A list of the subfolders names in the folder.
     """
 
+    print(folder)
     assert folder.startswith("s3://")
     if not folder.endswith("/"):
         folder += "/"
 
     _, _, bucket, prefix = folder.split("/", 3)
+    print(bucket, prefix)
 
     s3 = s3_client(bucket)
     paginator = s3.get_paginator("list_objects_v2")

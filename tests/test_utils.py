@@ -7,6 +7,8 @@
 
 
 from anemoi.utils.config import DotDict
+from anemoi.utils.config import _merge_dicts
+from anemoi.utils.config import _set_defaults
 from anemoi.utils.grib import paramid_to_shortname
 from anemoi.utils.grib import shortname_to_paramid
 
@@ -30,10 +32,24 @@ def test_dotdict():
     assert d.e[1].a == 3
 
 
+def test_merge_dicts():
+    a = dict(a=1, b=2, c=dict(d=3, e=4))
+    b = dict(a=10, c=dict(a=30, e=40), d=9)
+    _merge_dicts(a, b)
+    assert a == {"a": 10, "b": 2, "c": {"d": 3, "e": 40, "a": 30}, "d": 9}
+
+
+def test_set_defaults():
+    a = dict(a=1, b=2, c=dict(d=3, e=4))
+    b = dict(a=10, c=dict(a=30, e=40), d=9)
+    _set_defaults(a, b)
+    assert a == {"a": 1, "b": 2, "c": {"d": 3, "e": 4, "a": 30}, "d": 9}
+
+
 def test_grib():
     assert shortname_to_paramid("2t") == 167
     assert paramid_to_shortname(167) == "2t"
 
 
 if __name__ == "__main__":
-    test_grib()
+    test_set_defaults()

@@ -104,12 +104,54 @@ class DotDict(dict):
 
 CONFIG = {}
 CHECKED = {}
-CONFIG_LOCK = threading.Lock()
+CONFIG_LOCK = threading.RLock()
 QUIET = False
 
 
-def config_path(name="settings.toml"):
+def _find(config, what, result=None):
+    if result is None:
+        result = []
+
+    if isinstance(config, list):
+        for i in config:
+            _find(i, what, result)
+        return result
+
+    if isinstance(config, dict):
+        if what in config:
+            result.append(config[what])
+
+        for k, v in config.items():
+            _find(v, what, result)
+
+    return result
+
+
+def _merge_dicts(a, b):
+    for k, v in b.items():
+        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
+            _merge_dicts(a[k], v)
+        else:
+            a[k] = v
+
+
+def _set_defaults(a, b):
+    for k, v in b.items():
+        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
+            _set_defaults(a[k], v)
+        else:
+            a.setdefault(k, v)
+
+
+def _config_path(name="settings.toml"):
     global QUIET
+
+    if name.startswith("/") or name.startswith("."):
+        return name
+
+    if name.startswith("~"):
+        return os.path.expanduser(name)
+
     full = os.path.join(os.path.expanduser("~"), ".config", "anemoi", name)
     os.makedirs(os.path.dirname(full), exist_ok=True)
 
@@ -153,30 +195,49 @@ def _load(path):
     return open(path).read()
 
 
-def _load_config(name="settings.toml"):
+def _load_config(name="settings.toml", secrets=None, defaults=None):
 
     if name in CONFIG:
         return CONFIG[name]
 
-    conf = config_path(name)
-
-    if os.path.exists(conf):
-        config = _load(conf)
+    path = _config_path(name)
+    if os.path.exists(path):
+        config = _load(path)
     else:
         config = {}
 
-    if isinstance(config, dict):
-        CONFIG[name] = DotDict(config)
-    else:
-        CONFIG[name] = config
+    if defaults is not None:
+        if isinstance(defaults, str):
+            defaults = load_raw_config(defaults)
+        _set_defaults(config, defaults)
 
+    if secrets is not None:
+        if isinstance(secrets, str):
+            secrets = [secrets]
+
+        base, ext = os.path.splitext(path)
+        secret_name = base + ".secrets" + ext
+
+        found = set()
+        for secret in secrets:
+            if _find(config, secret):
+                found.add(secret)
+
+        if found:
+            check_config_mode(name, secret_name, found)
+
+        check_config_mode(secret_name, None)
+        secret_config = _load_config(secret_name)
+        _merge_dicts(config, secret_config)
+
+    CONFIG[name] = DotDict(config)
     return CONFIG[name]
 
 
 def _save_config(name, data):
     CONFIG.pop(name, None)
 
-    conf = config_path(name)
+    conf = _config_path(name)
 
     if conf.endswith(".json"):
         with open(conf, "w") as f:
@@ -211,7 +272,7 @@ def save_config(name, data):
         _save_config(name, data)
 
 
-def load_config(name="settings.toml", secrets=None):
+def load_config(name="settings.toml", secrets=None, defaults=None):
     """Read a configuration file.
 
     Parameters
@@ -224,20 +285,21 @@ def load_config(name="settings.toml", secrets=None):
     DotDict or str
         Return DotDict if it is a dictionary, otherwise the raw data
     """
+
     with CONFIG_LOCK:
-        return _load_config(name)
+        return _load_config(name, secrets, defaults)
 
 
 def load_raw_config(name, default=None):
 
-    path = config_path(name)
+    path = _config_path(name)
     if os.path.exists(path):
         return _load(path)
 
     return default
 
 
-def check_config_mode(name="settings.toml"):
+def check_config_mode(name="settings.toml", secrets_name=None, secrets=None):
     """Check that a configuration file is secure.
 
     Parameters
@@ -253,8 +315,18 @@ def check_config_mode(name="settings.toml"):
     with CONFIG_LOCK:
         if name in CHECKED:
             return
-        conf = config_path(name)
+
+        conf = _config_path(name)
+        if not os.path.exists(conf):
+            return
         mode = os.stat(conf).st_mode
         if mode & 0o777 != 0o600:
-            raise SystemError(f"Configuration file {conf} is not secure. " "Please run `chmod 600 {conf}`.")
+            if secrets_name:
+                secret_path = _config_path(secrets_name)
+                raise SystemError(
+                    f"Configuration file {conf} should not hold entries {secrets}.\n"
+                    f"Please move them to {secret_path}."
+                )
+            raise SystemError(f"Configuration file {conf} is not secure.\n" f"Please run `chmod 600 {conf}`.")
+
         CHECKED[name] = True

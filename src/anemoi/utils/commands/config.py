@@ -11,7 +11,7 @@
 
 import json
 
-from ..config import config_path
+from ..config import _config_path
 from ..config import load_config
 from . import Command
 
@@ -23,7 +23,7 @@ class Config(Command):
 
     def run(self, args):
         if args.path:
-            print(config_path())
+            print(_config_path())
         else:
             print(json.dumps(load_config(), indent=4))
 
