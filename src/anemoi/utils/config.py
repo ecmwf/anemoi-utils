@@ -143,7 +143,7 @@ def _set_defaults(a, b):
             a.setdefault(k, v)
 
 
-def _config_path(name="settings.toml"):
+def config_path(name="settings.toml"):
     global QUIET
 
     if name.startswith("/") or name.startswith("."):
@@ -208,7 +208,7 @@ def _load_config(name="settings.toml", secrets=None, defaults=None):
     if name in CONFIG:
         return CONFIG[name]
 
-    path = _config_path(name)
+    path = config_path(name)
     if os.path.exists(path):
         config = load_any_dict_format(path)
     else:
@@ -245,7 +245,7 @@ def _load_config(name="settings.toml", secrets=None, defaults=None):
 def _save_config(name, data):
     CONFIG.pop(name, None)
 
-    conf = _config_path(name)
+    conf = config_path(name)
 
     if conf.endswith(".json"):
         with open(conf, "w") as f:
@@ -300,7 +300,7 @@ def load_config(name="settings.toml", secrets=None, defaults=None):
 
 def load_raw_config(name, default=None):
 
-    path = _config_path(name)
+    path = config_path(name)
     if os.path.exists(path):
         return load_any_dict_format(path)
 
@@ -324,13 +324,13 @@ def check_config_mode(name="settings.toml", secrets_name=None, secrets=None):
         if name in CHECKED:
             return
 
-        conf = _config_path(name)
+        conf = config_path(name)
         if not os.path.exists(conf):
             return
         mode = os.stat(conf).st_mode
         if mode & 0o777 != 0o600:
             if secrets_name:
-                secret_path = _config_path(secrets_name)
+                secret_path = config_path(secrets_name)
                 raise SystemError(
                     f"Configuration file {conf} should not hold entries {secrets}.\n"
                     f"Please move them to {secret_path}."
