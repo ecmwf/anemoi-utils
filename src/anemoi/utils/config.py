@@ -205,8 +205,9 @@ def load_any_dict_format(path):
 
 def _load_config(name="settings.toml", secrets=None, defaults=None):
 
-    if name in CONFIG:
-        return CONFIG[name]
+    key = json.dumps((name, secrets, defaults), sort_keys=True, default=str)
+    if key in CONFIG:
+        return CONFIG[key]
 
     path = config_path(name)
     if os.path.exists(path):
@@ -238,8 +239,8 @@ def _load_config(name="settings.toml", secrets=None, defaults=None):
         secret_config = _load_config(secret_name)
         _merge_dicts(config, secret_config)
 
-    CONFIG[name] = DotDict(config)
-    return CONFIG[name]
+    CONFIG[key] = DotDict(config)
+    return CONFIG[key]
 
 
 def _save_config(name, data):

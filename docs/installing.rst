@@ -22,7 +22,7 @@ The options are:
 
 .. code:: bash
 
-   git clone ...
+   git clone git@github.com:ecmwf/anemoi-registry.git
    cd anemoi-utils
    pip install .[dev]
    pip install -r docs/requirements.txt
