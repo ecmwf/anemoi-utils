@@ -126,21 +126,22 @@ class Transfer:
                         for future in done:
                             future.result()
 
-                progress(len(futures), total_size, 0)
+                number_of_files = len(futures)
+                progress(number_of_files, total_size, 0)
 
                 if verbosity > 0:
-                    LOGGER.info(f"{self.action} {len(futures):,} files ({bytes_to_human(total_size)})")
+                    LOGGER.info(f"{self.action} {number_of_files:,} files ({bytes_to_human(total_size)})")
                     with tqdm.tqdm(total=total_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar:
                         for future in concurrent.futures.as_completed(futures):
                             size = future.result()
                             pbar.update(size)
                             total_transferred += size
-                            progress(len(futures), total_size, total_transferred)
+                            progress(number_of_files, total_size, total_transferred)
                 else:
                     for future in concurrent.futures.as_completed(futures):
                         size = future.result()
                         total_transferred += size
-                        progress(len(futures), total_size, total_transferred)
+                        progress(number_of_files, total_size, total_transferred)
 
             except Exception:
                 executor.shutdown(wait=False, cancel_futures=True)
