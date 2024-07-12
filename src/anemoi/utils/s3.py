@@ -126,6 +126,8 @@ class Transfer:
                         for future in done:
                             future.result()
 
+                progress(len(futures), total_size, 0)
+
                 if verbosity > 0:
                     LOGGER.info(f"{self.action} {len(futures):,} files ({bytes_to_human(total_size)})")
                     with tqdm.tqdm(total=total_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar:
