@@ -27,7 +27,7 @@ from copy import deepcopy
 import tqdm
 
 from .config import load_config
-from .humanize import bytes
+from .humanize import bytes_to_human
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,10 +72,17 @@ def s3_client(bucket):
     return thread_local.s3_clients[bucket]
 
 
+def _ignore(number_of_files, total_size, total_transferred):
+    pass
+
+
 class Transfer:
 
-    def transfer_folder(self, *, source, target, overwrite=False, resume=False, verbosity=1, threads=1):
+    def transfer_folder(self, *, source, target, overwrite=False, resume=False, verbosity=1, threads=1, progress=None):
         assert verbosity == 1, verbosity
+
+        if progress is None:
+            progress = _ignore
 
         # from boto3.s3.transfer import TransferConfig
         # config = TransferConfig(use_threads=False)
@@ -85,7 +92,8 @@ class Transfer:
                 if verbosity > 0:
                     LOGGER.info(f"{self.action} {source} to {target}")
 
-                total = 0
+                total_size = 0
+                total_transferred = 0
 
                 futures = []
                 for name in self.list_source(source):
@@ -101,11 +109,14 @@ class Transfer:
                             config=config,
                         )
                     )
-                    total += self.source_size(name)
+                    total_size += self.source_size(name)
 
                     if len(futures) % 10000 == 0:
+
+                        progress(len(futures), total_size, 0)
+
                         if verbosity > 0:
-                            LOGGER.info(f"Preparing transfer, {len(futures):,} files... ({bytes(total)})")
+                            LOGGER.info(f"Preparing transfer, {len(futures):,} files... ({bytes_to_human(total_size)})")
                         done, _ = concurrent.futures.wait(
                             futures,
                             timeout=0.001,
@@ -116,13 +127,18 @@ class Transfer:
                             future.result()
 
                 if verbosity > 0:
-                    LOGGER.info(f"{self.action} {len(futures):,} files ({bytes(total)})")
-                    with tqdm.tqdm(total=total, unit="B", unit_scale=True, unit_divisor=1024) as pbar:
-                        for future in futures:
-                            pbar.update(future.result())
+                    LOGGER.info(f"{self.action} {len(futures):,} files ({bytes_to_human(total_size)})")
+                    with tqdm.tqdm(total=total_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar:
+                        for future in concurrent.futures.as_completed(futures):
+                            size = future.result()
+                            pbar.update(size)
+                            total_transferred += size
+                            progress(len(futures), total_size, total_transferred)
                 else:
-                    for future in futures:
-                        future.result()
+                    for future in concurrent.futures.as_completed(futures):
+                        size = future.result()
+                        total_transferred += size
+                        progress(len(futures), total_size, total_transferred)
 
             except Exception:
                 executor.shutdown(wait=False, cancel_futures=True)
@@ -168,7 +184,7 @@ class Upload(Transfer):
         size = os.path.getsize(source)
 
         if verbosity > 0:
-            LOGGER.info(f"{self.action} {source} to {target} ({bytes(size)})")
+            LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
 
         try:
             results = s3.head_object(Bucket=bucket, Key=key)
@@ -243,7 +259,7 @@ class Download(Transfer):
         size = int(response["ContentLength"])
 
         if verbosity > 0:
-            LOGGER.info(f"Downloading {source} to {target} ({bytes(size)})")
+            LOGGER.info(f"Downloading {source} to {target} ({bytes_to_human(size)})")
 
         if overwrite:
             resume = False
@@ -272,7 +288,7 @@ class Download(Transfer):
         return size
 
 
-def upload(source, target, *, overwrite=False, resume=False, verbosity=1, threads=1):
+def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1):
     """Upload a file or a folder to S3.
 
     Parameters
@@ -293,13 +309,26 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, thread
     uploader = Upload()
     if os.path.isdir(source):
         uploader.transfer_folder(
-            source=source, target=target, overwrite=overwrite, resume=resume, verbosity=verbosity, threads=threads
+            source=source,
+            target=target,
+            overwrite=overwrite,
+            resume=resume,
+            verbosity=verbosity,
+            progress=progress,
+            threads=threads,
         )
     else:
-        uploader.transfer_file(source=source, target=target, overwrite=overwrite, resume=resume, verbosity=verbosity)
+        uploader.transfer_file(
+            source=source,
+            target=target,
+            overwrite=overwrite,
+            resume=resume,
+            verbosity=verbosity,
+            progress=progress,
+        )
 
 
-def download(source, target, *, overwrite=False, resume=False, verbosity=1, threads=1):
+def download(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1):
     """Download a file or a folder from S3.
 
     Parameters
@@ -329,6 +358,7 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, thre
             overwrite=overwrite,
             resume=resume,
             verbosity=verbosity,
+            progress=progress,
             threads=threads,
         )
     else:
@@ -338,6 +368,7 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, thre
             overwrite=overwrite,
             resume=resume,
             verbosity=verbosity,
+            progress=progress,
         )
 
 

@@ -12,10 +12,11 @@
 import datetime
 import json
 import re
+import warnings
 from collections import defaultdict
 
 
-def bytes(n: float) -> str:
+def bytes_to_human(n: float) -> str:
     """Convert a number of bytes to a human readable string
 
     >>> bytes(4096)
@@ -55,7 +56,16 @@ def bytes(n: float) -> str:
     return "%s%g%s" % (sign, int(n * 10 + 0.5) / 10.0, u[i])
 
 
-def base2(n) -> str:
+def bytes(n: float) -> str:
+    warnings.warn(
+        "Function bytes is deprecated and will be removed in a future version. Use bytes_to_human instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return bytes_to_human(n)
+
+
+def base2_to_human(n) -> str:
 
     u = ["", "K", "M", "G", "T", " P", "E", "Z", "Y"]
     i = 0
@@ -63,6 +73,16 @@ def base2(n) -> str:
         n /= 1024.0
         i += 1
     return "%g%s" % (int(n * 10 + 0.5) / 10.0, u[i])
+
+
+def base2(n) -> str:
+
+    warnings.warn(
+        "Function base2 is deprecated and will be removed in a future version. Use base2_to_human instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return base2_to_human(n)
 
 
 PERIODS = (
@@ -81,7 +101,7 @@ def _plural(count):
         return ""
 
 
-def seconds(seconds: float) -> str:
+def seconds_to_human(seconds: float) -> str:
     """Convert a number of seconds to a human readable string
 
     >>> seconds(4000)
@@ -140,12 +160,17 @@ def seconds(seconds: float) -> str:
     return " ".join(s)
 
 
-def number(value):
-    return f"{value:,}"
+def seconds(seconds: float) -> str:
+    warnings.warn(
+        "Function seconds is deprecated and will be removed in a future version. Use seconds_to_human instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return seconds_to_human(seconds)
 
 
 def plural(value, what):
-    return f"{number(value)} {what}{_plural(value)}"
+    return f"{value:,} {what}{_plural(value)}"
 
 
 DOW = [
@@ -395,7 +420,7 @@ def list_to_human(lst, conjunction="and"):
     return f" {conjunction} ".join(lst)
 
 
-def as_number(value, name, units, none_ok):
+def human_to_number(value, name, units, none_ok):
     if value is None and none_ok:
         return None
 
@@ -414,17 +439,44 @@ def as_number(value, name, units, none_ok):
     return value * units[unit]
 
 
-def as_seconds(value, name=None, none_ok=False):
+def as_number(value, name=None, units=None, none_ok=False):
+    warnings.warn(
+        "Function as_number is deprecated and will be removed in a future version. Use human_to_number instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return human_to_number(value, name, units, none_ok)
+
+
+def human_seconds(value, name=None, none_ok=False):
     units = dict(s=1, m=60, h=3600, d=86400, w=86400 * 7)
-    return as_number(value, name, units, none_ok)
+    return human_to_number(value, name, units, none_ok)
+
+
+def as_seconds(value, name=None, none_ok=False):
+    warnings.warn(
+        "Function as_seconds is deprecated and will be removed in a future version. Use human_seconds instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return human_seconds(value, name, none_ok)
+
+
+def human_to_percent(value, name=None, none_ok=False):
+    units = {"%": 1}
+    return human_to_number(value, name, units, none_ok)
 
 
 def as_percent(value, name=None, none_ok=False):
-    units = {"%": 1}
-    return as_number(value, name, units, none_ok)
+    warnings.warn(
+        "Function as_percent is deprecated and will be removed in a future version. Use human_to_percent instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return human_to_percent(value, name, none_ok)
 
 
-def as_bytes(value, name=None, none_ok=False):
+def human_to_bytes(value, name=None, none_ok=False):
     units = {}
     n = 1
     for u in "KMGTP":
@@ -432,10 +484,19 @@ def as_bytes(value, name=None, none_ok=False):
         units[u] = n
         units[u.lower()] = n
 
-    return as_number(value, name, units, none_ok)
+    return human_to_number(value, name, units, none_ok)
 
 
-def as_timedelta(value, name=None, none_ok=False):
+def as_bytes(value, name=None, none_ok=False):
+    warnings.warn(
+        "Function as_bytes is deprecated and will be removed in a future version. Use human_to_bytes instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return human_to_bytes(value, name, none_ok)
+
+
+def human_to_timedelta(value, name=None, none_ok=False):
     if value is None and none_ok:
         return None
 
@@ -469,6 +530,15 @@ def as_timedelta(value, name=None, none_ok=False):
         minutes=times["m"],
         seconds=times["s"],
     )
+
+
+def as_timedelta(value, name=None, none_ok=False):
+    warnings.warn(
+        "Function as_timedelta is deprecated and will be removed in a future version. Use human_to_timedelta instead.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return human_to_timedelta(value, name, none_ok)
 
 
 def rounded_datetime(d):

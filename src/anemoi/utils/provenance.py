@@ -86,7 +86,7 @@ def version(versions, name, module, roots, namespaces, paths, full):
                 paths.add((name, path))
 
     try:
-        versions[name] = module.__version__
+        versions[name] = str(module.__version__)
         return
     except AttributeError:
         pass
