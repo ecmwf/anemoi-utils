@@ -72,7 +72,7 @@ def s3_client(bucket):
     return thread_local.s3_clients[bucket]
 
 
-def _ignore(number_of_files, total_size, total_transferred):
+def _ignore(number_of_files, total_size, total_transferred, transfering):
     pass
 
 
@@ -113,7 +113,7 @@ class Transfer:
 
                     if len(futures) % 10000 == 0:
 
-                        progress(len(futures), total_size, 0)
+                        progress(len(futures), total_size, 0, False)
 
                         if verbosity > 0:
                             LOGGER.info(f"Preparing transfer, {len(futures):,} files... ({bytes_to_human(total_size)})")
@@ -127,7 +127,7 @@ class Transfer:
                             future.result()
 
                 number_of_files = len(futures)
-                progress(number_of_files, total_size, 0)
+                progress(number_of_files, total_size, 0, True)
 
                 if verbosity > 0:
                     LOGGER.info(f"{self.action} {number_of_files:,} files ({bytes_to_human(total_size)})")
@@ -136,12 +136,12 @@ class Transfer:
                             size = future.result()
                             pbar.update(size)
                             total_transferred += size
-                            progress(number_of_files, total_size, total_transferred)
+                            progress(number_of_files, total_size, total_transferred, True)
                 else:
                     for future in concurrent.futures.as_completed(futures):
                         size = future.result()
                         total_transferred += size
-                        progress(number_of_files, total_size, total_transferred)
+                        progress(number_of_files, total_size, total_transferred, True)
 
             except Exception:
                 executor.shutdown(wait=False, cancel_futures=True)

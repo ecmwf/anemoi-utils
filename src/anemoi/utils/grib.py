@@ -21,7 +21,7 @@ from .caching import cached
 LOG = logging.getLogger(__name__)
 
 
-@cached(collection="grib", expires=30 * 24 * 60 * 60)
+@cached(collection="grib", expires=30 * 24 * 60 * 60, persist=True)
 def _units():
     r = requests.get("https://codes.ecmwf.int/parameter-database/api/v1/unit/")
     r.raise_for_status()
@@ -29,7 +29,7 @@ def _units():
     return {str(u["id"]): u["name"] for u in units}
 
 
-@cached(collection="grib", expires=30 * 24 * 60 * 60)
+@cached(collection="grib", expires=30 * 24 * 60 * 60, persist=True)
 def _search_param(name):
     name = re.escape(name)
     r = requests.get(f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true")

@@ -9,17 +9,26 @@ import hashlib
 import json
 import os
 import time
+from threading import Lock
+
+LOCK = Lock()
+CACHE = {}
 
 
 def cache(key, proc, collection="default", expires=None):
-    path = os.path.join(os.path.expanduser("~"), ".cache", "anemoi", collection)
-    os.makedirs(path, exist_ok=True)
 
     key = json.dumps(key, sort_keys=True)
     m = hashlib.md5()
     m.update(key.encode("utf-8"))
+    m = m.hexdigest()
 
-    filename = os.path.join(path, m.hexdigest())
+    if m in CACHE:
+        return CACHE[m]
+
+    path = os.path.join(os.path.expanduser("~"), ".cache", "anemoi", collection)
+    os.makedirs(path, exist_ok=True)
+
+    filename = os.path.join(path, m)
     if os.path.exists(filename):
         with open(filename, "r") as f:
             data = json.load(f)
@@ -35,6 +44,7 @@ def cache(key, proc, collection="default", expires=None):
     with open(filename, "w") as f:
         json.dump(data, f)
 
+    CACHE[m] = value
     return value
 
 
@@ -49,11 +59,12 @@ class cached:
         full = f"{func.__module__}.{func.__name__}"
 
         def wrapped(*args, **kwargs):
-            return cache(
-                (full, args, kwargs),
-                lambda: func(*args, **kwargs),
-                self.collection,
-                self.expires,
-            )
+            with LOCK:
+                return cache(
+                    (full, args, kwargs),
+                    lambda: func(*args, **kwargs),
+                    self.collection,
+                    self.expires,
+                )
 
         return wrapped
