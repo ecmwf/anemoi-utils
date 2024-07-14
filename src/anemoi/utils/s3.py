@@ -16,6 +16,10 @@ to use a different S3 compatible service::
     aws_access_key_id = xxxxxxxxxxxxxxxxxxxxxxxx
     aws_secret_access_key = xxxxxxxxxxxxxxxxxxxxxxxx
 
+Alternatively, the `endpoint_url`, and keys can be set in one of
+the `~/.config/anemoi/settings.toml`
+or `~/.config/anemoi/settings-secrets.toml` files.
+
 """
 
 import concurrent.futures
@@ -37,17 +41,43 @@ LOGGER = logging.getLogger(__name__)
 thread_local = threading.local()
 
 
-def s3_client(bucket):
+def s3_client(bucket, region=None):
     import boto3
-
-    config = load_config(secrets=["aws_access_key_id", "aws_secret_access_key"])
+    from botocore import UNSIGNED
+    from botocore.client import Config
 
     if not hasattr(thread_local, "s3_clients"):
         thread_local.s3_clients = {}
 
-    if bucket not in thread_local.s3_clients:
+    key = f"{bucket}-{region}"
+
+    boto3_config = dict(max_pool_connections=25)
+
+    if key in thread_local.s3_clients:
+        return thread_local.s3_clients[key]
+
+    boto3_config = dict(max_pool_connections=25)
+
+    if region:
+        # This is using AWS
+
+        options = {"region_name": region}
+
+        # Anonymous access
+        if not (
+            os.path.exists(os.path.expanduser("~/.aws/credentials"))
+            or ("AWS_ACCESS_KEY_ID" in os.environ and "AWS_SECRET_ACCESS_KEY" in os.environ)
+        ):
+            boto3_config["signature_version"] = UNSIGNED
+
+    else:
+
+        # We may be accessing a different S3 compatible service
+        # Use anemoi.config to get the configuration
 
         options = {}
+        config = load_config(secrets=["aws_access_key_id", "aws_secret_access_key"])
+
         cfg = config.get("object-storage", {})
         for k, v in cfg.items():
             if isinstance(v, (str, int, float, bool)):
@@ -62,14 +92,15 @@ def s3_client(bucket):
             raise ValueError(f"Unsupported object storage type {type}")
 
         if "config" in options:
+            boto3_config.update(options["config"])
+            del options["config"]
             from botocore.client import Config
 
-            options["config"] = Config(**options["config"])
-            del options["config"]
+    options["config"] = Config(**boto3_config)
+    print("options", options, boto3_config)
+    thread_local.s3_clients[key] = boto3.client("s3", **options)
 
-        thread_local.s3_clients[bucket] = boto3.client("s3", **options)
-
-    return thread_local.s3_clients[bucket]
+    return thread_local.s3_clients[key]
 
 
 def _ignore(number_of_files, total_size, total_transferred, transfering):
@@ -305,6 +336,9 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
     resume : bool, optional
         If the data is alreay on S3 it will not be uploaded, unless the remote file
         has a different size, by default False
+    progress: callable, optional
+        A callable that will be called with the number of files, the total size of the files, the total size
+        transferred and a boolean indicating if the transfer has started. By default None
     threads : int, optional
         The number of threads to use when uploading a directory, by default 1
     """
@@ -347,6 +381,9 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, prog
     resume : bool, optional
         If the data is alreay on local it will not be downloaded, unless the remote file
         has a different size, by default False
+    progress: callable, optional
+        A callable that will be called with the number of files, the total size of the files, the total size
+        transferred and a boolean indicating if the transfer has started. By default None
     threads : int, optional
         The number of threads to use when downloading a directory, by default 1
     """

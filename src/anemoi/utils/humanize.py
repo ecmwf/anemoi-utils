@@ -600,3 +600,28 @@ def json_pretty_dump(obj, max_line_length=120, default=str):
             return json.dumps(obj, default=default)
 
     return _format_json(obj)
+
+
+def shorten_list(lst, max_length=5):
+    """Shorten a list to a maximum length.
+
+    Parameters
+    ----------
+    lst
+        The list to be shortened.
+    max_length
+        Maximum length of the shortened list.
+
+    Returns
+    -------
+    list
+        Shortened list.
+    """
+    if len(lst) <= max_length:
+        return lst
+    else:
+        half = max_length // 2
+        result = list(lst[:half]) + ["..."] + list(lst[max_length - half :])
+        if isinstance(lst, tuple):
+            return tuple(result)
+        return result
