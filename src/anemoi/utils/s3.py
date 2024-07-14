@@ -97,7 +97,7 @@ def s3_client(bucket, region=None):
             from botocore.client import Config
 
     options["config"] = Config(**boto3_config)
-    print("options", options, boto3_config)
+
     thread_local.s3_clients[key] = boto3.client("s3", **options)
 
     return thread_local.s3_clients[key]
@@ -285,7 +285,6 @@ class Download(Transfer):
         try:
             response = s3.head_object(Bucket=bucket, Key=key)
         except s3.exceptions.ClientError as e:
-            print(e.response["Error"]["Code"], e.response["Error"]["Message"], bucket, key)
             if e.response["Error"]["Code"] == "404":
                 raise ValueError(f"{source} does not exist ({bucket}, {key})")
             raise
@@ -458,7 +457,7 @@ def _delete_file(target):
         return
 
     LOGGER.info(f"Deleting {target}")
-    print(s3.delete_object(Bucket=bucket, Key=key))
+    s3.delete_object(Bucket=bucket, Key=key)
     LOGGER.info(f"{target} is deleted")
 
 
@@ -494,13 +493,11 @@ def list_folder(folder):
         A list of the subfolders names in the folder.
     """
 
-    print(folder)
     assert folder.startswith("s3://")
     if not folder.endswith("/"):
         folder += "/"
 
     _, _, bucket, prefix = folder.split("/", 3)
-    print(bucket, prefix)
 
     s3 = s3_client(bucket)
     paginator = s3.get_paginator("list_objects_v2")
