@@ -198,7 +198,7 @@ class Upload(Transfer):
     def source_size(self, local_path):
         return os.path.getsize(local_path)
 
-    def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+    def transfer_file(self, source, target, overwrite, resume, verbosity, progress=None, config=None):
         try:
             return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
         except Exception as e:
