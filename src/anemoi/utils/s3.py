@@ -268,7 +268,7 @@ class Download(Transfer):
     def source_size(self, s3_object):
         return s3_object["Size"]
 
-    def transfer_file(self, source, target, overwrite, resume, verbosity, progress, config=None):
+    def transfer_file(self, source, target, overwrite, resume, verbosity, progress=None, config=None):
         try:
             return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
         except Exception as e:
