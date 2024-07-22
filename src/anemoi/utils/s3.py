@@ -343,6 +343,7 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
     """
 
     uploader = Upload()
+
     if os.path.isdir(source):
         uploader.transfer_folder(
             source=source,
