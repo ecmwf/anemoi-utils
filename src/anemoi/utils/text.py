@@ -7,6 +7,7 @@
 
 """Text utilities"""
 
+import re
 from collections import defaultdict
 
 # https://en.wikipedia.org/wiki/Box-drawing_character
@@ -30,6 +31,62 @@ def dotted_line(width=84) -> str:
     """
 
     return "┈" * width
+
+
+# Regular expression to match ANSI escape codes
+_ansi_escape = re.compile(r"\x1b\[([0-9;]*[mGKH])")
+
+
+def _has_ansi_escape(s):
+    return _ansi_escape.search(s) is not None
+
+
+def _split_tokens(s):
+    """Split a string into a list of visual characters with their lenghts."""
+    from wcwidth import wcswidth
+
+    initial = s
+    out = []
+
+    # Function to probe the number of bytes needed to encode the first character
+    def probe_utf8(s):
+        for i in range(1, 5):
+            try:
+                s[:i].encode("utf-8")
+            except UnicodeEncodeError:
+                return i - 1
+        return 1
+
+    while s:
+        match = _ansi_escape.match(s)
+        if match:
+            token = match.group(0)
+            s = s[len(token) :]
+            out.append((token, 0))
+        else:
+            i = probe_utf8(s)
+            token = s[:i]
+            s = s[i:]
+            out.append((token, wcswidth(token)))
+
+    assert "".join(token for (token, _) in out) == initial, (out, initial)
+    return out
+
+
+def visual_len(s):
+    """Compute the length of a string as it appears on the terminal."""
+    if isinstance(s, str):
+        s = _split_tokens(s)
+    assert isinstance(s, (tuple, list)), (type(s), s)
+    if len(s) == 0:
+        return 0
+    for _ in s:
+        assert isinstance(_, tuple), s
+        assert len(_) == 2, s
+    n = 0
+    for _, width in s:
+        n += width
+    return n
 
 
 def boxed(text, min_width=80, max_width=80) -> str:
@@ -57,27 +114,44 @@ def boxed(text, min_width=80, max_width=80) -> str:
 
     """
 
-    lines = text.split("\n")
-    width = max(len(_) for _ in lines)
+    lines = []
+    for line in text.split("\n"):
+        line = line.strip()
+        line = _split_tokens(line)
+        lines.append(line)
+
+    width = max(visual_len(_) for _ in lines)
 
     if min_width is not None:
         width = max(width, min_width)
 
     if max_width is not None:
+
+        def shorten_line(line, max_width):
+            if visual_len(line) > max_width:
+                while visual_len(line) >= max_width:
+                    line = line[:-1]
+                line.append(("…", 1))
+            return line
+
         width = min(width, max_width)
-        lines = []
-        for line in text.split("\n"):
-            if len(line) > max_width:
-                line = line[: max_width - 1] + "…"
-            lines.append(line)
-        text = "\n".join(lines)
+        lines = [shorten_line(line, max_width) for line in lines]
+
+    def pad_line(line, width):
+        line = line + [" "] * (width - visual_len(line))
+        return line
+
+    lines = [pad_line(line, width) for line in lines]
 
     box = []
     box.append("┌" + "─" * (width + 2) + "┐")
     for line in lines:
-        box.append(f"│ {line:{width}} │")
-
+        s = "".join(_[0] for _ in line)
+        if _has_ansi_escape(s):
+            s += "\x1b[0m"
+        box.append(f"│ {s} │")
     box.append("└" + "─" * (width + 2) + "┘")
+
     return "\n".join(box)
 
 
@@ -241,7 +315,7 @@ def table(rows, header, align, margin=0):
                ['B', 120, 1],
                ['C', 9, 123]],
                ['C1', 'C2', 'C3'],
-               ['<', '>', '>']))
+               ['<', '>', '>'])
         C1 │  C2 │  C3
         ───┼─────┼────
         Aa │  12 │   5
