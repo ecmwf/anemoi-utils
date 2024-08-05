@@ -104,7 +104,7 @@ def _plural(count):
 def seconds_to_human(seconds: float) -> str:
     """Convert a number of seconds to a human readable string
 
-    >>> seconds(4000)
+    >>> seconds_to_human(4000)
     '1 hour 6 minutes 40 seconds'
 
     Parameters

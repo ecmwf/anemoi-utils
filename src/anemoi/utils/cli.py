@@ -12,6 +12,11 @@ import os
 import sys
 import traceback
 
+try:
+    import argcomplete
+except ImportError:
+    argcomplete = None
+
 LOG = logging.getLogger(__name__)
 
 
@@ -100,6 +105,8 @@ def register_commands(here, package, select, fail=None):
 def cli_main(version, description, commands):
     parser = make_parser(description, commands)
     args, unknown = parser.parse_known_args()
+    if argcomplete:
+        argcomplete.autocomplete(parser)
 
     if args.version:
         print(version)

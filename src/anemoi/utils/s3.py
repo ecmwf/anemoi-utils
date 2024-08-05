@@ -198,7 +198,7 @@ class Upload(Transfer):
     def source_size(self, local_path):
         return os.path.getsize(local_path)
 
-    def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+    def transfer_file(self, source, target, overwrite, resume, verbosity, progress=None, config=None):
         try:
             return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
         except Exception as e:
@@ -268,7 +268,7 @@ class Download(Transfer):
     def source_size(self, s3_object):
         return s3_object["Size"]
 
-    def transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+    def transfer_file(self, source, target, overwrite, resume, verbosity, progress=None, config=None):
         try:
             return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
         except Exception as e:
@@ -343,6 +343,7 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
     """
 
     uploader = Upload()
+
     if os.path.isdir(source):
         uploader.transfer_folder(
             source=source,

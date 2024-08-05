@@ -69,23 +69,21 @@ optional-dependencies.dev = [
   "pytest",
   "requests",
   "sphinx",
-  "sphinx-argparse",
+  "sphinx-argparse<0.5",
   "sphinx-rtd-theme",
   "termcolor",
-  "tomli",
 ]
-# Loaded by read-the-docs
-# `pip install .[docs]`
+
 optional-dependencies.docs = [
   "nbsphinx",
   "pandoc",
   "requests",
   "sphinx",
-  "sphinx-argparse",
+  "sphinx-argparse<0.5",
   "sphinx-rtd-theme",
   "termcolor",
-  "tomli",
 ]
+
 optional-dependencies.grib = [
   "requests",
 ]

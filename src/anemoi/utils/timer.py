@@ -10,7 +10,7 @@
 import logging
 import time
 
-from .humanize import seconds
+from .humanize import seconds_to_human
 
 LOGGER = logging.getLogger(__name__)
 
@@ -31,4 +31,4 @@ class Timer:
         return time.time() - self.start
 
     def __exit__(self, *args):
-        self.logger.info("%s: %s.", self.title, seconds(self.elapsed))
+        self.logger.info("%s: %s.", self.title, seconds_to_human(self.elapsed))
