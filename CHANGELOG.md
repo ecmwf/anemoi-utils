@@ -21,28 +21,16 @@ Keep it human-readable, your future self will thank you!
 ### Added
 - Command line interface utility
 
-### Changed
-
-### Removed
-
 ## [0.2.0] - Initial Release, utility functions
-
-### Added
 
 ### Changed
 - updated documentation
-
-### Removed
 
 ## [0.1.0] - Initial Release, utility functions
 
 ### Added
 - Documentation
 - Initial implementation for a series of utility functions for used by the rest of the Anemoi packages
-
-### Changed
-
-### Removed
 
 <!-- Add Git Diffs for Links above -->
 [unreleased]: https://github.com/ecmwf/anemoi-utils/compare/0.3.13...HEAD
