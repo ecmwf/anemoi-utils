@@ -9,7 +9,7 @@
 import calendar
 import datetime
 
-from .hindcasts import HindcastDatesTimes
+import aniso8601
 
 
 def normalise_frequency(frequency):
@@ -64,6 +64,48 @@ def as_datetime(date):
         return no_time_zone(datetime.datetime.fromisoformat(date))
 
     raise ValueError(f"Invalid date type: {type(date)}")
+
+
+def _as_datetime_list(date, default_increment):
+    if isinstance(date, (list, tuple)):
+        for d in date:
+            yield from _as_datetime_list(d, default_increment)
+
+    if isinstance(date, str):
+        # Check for ISO format
+        try:
+            start, end = aniso8601.parse_interval(date)
+            while start <= end:
+                yield no_time_zone(start)
+                start += default_increment
+
+            return
+
+        except aniso8601.exceptions.ISOFormatError:
+            pass
+
+        try:
+            intervals = aniso8601.parse_repeating_interval(date)
+            for date in intervals:
+                yield no_time_zone(date)
+            return
+        except aniso8601.exceptions.ISOFormatError:
+            pass
+
+    yield as_datetime(date)
+
+
+def as_datetime_list(date, default_increment=1):
+    if isinstance(default_increment, int):
+        default_increment = datetime.timedelta(hours=default_increment)
+
+    if isinstance(default_increment, str):
+        try:
+            default_increment = aniso8601.parse_duration(default_increment)
+        except aniso8601.exceptions.ISOFormatError:
+            default_increment = datetime.timedelta(hours=normalise_frequency(default_increment))
+
+    return list(_as_datetime_list(date, default_increment))
 
 
 DOW = {
@@ -266,6 +308,8 @@ def datetimes_factory(*args, **kwargs):
         name = kwargs.get("name")
 
         if name == "hindcast":
+            from .hindcasts import HindcastDatesTimes
+
             reference_dates = kwargs["reference_dates"]
             reference_dates = datetimes_factory(reference_dates)
             years = kwargs["years"]
@@ -290,3 +334,8 @@ def datetimes_factory(*args, **kwargs):
             return datetimes_factory(*a)
 
     return ConcatDateTimes(*[datetimes_factory(a) for a in args])
+
+
+if __name__ == "__main__":
+    print(as_datetime_list("R10/2023-01-01T00:00:00Z/P1D"))
+    print(as_datetime_list("2007-03-01T13:00:00/2008-05-11T15:30:00", "200h"))
