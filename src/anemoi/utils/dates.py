@@ -142,7 +142,30 @@ def frequency_to_string(frequency):
 
 
 def frequency_to_timedelta(frequency):
-    # TODO: use iso8601 or check pytimeparse
+    """Convert a frequency to a timedelta object.
+
+    Parameters
+    ----------
+    frequency : int or str or datetime.timedelta
+        The frequency to convert. If an integer, it is assumed to be in hours. If a string, it can be in the format:
+        - "1h" for 1 hour
+        - "1d" for 1 day
+        - "1m" for 1 minute
+        - "1s" for 1 second
+        - "1:30" for 1 hour and 30 minutes
+        - "1:30:10" for 1 hour, 30 minutes and 10 seconds
+        - "PT10M" for 10 minutes (ISO8601)
+
+    Returns
+    -------
+    datetime.timedelta
+        The timedelta object.
+
+    Raises
+    ------
+    ValueError
+        Exception raised if the frequency cannot be converted to a timedelta.
+    """
 
     if isinstance(frequency, datetime.timedelta):
         return frequency
