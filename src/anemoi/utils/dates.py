@@ -107,7 +107,19 @@ def print_dates(dates):
 
 
 def frequency_to_string(frequency):
-    # TODO: use iso8601
+    """Convert a frequency (i.e. a datetime.timedelta) to a string.
+
+    Parameters
+    ----------
+    frequency : datetime.timedelta
+        The frequency to convert.
+
+    Returns
+    -------
+    str
+        A string representation of the frequency.
+    """
+
     frequency = frequency_to_timedelta(frequency)
 
     total_seconds = frequency.total_seconds()
@@ -148,6 +160,7 @@ def frequency_to_timedelta(frequency):
     ----------
     frequency : int or str or datetime.timedelta
         The frequency to convert. If an integer, it is assumed to be in hours. If a string, it can be in the format:
+
         - "1h" for 1 hour
         - "1d" for 1 day
         - "1m" for 1 minute
@@ -155,6 +168,8 @@ def frequency_to_timedelta(frequency):
         - "1:30" for 1 hour and 30 minutes
         - "1:30:10" for 1 hour, 30 minutes and 10 seconds
         - "PT10M" for 10 minutes (ISO8601)
+
+        If a timedelta object is provided, it is returned as is.
 
     Returns
     -------
