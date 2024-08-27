@@ -15,17 +15,7 @@ import isodate
 from .hindcasts import HindcastDatesTimes
 
 
-def normalise_frequency(frequency):
-    if isinstance(frequency, int):
-        return frequency
-    assert isinstance(frequency, str), (type(frequency), frequency)
-
-    unit = frequency[-1].lower()
-    v = int(frequency[:-1])
-    return {"h": v, "d": v * 24}[unit]
-
-
-def no_time_zone(date):
+def _no_time_zone(date):
     """Remove time zone information from a date.
 
     Parameters
@@ -43,13 +33,15 @@ def no_time_zone(date):
 
 
 # this function is use in anemoi-datasets
-def as_datetime(date):
+def as_datetime(date, keep_time_zone=False):
     """Convert a date to a datetime object, removing any time zone information.
 
     Parameters
     ----------
     date : datetime.date or datetime.datetime or str
         The date to convert.
+    keep_time_zone : bool, optional
+        If True, the time zone information is kept, by default False.
 
     Returns
     -------
@@ -57,100 +49,18 @@ def as_datetime(date):
         The datetime object.
     """
 
+    tidy = _no_time_zone if not keep_time_zone else lambda x: x
+
     if isinstance(date, datetime.datetime):
-        return no_time_zone(date)
+        return tidy(date)
 
     if isinstance(date, datetime.date):
-        return no_time_zone(datetime.datetime(date.year, date.month, date.day))
+        return tidy(datetime.datetime(date.year, date.month, date.day))
 
     if isinstance(date, str):
-        return no_time_zone(datetime.datetime.fromisoformat(date))
+        return tidy(datetime.datetime.fromisoformat(date))
 
     raise ValueError(f"Invalid date type: {type(date)}")
-
-
-def _compress_dates(dates):
-    dates = sorted(dates)
-    if len(dates) < 3:
-        yield dates
-        return
-
-    prev = first = dates.pop(0)
-    curr = dates.pop(0)
-    delta = curr - prev
-    while curr - prev == delta:
-        prev = curr
-        if not dates:
-            break
-        curr = dates.pop(0)
-
-    yield (first, prev, delta)
-    if dates:
-        yield from _compress_dates([curr] + dates)
-
-
-def compress_dates(dates):
-    dates = [as_datetime(_) for _ in dates]
-    result = []
-
-    for n in _compress_dates(dates):
-        if isinstance(n, list):
-            result.extend([str(_) for _ in n])
-        else:
-            result.append(" ".join([str(n[0]), "to", str(n[1]), "by", str(n[2])]))
-
-    return result
-
-
-def print_dates(dates):
-    print(compress_dates(dates))
-
-
-def frequency_to_string(frequency):
-    """Convert a frequency (i.e. a datetime.timedelta) to a string.
-
-    Parameters
-    ----------
-    frequency : datetime.timedelta
-        The frequency to convert.
-
-    Returns
-    -------
-    str
-        A string representation of the frequency.
-    """
-
-    frequency = frequency_to_timedelta(frequency)
-
-    total_seconds = frequency.total_seconds()
-    assert int(total_seconds) == total_seconds, total_seconds
-    total_seconds = int(total_seconds)
-
-    seconds = total_seconds
-
-    days = seconds // (24 * 3600)
-    seconds %= 24 * 3600
-    hours = seconds // 3600
-    seconds %= 3600
-    minutes = seconds // 60
-    seconds %= 60
-
-    if days > 0 and hours == 0 and minutes == 0 and seconds == 0:
-        return f"{days}d"
-
-    if days == 0 and hours > 0 and minutes == 0 and seconds == 0:
-        return f"{hours}h"
-
-    if days == 0 and hours == 0 and minutes > 0 and seconds == 0:
-        return f"{minutes}m"
-
-    if days == 0 and hours == 0 and minutes == 0 and seconds > 0:
-        return f"{seconds}s"
-
-    if days > 0:
-        return f"{total_seconds}s"
-
-    return str(frequency)
 
 
 def frequency_to_timedelta(frequency):
@@ -217,10 +127,72 @@ def frequency_to_timedelta(frequency):
     raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
 
 
-def normalize_date(x):
-    if isinstance(x, str):
-        return no_time_zone(datetime.datetime.fromisoformat(x))
-    return x
+def frequency_to_string(frequency):
+    """Convert a frequency (i.e. a datetime.timedelta) to a string.
+
+    Parameters
+    ----------
+    frequency : datetime.timedelta
+        The frequency to convert.
+
+    Returns
+    -------
+    str
+        A string representation of the frequency.
+    """
+
+    frequency = frequency_to_timedelta(frequency)
+
+    total_seconds = frequency.total_seconds()
+    assert int(total_seconds) == total_seconds, total_seconds
+    total_seconds = int(total_seconds)
+
+    seconds = total_seconds
+
+    days = seconds // (24 * 3600)
+    seconds %= 24 * 3600
+    hours = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+
+    if days > 0 and hours == 0 and minutes == 0 and seconds == 0:
+        return f"{days}d"
+
+    if days == 0 and hours > 0 and minutes == 0 and seconds == 0:
+        return f"{hours}h"
+
+    if days == 0 and hours == 0 and minutes > 0 and seconds == 0:
+        return f"{minutes}m"
+
+    if days == 0 and hours == 0 and minutes == 0 and seconds > 0:
+        return f"{seconds}s"
+
+    if days > 0:
+        return f"{total_seconds}s"
+
+    return str(frequency)
+
+
+def frequency_to_seconds(frequency):
+    """Convert a frequency to seconds.
+
+    ""
+
+    Parameters
+    ----------
+    frequency : _type_
+        _description_
+
+    Returns
+    -------
+    int
+        Number of seconds.
+    """
+
+    result = frequency_to_timedelta(frequency).total_seconds()
+    assert int(result) == result, result
+    return int(result)
 
 
 DOW = {
@@ -299,7 +271,7 @@ class DateTimes:
         """
         self.start = as_datetime(start)
         self.end = as_datetime(end)
-        self.increment = datetime.timedelta(hours=increment)
+        self.increment = frequency_to_timedelta(increment)
         self.day_of_month = _make_day(day_of_month)
         self.day_of_week = _make_week(day_of_week)
         self.calendar_months = _make_months(calendar_months)
@@ -430,8 +402,7 @@ def datetimes_factory(*args, **kwargs):
 
         kwargs = kwargs.copy()
         if "frequency" in kwargs:
-            freq = kwargs.pop("frequency")
-            kwargs["increment"] = normalise_frequency(freq)
+            kwargs["increment"] = kwargs.pop("frequency")
         return DateTimes(**kwargs)
 
     if not any((isinstance(x, dict) or isinstance(x, list)) for x in args):
