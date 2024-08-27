@@ -8,6 +8,9 @@
 
 import calendar
 import datetime
+import re
+
+import isodate
 
 from .hindcasts import HindcastDatesTimes
 
@@ -64,6 +67,122 @@ def as_datetime(date):
         return no_time_zone(datetime.datetime.fromisoformat(date))
 
     raise ValueError(f"Invalid date type: {type(date)}")
+
+
+def _compress_dates(dates):
+    dates = sorted(dates)
+    if len(dates) < 3:
+        yield dates
+        return
+
+    prev = first = dates.pop(0)
+    curr = dates.pop(0)
+    delta = curr - prev
+    while curr - prev == delta:
+        prev = curr
+        if not dates:
+            break
+        curr = dates.pop(0)
+
+    yield (first, prev, delta)
+    if dates:
+        yield from _compress_dates([curr] + dates)
+
+
+def compress_dates(dates):
+    dates = [as_datetime(_) for _ in dates]
+    result = []
+
+    for n in _compress_dates(dates):
+        if isinstance(n, list):
+            result.extend([str(_) for _ in n])
+        else:
+            result.append(" ".join([str(n[0]), "to", str(n[1]), "by", str(n[2])]))
+
+    return result
+
+
+def print_dates(dates):
+    print(compress_dates(dates))
+
+
+def frequency_to_string(frequency):
+    # TODO: use iso8601
+    frequency = frequency_to_timedelta(frequency)
+
+    total_seconds = frequency.total_seconds()
+    assert int(total_seconds) == total_seconds, total_seconds
+    total_seconds = int(total_seconds)
+
+    seconds = total_seconds
+
+    days = seconds // (24 * 3600)
+    seconds %= 24 * 3600
+    hours = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+
+    if days > 0 and hours == 0 and minutes == 0 and seconds == 0:
+        return f"{days}d"
+
+    if days == 0 and hours > 0 and minutes == 0 and seconds == 0:
+        return f"{hours}h"
+
+    if days == 0 and hours == 0 and minutes > 0 and seconds == 0:
+        return f"{minutes}m"
+
+    if days == 0 and hours == 0 and minutes == 0 and seconds > 0:
+        return f"{seconds}s"
+
+    if days > 0:
+        return f"{total_seconds}s"
+
+    return str(frequency)
+
+
+def frequency_to_timedelta(frequency):
+    # TODO: use iso8601 or check pytimeparse
+
+    if isinstance(frequency, datetime.timedelta):
+        return frequency
+
+    if isinstance(frequency, int):
+        return datetime.timedelta(hours=frequency)
+
+    assert isinstance(frequency, str), (type(frequency), frequency)
+
+    try:
+        return frequency_to_timedelta(int(frequency))
+    except ValueError:
+        pass
+
+    if re.match(r"^\d+[hdms]$", frequency, re.IGNORECASE):
+        unit = frequency[-1].lower()
+        v = int(frequency[:-1])
+        unit = {"h": "hours", "d": "days", "s": "seconds", "m": "minutes"}[unit]
+        return datetime.timedelta(**{unit: v})
+
+    m = frequency.split(":")
+    if len(m) == 2:
+        return datetime.timedelta(hours=int(m[0]), minutes=int(m[1]))
+
+    if len(m) == 3:
+        return datetime.timedelta(hours=int(m[0]), minutes=int(m[1]), seconds=int(m[2]))
+
+    # ISO8601
+    try:
+        return isodate.parse_duration(frequency)
+    except isodate.isoerror.ISO8601Error:
+        pass
+
+    raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
+
+
+def normalize_date(x):
+    if isinstance(x, str):
+        return no_time_zone(datetime.datetime.fromisoformat(x))
+    return x
 
 
 DOW = {

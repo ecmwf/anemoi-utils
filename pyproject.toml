@@ -49,6 +49,8 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "isodate",
+
   "pyyaml",
   "tomli",  # Only needed before 3.11
   "tqdm",
