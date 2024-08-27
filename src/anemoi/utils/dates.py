@@ -177,8 +177,6 @@ def frequency_to_string(frequency):
 def frequency_to_seconds(frequency):
     """Convert a frequency to seconds.
 
-    ""
-
     Parameters
     ----------
     frequency : _type_
