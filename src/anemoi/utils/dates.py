@@ -91,12 +91,7 @@ def _as_datetime_list(date, default_increment):
 
 
 def as_datetime_list(date, default_increment=1):
-    if isinstance(default_increment, int):
-        default_increment = datetime.timedelta(hours=default_increment)
-
-    if isinstance(default_increment, str):
-        default_increment = aniso8601.parse_duration(default_increment)
-
+    default_increment = frequency_to_timedelta(default_increment)
     return list(_as_datetime_list(date, default_increment))
 
 
@@ -158,7 +153,7 @@ def frequency_to_timedelta(frequency):
     # ISO8601
     try:
         return aniso8601.parse_duration(frequency)
-    except Exception:
+    except aniso8601.exceptions.ISOFormatError:
         pass
 
     raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
