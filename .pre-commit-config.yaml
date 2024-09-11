@@ -68,3 +68,6 @@ repos:
   rev: "2.1.3"
   hooks:
   - id: pyproject-fmt
+
+ci:
+  autoupdate_schedule: monthly
