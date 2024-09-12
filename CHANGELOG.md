@@ -13,6 +13,7 @@ Keep it human-readable, your future self will thank you!
 ### Added
 
 ### Changed
+- downstream-ci should only runs for changes in src and tests
 
 ### Removed
 
