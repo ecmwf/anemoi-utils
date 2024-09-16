@@ -60,6 +60,7 @@ optional-dependencies.all = [
   "nvsmi",
   "requests",
   "termcolor",
+  "wcwidth",
 ]
 optional-dependencies.dev = [
   "gitpython",
@@ -72,6 +73,7 @@ optional-dependencies.dev = [
   "sphinx-argparse<0.5",
   "sphinx-rtd-theme",
   "termcolor",
+  "wcwidth",
 ]
 
 optional-dependencies.docs = [
