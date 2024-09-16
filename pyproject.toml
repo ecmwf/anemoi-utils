@@ -98,6 +98,7 @@ optional-dependencies.tests = [
 
 optional-dependencies.text = [
   "termcolor",
+  "wcwidth",
 ]
 urls.Documentation = "https://anemoi-utils.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/anemoi-utils/"
