@@ -1,0 +1,5 @@
+build:
+  python: '3.10'
+  modules:
+    - ninja
+  parallel: 64
