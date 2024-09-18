@@ -12,7 +12,7 @@ import datetime
 from .hindcasts import HindcastDatesTimes
 
 
-def normalise_frequency(frequency):
+def normalise_frequency(frequency) -> int:
     if isinstance(frequency, int):
         return frequency
     assert isinstance(frequency, str), (type(frequency), frequency)
@@ -22,7 +22,7 @@ def normalise_frequency(frequency):
     return {"h": v, "d": v * 24}[unit]
 
 
-def no_time_zone(date):
+def no_time_zone(date) -> datetime.datetime:
     """Remove time zone information from a date.
 
     Parameters
@@ -40,7 +40,7 @@ def no_time_zone(date):
 
 
 # this function is use in anemoi-datasets
-def as_datetime(date):
+def as_datetime(date) -> datetime.datetime:
     """Convert a date to a datetime object, removing any time zone information.
 
     Parameters
@@ -235,6 +235,8 @@ class Autumn(DateTimes):
 
 
 class ConcatDateTimes:
+    """ConcatDateTimes is an iterator that generates datetime objects from a list of dates."""
+
     def __init__(self, *dates):
         if len(dates) == 1 and isinstance(dates[0], list):
             dates = dates[0]
@@ -247,6 +249,8 @@ class ConcatDateTimes:
 
 
 class EnumDateTimes:
+    """EnumDateTimes is an iterator that generates datetime objects from a list of dates."""
+
     def __init__(self, dates):
         self.dates = dates
 

@@ -215,7 +215,7 @@ def __(n):
     return "th"
 
 
-def when(then, now=None, short=True, use_utc=False):
+def when(then, now=None, short=True, use_utc=False) -> str:
     """Generate a human readable string for a date, relative to now
 
     >>> when(datetime.datetime.now() - datetime.timedelta(hours=2))
@@ -241,6 +241,8 @@ def when(then, now=None, short=True, use_utc=False):
         The reference date, by default NOW
     short : bool, optional
         Genererate shorter strings, by default True
+    use_utc : bool, optional
+        Use UTC time, by default False
 
     Returns
     -------
@@ -364,7 +366,7 @@ def string_distance(s, t):
     return d[m, n]
 
 
-def did_you_mean(word, vocabulary):
+def did_you_mean(word, vocabulary) -> str:
     """Pick the closest word in a vocabulary
 
     >>> did_you_mean("aple", ["banana", "lemon", "apple", "orange"])
@@ -393,7 +395,7 @@ def dict_to_human(query):
     return list_to_human(lst)
 
 
-def list_to_human(lst, conjunction="and"):
+def list_to_human(lst, conjunction="and") -> str:
     """Convert a list of strings to a human readable string
 
     >>> list_to_human(["banana", "lemon", "apple", "orange"])
@@ -408,8 +410,8 @@ def list_to_human(lst, conjunction="and"):
 
     Returns
     -------
-    _type_
-        _description_
+    str
+        Human readable string of list
     """
     if not lst:
         return "??"
@@ -548,35 +550,37 @@ def rounded_datetime(d):
     return d
 
 
-def json_pretty_dump(obj, max_line_length=120, default=str):
+def json_pretty_dump(obj, max_line_length=120, default=str) -> str:
     """Custom JSON dump function that keeps dicts and lists on one line if they are short enough.
 
     Parameters
     ----------
     obj
         The object to be dumped as JSON.
-    max_line_length
-        Maximum allowed line length for pretty-printing.
+    max_line_length, optional
+        Maximum allowed line length for pretty-printing. Default is 120.
+    default, optional
+        Default function to convert non-serializable objects. Default is str.
 
     Returns
     -------
-    unknown
+    str
         JSON string.
     """
 
-    def _format_json(obj, indent_level=0):
+    def _format_json(obj, indent_level=0) -> str:
         """Helper function to format JSON objects with custom pretty-print rules.
 
         Parameters
         ----------
         obj
             The object to format.
-        indent_level
-            Current indentation level.
+        indent_level, optional
+            Current indentation level. Default is 0.
 
         Returns
         -------
-        unknown
+        str
             Formatted JSON string.
         """
         indent = " " * 4 * indent_level
@@ -602,15 +606,15 @@ def json_pretty_dump(obj, max_line_length=120, default=str):
     return _format_json(obj)
 
 
-def shorten_list(lst, max_length=5):
+def shorten_list(lst, max_length=5) -> list:
     """Shorten a list to a maximum length.
 
     Parameters
     ----------
-    lst
+    lst : list
         The list to be shortened.
-    max_length
-        Maximum length of the shortened list.
+    max_length : int, optional
+        Maximum length of the shortened list. Default is 5.
 
     Returns
     -------

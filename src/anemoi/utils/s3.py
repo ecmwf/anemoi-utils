@@ -321,7 +321,7 @@ class Download(Transfer):
         return size
 
 
-def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1):
+def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
     """Upload a file or a folder to S3.
 
     Parameters
@@ -335,6 +335,8 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
     resume : bool, optional
         If the data is alreay on S3 it will not be uploaded, unless the remote file
         has a different size, by default False
+    verbosity : int, optional
+        The level of verbosity, by default 1
     progress: callable, optional
         A callable that will be called with the number of files, the total size of the files, the total size
         transferred and a boolean indicating if the transfer has started. By default None
@@ -365,7 +367,7 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
         )
 
 
-def download(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1):
+def download(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
     """Download a file or a folder from S3.
 
     Parameters
@@ -381,6 +383,8 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, prog
     resume : bool, optional
         If the data is alreay on local it will not be downloaded, unless the remote file
         has a different size, by default False
+    verbosity : int, optional
+        The level of verbosity, by default 1
     progress: callable, optional
         A callable that will be called with the number of files, the total size of the files, the total size
         transferred and a boolean indicating if the transfer has started. By default None
@@ -427,7 +431,7 @@ def _list_objects(target, batch=False):
                 yield from objects
 
 
-def _delete_folder(target):
+def _delete_folder(target) -> None:
     _, _, bucket, _ = target.split("/", 3)
     s3 = s3_client(bucket)
 
@@ -439,7 +443,7 @@ def _delete_folder(target):
         LOGGER.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
-def _delete_file(target):
+def _delete_file(target) -> None:
     from botocore.exceptions import ClientError
 
     _, _, bucket, key = target.split("/", 3)
@@ -462,7 +466,7 @@ def _delete_file(target):
     LOGGER.info(f"{target} is deleted")
 
 
-def delete(target):
+def delete(target) -> None:
     """Delete a file or a folder from S3.
 
     Parameters
@@ -480,7 +484,7 @@ def delete(target):
         _delete_file(target)
 
 
-def list_folder(folder):
+def list_folder(folder) -> list:
     """List the sub folders in a folder on S3.
 
     Parameters
@@ -508,7 +512,7 @@ def list_folder(folder):
             yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes")]
 
 
-def object_info(target):
+def object_info(target) -> dict:
     """Get information about an object on S3.
 
     Parameters
@@ -533,7 +537,7 @@ def object_info(target):
         raise
 
 
-def object_acl(target):
+def object_acl(target) -> dict:
     """Get information about an object's ACL on S3.
 
     Parameters
