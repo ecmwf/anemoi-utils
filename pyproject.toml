@@ -41,8 +41,9 @@ classifiers = [
 
 dynamic = [ "version" ]
 dependencies = [
+  "aniso8601",
   "pyyaml",
-  "tomli",  # Only needed before 3.11
+  "tomli",     # Only needed before 3.11
   "tqdm",
 ]
 

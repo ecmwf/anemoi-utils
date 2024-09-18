@@ -15,6 +15,8 @@ import re
 import warnings
 from collections import defaultdict
 
+from anemoi.utils.dates import as_datetime
+
 
 def bytes_to_human(n: float) -> str:
     """Convert a number of bytes to a human readable string
@@ -629,3 +631,60 @@ def shorten_list(lst, max_length=5) -> list:
         if isinstance(lst, tuple):
             return tuple(result)
         return result
+
+
+def _compress_dates(dates):
+    dates = sorted(dates)
+    if len(dates) < 3:
+        yield dates
+        return
+
+    prev = first = dates.pop(0)
+    curr = dates.pop(0)
+    delta = curr - prev
+    while curr - prev == delta:
+        prev = curr
+        if not dates:
+            break
+        curr = dates.pop(0)
+
+    yield (first, prev, delta)
+    if dates:
+        yield from _compress_dates([curr] + dates)
+
+
+def compress_dates(dates) -> str:
+    """Compress a list of dates into a human-readable format.
+
+    Parameters
+    ----------
+    dates : list
+        A list of dates, as datetime objects or strings.
+
+    Returns
+    -------
+    str
+        A human-readable string representing the compressed dates.
+    """
+
+    dates = [as_datetime(_) for _ in dates]
+    result = []
+
+    for n in _compress_dates(dates):
+        if isinstance(n, list):
+            result.extend([str(_) for _ in n])
+        else:
+            result.append(" ".join([str(n[0]), "to", str(n[1]), "by", str(n[2])]))
+
+    return result
+
+
+def print_dates(dates) -> None:
+    """Print a list of dates in a human-readable format.
+
+    Parameters
+    ----------
+    dates : list
+        A list of dates, as datetime objects or strings.
+    """
+    print(compress_dates(dates))
