@@ -555,11 +555,11 @@ def json_pretty_dump(obj, max_line_length=120, default=str) -> str:
 
     Parameters
     ----------
-    obj
+    obj : Any
         The object to be dumped as JSON.
-    max_line_length, optional
+    max_line_length : int, optional
         Maximum allowed line length for pretty-printing. Default is 120.
-    default, optional
+    default : function, optional
         Default function to convert non-serializable objects. Default is str.
 
     Returns
@@ -568,14 +568,14 @@ def json_pretty_dump(obj, max_line_length=120, default=str) -> str:
         JSON string.
     """
 
-    def _format_json(obj, indent_level=0) -> str:
+    def _format_json(obj, indent_level=0):
         """Helper function to format JSON objects with custom pretty-print rules.
 
         Parameters
         ----------
-        obj
+        obj : Any
             The object to format.
-        indent_level, optional
+        indent_level : int, optional
             Current indentation level. Default is 0.
 
         Returns
