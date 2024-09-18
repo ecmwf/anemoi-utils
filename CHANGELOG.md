@@ -11,9 +11,14 @@ Keep it human-readable, your future self will thank you!
 ## [Unreleased]
 
 ### Added
+- Codeowners file
+- Pygrep precommit hooks
+- Docsig precommit hooks
+- Changelog merge strategy- Codeowners file
 
 ### Changed
 - downstream-ci should only runs for changes in src and tests
+- bugfixes for CI
 
 ### Removed
 

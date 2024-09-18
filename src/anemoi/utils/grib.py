@@ -95,8 +95,8 @@ def units(param) -> str:
 
     Parameters
     ----------
-    paramid : int or str
-        Parameter id ir name.
+    param : int or str
+        Parameter id or name.
 
     Returns
     -------
@@ -112,7 +112,7 @@ def units(param) -> str:
     return _units()[unit_id]
 
 
-def must_be_positive(param):
+def must_be_positive(param) -> bool:
     """Check if a parameter must be positive.
 
     Parameters

@@ -55,6 +55,8 @@ def make_parser(description, commands):
 
 
 class Failed(Command):
+    """Command not available."""
+
     def __init__(self, name, error):
         self.name = name
         self.error = error

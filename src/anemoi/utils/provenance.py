@@ -199,7 +199,7 @@ def _paths(path_or_object):
     return paths
 
 
-def git_check(*args):
+def git_check(*args) -> dict:
     """Return the git information for the given arguments.
 
     Arguments can be:
@@ -208,6 +208,11 @@ def git_check(*args):
         - a module object
         - an object or a class
         - a path to a directory
+
+    Parameters
+    ----------
+    args : list
+        The list of arguments to check
 
     Returns
     -------

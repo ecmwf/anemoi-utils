@@ -47,7 +47,7 @@ def has_metadata(path: str, name: str = DEFAULT_NAME) -> bool:
     return False
 
 
-def load_metadata(path: str, name: str = DEFAULT_NAME):
+def load_metadata(path: str, name: str = DEFAULT_NAME) -> dict:
     """Load metadata from a checkpoint file
 
     Parameters
@@ -59,8 +59,8 @@ def load_metadata(path: str, name: str = DEFAULT_NAME):
 
     Returns
     -------
-    JSON
-        The content of the metadata file
+    dict
+        The content of the metadata file from JSON
 
     Raises
     ------
@@ -82,7 +82,7 @@ def load_metadata(path: str, name: str = DEFAULT_NAME):
         raise ValueError(f"Could not find '{name}' in {path}.")
 
 
-def save_metadata(path, metadata, name=DEFAULT_NAME, folder=DEFAULT_FOLDER):
+def save_metadata(path, metadata, name=DEFAULT_NAME, folder=DEFAULT_FOLDER) -> None:
     """Save metadata to a checkpoint file
 
     Parameters
@@ -93,6 +93,8 @@ def save_metadata(path, metadata, name=DEFAULT_NAME, folder=DEFAULT_FOLDER):
         A JSON serializable object
     name : str, optional
         The name of the metadata file in the zip archive
+    folder : str, optional
+        The folder where the metadata file will be saved
     """
     with zipfile.ZipFile(path, "a") as zipf:
 
