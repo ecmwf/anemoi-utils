@@ -15,6 +15,7 @@ Keep it human-readable, your future self will thank you!
 - Pygrep precommit hooks
 - Docsig precommit hooks
 - Changelog merge strategy- Codeowners file
+- Create dependency on wcwidth. MIT licence.
 
 ### Changed
 - downstream-ci should only runs for changes in src and tests
