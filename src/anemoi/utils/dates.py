@@ -13,7 +13,17 @@ import re
 import aniso8601
 
 
-def _no_time_zone(date):
+def normalise_frequency(frequency):
+    if isinstance(frequency, int):
+        return frequency
+    assert isinstance(frequency, str), (type(frequency), frequency)
+
+    unit = frequency[-1].lower()
+    v = int(frequency[:-1])
+    return {"h": v, "d": v * 24}[unit]
+
+
+def _no_time_zone(date) -> datetime.datetime:
     """Remove time zone information from a date.
 
     Parameters
@@ -31,7 +41,7 @@ def _no_time_zone(date):
 
 
 # this function is use in anemoi-datasets
-def as_datetime(date, keep_time_zone=False):
+def as_datetime(date, keep_time_zone=False) -> datetime.datetime:
     """Convert a date to a datetime object, removing any time zone information.
 
     Parameters
@@ -95,7 +105,7 @@ def as_datetime_list(date, default_increment=1):
     return list(_as_datetime_list(date, default_increment))
 
 
-def frequency_to_timedelta(frequency):
+def frequency_to_timedelta(frequency) -> datetime.timedelta:
     """Convert a frequency to a timedelta object.
 
     Parameters
@@ -159,7 +169,7 @@ def frequency_to_timedelta(frequency):
     raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
 
 
-def frequency_to_string(frequency):
+def frequency_to_string(frequency) -> str:
     """Convert a frequency (i.e. a datetime.timedelta) to a string.
 
     Parameters
@@ -206,7 +216,7 @@ def frequency_to_string(frequency):
     return str(frequency)
 
 
-def frequency_to_seconds(frequency):
+def frequency_to_seconds(frequency) -> int:
     """Convert a frequency to seconds.
 
     Parameters
@@ -394,6 +404,8 @@ class Autumn(DateTimes):
 
 
 class ConcatDateTimes:
+    """ConcatDateTimes is an iterator that generates datetime objects from a list of dates."""
+
     def __init__(self, *dates):
         if len(dates) == 1 and isinstance(dates[0], list):
             dates = dates[0]
@@ -406,6 +418,8 @@ class ConcatDateTimes:
 
 
 class EnumDateTimes:
+    """EnumDateTimes is an iterator that generates datetime objects from a list of dates."""
+
     def __init__(self, dates):
         self.dates = dates
 

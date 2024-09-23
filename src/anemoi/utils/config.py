@@ -175,8 +175,13 @@ def config_path(name="settings.toml"):
     return full
 
 
-def load_any_dict_format(path):
+def load_any_dict_format(path) -> dict:
     """Load a configuration file in any supported format: JSON, YAML and TOML.
+
+    Parameters
+    ----------
+    path : str
+        The path to the configuration file.
 
     Returns
     -------
@@ -243,7 +248,7 @@ def _load_config(name="settings.toml", secrets=None, defaults=None):
     return CONFIG[key]
 
 
-def _save_config(name, data):
+def _save_config(name, data) -> None:
     CONFIG.pop(name, None)
 
     conf = config_path(name)
@@ -265,7 +270,7 @@ def _save_config(name, data):
         f.write(data)
 
 
-def save_config(name, data):
+def save_config(name, data) -> None:
     """Save a configuration file.
 
     Parameters
@@ -281,13 +286,17 @@ def save_config(name, data):
         _save_config(name, data)
 
 
-def load_config(name="settings.toml", secrets=None, defaults=None):
+def load_config(name="settings.toml", secrets=None, defaults=None) -> DotDict | str:
     """Read a configuration file.
 
     Parameters
     ----------
     name : str, optional
         The name of the config file to read, by default "settings.toml"
+    secrets : str or list, optional
+        The name of the secrets file, by default None
+    defaults : str or dict, optional
+        The name of the defaults file, by default None
 
     Returns
     -------
@@ -299,7 +308,7 @@ def load_config(name="settings.toml", secrets=None, defaults=None):
         return _load_config(name, secrets, defaults)
 
 
-def load_raw_config(name, default=None):
+def load_raw_config(name, default=None) -> DotDict | str:
 
     path = config_path(name)
     if os.path.exists(path):
@@ -308,13 +317,17 @@ def load_raw_config(name, default=None):
     return default
 
 
-def check_config_mode(name="settings.toml", secrets_name=None, secrets=None):
+def check_config_mode(name="settings.toml", secrets_name=None, secrets=None) -> None:
     """Check that a configuration file is secure.
 
     Parameters
     ----------
     name : str, optional
         The name of the configuration file, by default "settings.toml"
+    secrets_name : str, optional
+        The name of the secrets file, by default None
+    secrets : list, optional
+        The list of secrets to check, by default None
 
     Raises
     ------

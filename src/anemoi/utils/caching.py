@@ -49,6 +49,7 @@ def cache(key, proc, collection="default", expires=None):
 
 
 class cached:
+    """Decorator to cache the result of a function."""
 
     def __init__(self, collection="default", expires=None):
         self.collection = collection
