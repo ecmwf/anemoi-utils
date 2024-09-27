@@ -33,5 +33,7 @@ def test_frequency_to_timedelta():
 
 
 if __name__ == "__main__":
-    test_frequency_to_string()
-    test_frequency_to_timedelta()
+    for name, obj in list(globals().items()):
+        if name.startswith("test_") and callable(obj):
+            print(f"Running {name}...")
+            obj()

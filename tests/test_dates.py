@@ -104,10 +104,7 @@ def test_date_hindcast_3():
 
 
 if __name__ == "__main__":
-    test_functions = [
-        obj for name, obj in globals().items() if name.startswith("test_") and isinstance(obj, type(lambda: 0))
-    ]
-    for test_func in test_functions:
-        print(f"Running test: {test_func.__name__}")
-        test_func()
-    print("All tests passed!")
+    for name, obj in list(globals().items()):
+        if name.startswith("test_") and callable(obj):
+            print(f"Running {name}...")
+            obj()

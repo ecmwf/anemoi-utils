@@ -52,4 +52,7 @@ def test_grib():
 
 
 if __name__ == "__main__":
-    test_set_defaults()
+    for name, obj in list(globals().items()):
+        if name.startswith("test_") and callable(obj):
+            print(f"Running {name}...")
+            obj()
