@@ -20,41 +20,41 @@ RE1 = re.compile(r"{([^}]*)}")
 RE2 = re.compile(r"\(([^}]*)\)")
 
 
-def sanetise(obj):
-    """sanetise an object:
+def sanitise(obj):
+    """sanitise an object:
     - by replacing all full paths with shortened versions.
     - by replacing URL passwords with '***'.
     """
 
     if isinstance(obj, dict):
-        return {sanetise(k): sanetise(v) for k, v in obj.items()}
+        return {sanitise(k): sanitise(v) for k, v in obj.items()}
 
     if isinstance(obj, list):
-        return [sanetise(v) for v in obj]
+        return [sanitise(v) for v in obj]
 
     if isinstance(obj, tuple):
-        return tuple(sanetise(v) for v in obj)
+        return tuple(sanitise(v) for v in obj)
 
     if isinstance(obj, str):
-        return _sanetise_string(obj)
+        return _sanitise_string(obj)
 
     return obj
 
 
-def _sanetise_string(obj):
+def _sanitise_string(obj):
 
     parsed = urlparse(obj, allow_fragments=True)
 
     if parsed.scheme:
-        return _sanetise_url(parsed)
+        return _sanitise_url(parsed)
 
     if obj.startswith("/") or obj.startswith("~"):
-        return _sanetise_path(obj)
+        return _sanitise_path(obj)
 
     return obj
 
 
-def _sanetise_url(parsed):
+def _sanitise_url(parsed):
 
     LIST = [
         "pass",
@@ -98,7 +98,7 @@ def _sanetise_url(parsed):
     return urlunparse([scheme, netloc, path, params, query, fragment])
 
 
-def _sanetise_path(path):
+def _sanitise_path(path):
     bits = list(reversed(Path(path).parts))
     result = [bits.pop(0)]
     for bit in bits:
