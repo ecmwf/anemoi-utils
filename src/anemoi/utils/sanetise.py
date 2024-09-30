@@ -20,41 +20,41 @@ RE1 = re.compile(r"{([^}]*)}")
 RE2 = re.compile(r"\(([^}]*)\)")
 
 
-def anonymize(obj):
-    """Anonymize an object:
+def sanetise(obj):
+    """sanetise an object:
     - by replacing all full paths with shortened versions.
     - by replacing URL passwords with '***'.
     """
 
     if isinstance(obj, dict):
-        return {anonymize(k): anonymize(v) for k, v in obj.items()}
+        return {sanetise(k): sanetise(v) for k, v in obj.items()}
 
     if isinstance(obj, list):
-        return [anonymize(v) for v in obj]
+        return [sanetise(v) for v in obj]
 
     if isinstance(obj, tuple):
-        return tuple(anonymize(v) for v in obj)
+        return tuple(sanetise(v) for v in obj)
 
     if isinstance(obj, str):
-        return _anonymize_string(obj)
+        return _sanetise_string(obj)
 
     return obj
 
 
-def _anonymize_string(obj):
+def _sanetise_string(obj):
 
     parsed = urlparse(obj, allow_fragments=True)
 
     if parsed.scheme:
-        return _anonymize_url(parsed)
+        return _sanetise_url(parsed)
 
     if obj.startswith("/") or obj.startswith("~"):
-        return _anonymize_path(obj)
+        return _sanetise_path(obj)
 
     return obj
 
 
-def _anonymize_url(parsed):
+def _sanetise_url(parsed):
 
     LIST = [
         "pass",
@@ -98,7 +98,7 @@ def _anonymize_url(parsed):
     return urlunparse([scheme, netloc, path, params, query, fragment])
 
 
-def _anonymize_path(path):
+def _sanetise_path(path):
     bits = list(reversed(Path(path).parts))
     result = [bits.pop(0)]
     for bit in bits:
