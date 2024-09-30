@@ -10,12 +10,20 @@ import calendar
 import datetime
 import re
 
-import isodate
-
-from .hindcasts import HindcastDatesTimes
+import aniso8601
 
 
-def _no_time_zone(date):
+def normalise_frequency(frequency):
+    if isinstance(frequency, int):
+        return frequency
+    assert isinstance(frequency, str), (type(frequency), frequency)
+
+    unit = frequency[-1].lower()
+    v = int(frequency[:-1])
+    return {"h": v, "d": v * 24}[unit]
+
+
+def _no_time_zone(date) -> datetime.datetime:
     """Remove time zone information from a date.
 
     Parameters
@@ -33,7 +41,7 @@ def _no_time_zone(date):
 
 
 # this function is use in anemoi-datasets
-def as_datetime(date, keep_time_zone=False):
+def as_datetime(date, keep_time_zone=False) -> datetime.datetime:
     """Convert a date to a datetime object, removing any time zone information.
 
     Parameters
@@ -63,7 +71,41 @@ def as_datetime(date, keep_time_zone=False):
     raise ValueError(f"Invalid date type: {type(date)}")
 
 
-def frequency_to_timedelta(frequency):
+def _as_datetime_list(date, default_increment):
+    if isinstance(date, (list, tuple)):
+        for d in date:
+            yield from _as_datetime_list(d, default_increment)
+
+    if isinstance(date, str):
+        # Check for ISO format
+        try:
+            start, end = aniso8601.parse_interval(date)
+            while start <= end:
+                yield as_datetime(start)
+                start += default_increment
+
+            return
+
+        except aniso8601.exceptions.ISOFormatError:
+            pass
+
+        try:
+            intervals = aniso8601.parse_repeating_interval(date)
+            for date in intervals:
+                yield as_datetime(date)
+            return
+        except aniso8601.exceptions.ISOFormatError:
+            pass
+
+    yield as_datetime(date)
+
+
+def as_datetime_list(date, default_increment=1):
+    default_increment = frequency_to_timedelta(default_increment)
+    return list(_as_datetime_list(date, default_increment))
+
+
+def frequency_to_timedelta(frequency) -> datetime.timedelta:
     """Convert a frequency to a timedelta object.
 
     Parameters
@@ -120,14 +162,14 @@ def frequency_to_timedelta(frequency):
 
     # ISO8601
     try:
-        return isodate.parse_duration(frequency)
-    except isodate.isoerror.ISO8601Error:
+        return aniso8601.parse_duration(frequency)
+    except aniso8601.exceptions.ISOFormatError:
         pass
 
     raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
 
 
-def frequency_to_string(frequency):
+def frequency_to_string(frequency) -> str:
     """Convert a frequency (i.e. a datetime.timedelta) to a string.
 
     Parameters
@@ -174,7 +216,7 @@ def frequency_to_string(frequency):
     return str(frequency)
 
 
-def frequency_to_seconds(frequency):
+def frequency_to_seconds(frequency) -> int:
     """Convert a frequency to seconds.
 
     Parameters
@@ -362,6 +404,8 @@ class Autumn(DateTimes):
 
 
 class ConcatDateTimes:
+    """ConcatDateTimes is an iterator that generates datetime objects from a list of dates."""
+
     def __init__(self, *dates):
         if len(dates) == 1 and isinstance(dates[0], list):
             dates = dates[0]
@@ -374,6 +418,8 @@ class ConcatDateTimes:
 
 
 class EnumDateTimes:
+    """EnumDateTimes is an iterator that generates datetime objects from a list of dates."""
+
     def __init__(self, dates):
         self.dates = dates
 
@@ -393,6 +439,8 @@ def datetimes_factory(*args, **kwargs):
         name = kwargs.get("name")
 
         if name == "hindcast":
+            from .hindcasts import HindcastDatesTimes
+
             reference_dates = kwargs["reference_dates"]
             reference_dates = datetimes_factory(reference_dates)
             years = kwargs["years"]
@@ -416,3 +464,8 @@ def datetimes_factory(*args, **kwargs):
             return datetimes_factory(*a)
 
     return ConcatDateTimes(*[datetimes_factory(a) for a in args])
+
+
+if __name__ == "__main__":
+    print(as_datetime_list("R10/2023-01-01T00:00:00Z/P1D"))
+    print(as_datetime_list("2007-03-01T13:00:00/2008-05-11T15:30:00", "200h"))

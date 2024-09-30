@@ -174,6 +174,8 @@ def green(text):
 
 
 class Tree:
+    """Tree data structure."""
+
     def __init__(self, actor, parent=None):
         self._actor = actor
         self._kids = []
@@ -308,7 +310,7 @@ class Tree:
         }
 
 
-def table(rows, header, align, margin=0):
+def table(rows, header, align, margin=0) -> str:
     """Format a table
 
     >>> table([['Aa', 12, 5],

@@ -10,19 +10,13 @@
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
 
 [build-system]
-requires = [
-  "setuptools>=60",
-  "setuptools-scm>=8",
-]
+requires = [ "setuptools>=60", "setuptools-scm>=8" ]
 
 [project]
 name = "anemoi-utils"
 
 description = "A package to hold various functions to support training of ML models on ECMWF data."
-keywords = [
-  "ai",
-  "tools",
-]
+keywords = [ "ai", "tools" ]
 
 license = { file = "LICENSE" }
 authors = [
@@ -45,35 +39,16 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
-dynamic = [
-  "version",
-]
+dynamic = [ "version" ]
 dependencies = [
-  "isodate",
-
+  "aniso8601",
   "pyyaml",
-  "tomli",  # Only needed before 3.11
+  "tomli",     # Only needed before 3.11
   "tqdm",
 ]
 
-optional-dependencies.all = [
-  "gitpython",
-  "nvsmi",
-  "requests",
-  "termcolor",
-]
-optional-dependencies.dev = [
-  "gitpython",
-  "nbsphinx",
-  "nvsmi",
-  "pandoc",
-  "pytest",
-  "requests",
-  "sphinx",
-  "sphinx-argparse<0.5",
-  "sphinx-rtd-theme",
-  "termcolor",
-]
+optional-dependencies.all = [ "anemoi-utils[grib,provenance,text]" ]
+optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 
 optional-dependencies.docs = [
   "nbsphinx",
@@ -85,21 +60,14 @@ optional-dependencies.docs = [
   "termcolor",
 ]
 
-optional-dependencies.grib = [
-  "requests",
-]
+optional-dependencies.grib = [ "requests" ]
 
-optional-dependencies.provenance = [
-  "gitpython",
-  "nvsmi",
-]
-optional-dependencies.tests = [
-  "pytest",
-]
+optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
 
-optional-dependencies.text = [
-  "termcolor",
-]
+optional-dependencies.tests = [ "pytest" ]
+
+optional-dependencies.text = [ "termcolor", "wcwidth" ]
+
 urls.Documentation = "https://anemoi-utils.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/anemoi-utils/"
 urls.Issues = "https://github.com/ecmwf/anemoi-utils/issues"
@@ -108,9 +76,7 @@ urls.Repository = "https://github.com/ecmwf/anemoi-utils/"
 scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools.package-data]
-"anemoi.utils.mars" = [
-  "*.yaml",
-]
+"anemoi.utils.mars" = [ "*.yaml" ]
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"

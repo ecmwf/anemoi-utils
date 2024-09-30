@@ -1,3 +1,10 @@
+# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
 import datetime
 from textwrap import dedent
 
@@ -104,10 +111,7 @@ def test_date_hindcast_3():
 
 
 if __name__ == "__main__":
-    test_functions = [
-        obj for name, obj in globals().items() if name.startswith("test_") and isinstance(obj, type(lambda: 0))
-    ]
-    for test_func in test_functions:
-        print(f"Running test: {test_func.__name__}")
-        test_func()
-    print("All tests passed!")
+    for name, obj in list(globals().items()):
+        if name.startswith("test_") and callable(obj):
+            print(f"Running {name}...")
+            obj()
