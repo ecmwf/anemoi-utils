@@ -20,6 +20,7 @@ Keep it human-readable, your future self will thank you!
 ### Changed
 - downstream-ci should only runs for changes in src and tests
 - bugfixes for CI
+- python3.9 support
 
 ### Removed
 
