@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
-## [Unreleased]
+## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.3.16...HEAD)
+
+## [0.3.16](https://github.com/ecmwf/anemoi-utils/compare/0.3.13...0.3.16) - 2024-09-30
 
 ### Added
+
 - Codeowners file
 - Pygrep precommit hooks
 - Docsig precommit hooks
@@ -19,6 +22,7 @@ Keep it human-readable, your future self will thank you!
 - Add anonimize() function.
 
 ### Changed
+
 - downstream-ci should only runs for changes in src and tests
 - bugfixes for CI
 - python3.9 support
@@ -28,21 +32,23 @@ Keep it human-readable, your future self will thank you!
 ## [0.3.0] - Initial Release, utility functions
 
 ### Added
+
 - Command line interface utility
 
 ## [0.2.0] - Initial Release, utility functions
 
 ### Changed
+
 - updated documentation
 
 ## [0.1.0] - Initial Release, utility functions
 
 ### Added
+
 - Documentation
 - Initial implementation for a series of utility functions for used by the rest of the Anemoi packages
 
 <!-- Add Git Diffs for Links above -->
-[unreleased]: https://github.com/ecmwf/anemoi-utils/compare/0.3.13...HEAD
 https://github.com/ecmwf/anemoi-utils/compare/0.2.0...0.3.0
 https://github.com/ecmwf/anemoi-utils/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/ecmwf/anemoi-utils/releases/tag/0.1.0
