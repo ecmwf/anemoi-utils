@@ -19,6 +19,7 @@ Keep it human-readable, your future self will thank you!
 - Docsig precommit hooks
 - Changelog merge strategy- Codeowners file
 - Create dependency on wcwidth. MIT licence.
+- Add distribution name dictionary to provenance [#15](https://github.com/ecmwf/anemoi-utils/pull/15)
 - Add anonimize() function.
 
 ### Changed
