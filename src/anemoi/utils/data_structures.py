@@ -39,8 +39,7 @@ class States:
     _dtype = None
 
     def __init__(self, name_to_index=None):
-        if name_to_index is not None:
-            self.name_to_index = name_to_index
+        self.name_to_index = name_to_index
 
     def __len__(self):
         if self._len is None:
@@ -173,14 +172,11 @@ class EnsembleInferenceThingy(InferenceThingy):
 
 class AnemoiTensor:
     def __init__(self, name_to_index=None):
-        if name_to_index is not None:
-            self.name_to_index = name_to_index
+        self.name_to_index = name_to_index
 
 class SimpleAnemoiTensor(AnemoiTensor):
     # This should behave like a torch tensor, maybe it should be a torch.Tensor
-    def __init__(self, *args, **kwargs):
-        if 'name_to_index' in kwargs:
-            name_to_index = kwargs.pop('name_to_index')
+    def __init__(self, *args, name_to_index=None, **kwargs):
         super().__init__(name_to_index=name_to_index)
 
         print('❗❗❗❗This is for illustration purposes. SimpleAnemoiTensor has not been tested')
@@ -214,6 +210,9 @@ class NestedAnemoiTensor(AnemoiTensor):
         assert len(tupl) == 2
         i, j = tupl
         self.arrays[i][j] = value
+
+    def __len__(self):
+        return len(self.arrays)
 
     @property
     def size(self):
@@ -261,7 +260,6 @@ class TorchNestedAnemoiTensor(NestedAnemoiTensor):
         
         super().__init__(arrays, **kwargs)
         self.check_array_type(arrays)
-
     @classmethod
     def _cast_to_torch(cls, v):
         import torch
