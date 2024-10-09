@@ -5,6 +5,6 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from .sanetise import sanetise as sanetize
+from .sanitise import sanitise as sanitize
 
-__all__ = ["sanetize"]
+__all__ = ["sanitize"]
