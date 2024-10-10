@@ -148,38 +148,13 @@ def _module_versions(full):
 def package_distributions() -> dict[str, list[str]]:
     # Takes a significant amount of time to run
     # so cache the result
-    import collections
     from importlib import metadata
 
     # For python 3.9 support
-    # Copy of importlib.metadata.packages_distributions()
+    if not hasattr(metadata, "packages_distributions"):
+        import importlib_metadata as metadata
 
-    def packages_distributions():
-        """Return a mapping of top-level packages to their
-        distributions.
-
-        >>> import collections.abc
-        >>> pkgs = packages_distributions()
-        >>> all(isinstance(dist, collections.abc.Sequence) for dist in pkgs.values())
-        True
-        """
-        pkg_to_dist = collections.defaultdict(list)
-        for dist in metadata.distributions():
-            for pkg in _top_level_declared(dist) or _top_level_inferred(dist):
-                pkg_to_dist[pkg].append(dist.metadata["Name"])
-        return dict(pkg_to_dist)
-
-    def _top_level_declared(dist):
-        return (dist.read_text("top_level.txt") or "").split()
-
-    def _top_level_inferred(dist):
-        return {
-            f.parts[0] if len(f.parts) > 1 else f.with_suffix("").name
-            for f in (dist.files if isinstance(dist.files, (tuple, list)) else [dist.files])
-            if f.suffix == ".py"
-        }
-
-    return packages_distributions()
+    return metadata.packages_distributions()
 
 
 def import_name_to_distribution_name(packages: list):
