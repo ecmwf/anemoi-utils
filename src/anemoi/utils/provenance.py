@@ -145,10 +145,14 @@ def _module_versions(full):
 
 
 @cache
-def package_distributions():
+def package_distributions() -> dict[str, list[str]]:
     # Takes a significant amount of time to run
     # so cache the result
     from importlib import metadata
+
+    # For python 3.9 support
+    if not hasattr(metadata, "packages_distributions"):
+        import importlib_metadata as metadata
 
     return metadata.packages_distributions()
 
