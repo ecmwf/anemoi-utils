@@ -6,12 +6,28 @@
 # nor does it submit to any jurisdiction.
 
 from abc import abstractmethod
+from collections import defaultdict
 import logging
 from functools import cached_property
 import numpy as np
 
 
 LOG = logging.getLogger(__name__)
+
+
+def flatten_name_to_index(dic):
+    new = dict()
+    for k, subdict in dic.items():
+        for name, v in subdict.items():
+            new[name] = (k, v)
+    return new
+
+
+def unflatten_name_to_index(dic):
+    new = defaultdict(dict)
+    for k, (name, v) in dic.items():
+        new[name][k] = v
+    return new
 
 
 def str_(t):
@@ -58,8 +74,9 @@ class States:
 
     @property
     def dtype(self):
-        assert self._dtype # this should be set by the subclass
+        assert self._dtype  # this should be set by the subclass
         return self._dtype
+
 
 #######################################
 # this may move to anemoi-training ?
@@ -77,7 +94,7 @@ class SimpleTrainingSample(TrainingSample):
     # appropriate for Deterministic models
     def __init__(self, array, **kwargs):
         super().__init__(**kwargs)
-        print('❗❗❗❗This is for illustration purposes. SimpleTrainingSample has not been tested.')
+        print("❗❗❗❗This is for illustration purposes. SimpleTrainingSample has not been tested.")
         self._len = array.shape[0]
         self._array = array
 
@@ -103,11 +120,13 @@ class SimpleTrainingSample(TrainingSample):
     def __str__(self):
         return f"{self.__class__.__name__}({str_(self._array)})"
 
+
 class NestedTrainingSample(TrainingSample):
     # states are not regular and cannot be stacked
     # appropriate for Observations
-    def __init__(self, states, state_type='torch', **kwargs):
+    def __init__(self, states, state_type="torch", **kwargs):
         super().__init__(**kwargs)
+        assert isinstance(states, (list, tuple, NestedTrainingSample)), type(states)
         self._state_type = state_type
         self._state_class = dict(torch=TorchNestedAnemoiTensor, numpy=NumpyNestedAnemoiTensor)[state_type]
         states = tuple(self.cast_to_state(_) for _ in states)
@@ -127,6 +146,7 @@ class NestedTrainingSample(TrainingSample):
 
     def __iter__(self):
         return iter(self._states)
+
     def __getitem__(self, i):
         return self._states[i]
 
@@ -145,12 +165,14 @@ class NestedTrainingSample(TrainingSample):
     def as_tuple_of_dicts(self, keys=None):
         return tuple(v.as_dict(keys) for v in self)
 
+
 class EnsembleTrainingSample(TrainingSample):
     # One additional dimension and potentially different behavior
     # but stacking is still possible
     #
     # maybe not needed and we can use SimpleTrainingSample
     pass
+
 
 # end of: this may move to anemoi-training ?
 #######################################
@@ -160,12 +182,20 @@ class EnsembleTrainingSample(TrainingSample):
 # this may move to anemoi-inference ?
 class InferenceThingy(States):
     pass
+
+
 class SimpleInferenceThingy(InferenceThingy):
     pass
+
+
 class NestedInferenceThingy(InferenceThingy):
     pass
+
+
 class EnsembleInferenceThingy(InferenceThingy):
     pass
+
+
 # end of: this may move to anemoi-inference ?
 #######################################
 
@@ -174,29 +204,34 @@ class AnemoiTensor:
     def __init__(self, name_to_index=None):
         self.name_to_index = name_to_index
 
+
 class SimpleAnemoiTensor(AnemoiTensor):
     # This should behave like a torch tensor, maybe it should be a torch.Tensor
     def __init__(self, *args, name_to_index=None, **kwargs):
         super().__init__(name_to_index=name_to_index)
 
-        print('❗❗❗❗This is for illustration purposes. SimpleAnemoiTensor has not been tested')
+        print("❗❗❗❗This is for illustration purposes. SimpleAnemoiTensor has not been tested")
         from torch import Tensor
+
         self.forward = Tensor(*args, **kwargs)
-    
+
     def __getattribute__(self, name):
         return self.forward.__getattribute__(name)
+
 
 class NestedAnemoiTensor(AnemoiTensor):
     def __init__(self, arrays, **kwargs):
         super().__init__(**kwargs)
+        if isinstance(arrays, (list, tuple)):
+            arrays = {i: v for i, v in enumerate(arrays)}
         self.arrays = arrays
 
     def check_array_type(self, arrays):
         _type = None
-        for a in arrays:
-            _type = type(arrays[0])
+        for _, a in arrays.items():
+            _type = type(a)
             assert isinstance(a, _type), (type(a), _type)
-    
+
     def __getitem__(self, tupl):
         assert isinstance(tupl, (int, tuple)), type(tupl)
         if isinstance(tupl, int):
@@ -214,66 +249,85 @@ class NestedAnemoiTensor(AnemoiTensor):
     def __len__(self):
         return len(self.arrays)
 
+    def items(self):
+        return self.arrays.items()
+
     @property
     def size(self):
-        return sum(v.size for v in self.arrays)
+        return sum(v.size for _, v in self.arrays.items())
 
     def map(self, f):
-        return self.__class__([f(v) for v in self.arrays])
+        return self.__class__({k: f(v) for k, v in self.arrays.items()})
 
     @cached_property
     def dtype(self):
-        assert all(v.dtype == self.arrays[0].dtype for v in self.arrays)
-        return self.arrays[0].dtype
+        dtype = None
+        for _, a in self.arrays.items():
+            if dtype is None:
+                dtype = a.dtype
+            assert a.dtype == dtype, (a.dtype, dtype)
+        return dtype
 
     def __repr__(self):
         return f"{self.__class__.__name__}({str_(self.arrays)})"
 
     def as_list(self):
-        return list(self.arrays)
+        return list(self.arrays.values())
 
     def as_tuple(self):
-        return tuple(self.arrays)
+        return tuple(self.arrays.values())
 
     def as_dict(self, keys=None):
-        assert keys is not None, f"Using a list of keys from the config is not implemented yet"
-        # todo here: get the list of keys.
-        assert len(keys) == len(self.arrays), (len(keys), len(self.arrays))
-        return {k: v for k, v in zip(keys, self.arrays)}
+        if keys is None:
+            return self.arrays
 
+        assert all(isinstance(k, int) for k in self.arrays), (keys, self.arrays.keys())
+        assert len(keys) == len(self.arrays), (len(keys), len(self.arrays))
+        return {keys[k]: v for k, v in self.arrays.items()}
 
 class NumpyNestedAnemoiTensor(NestedAnemoiTensor):
     def flatten(self):
-        return np.concatenate([v.flatten() for v in self.arrays])
+        return np.concatenate([v.flatten() for _, v in self.arrays.items()])
 
     def as_torch(self):
-        return TorchNestedAnemoiTensor.from_numpy_arrays(self.arrays)
+        return TorchNestedAnemoiTensor(self.arrays)
 
     def check_array_type(self, arrays):
-        if arrays:
-            assert isinstance(arrays[0], np.ndarray), type(arrays[0])
+        for _, a in arrays.items():
+            assert isinstance(a, np.ndarray), type(a)
         super().check_array_type(arrays)
+
 
 class TorchNestedAnemoiTensor(NestedAnemoiTensor):
     def __init__(self, arrays, **kwargs):
-        arrays = [self._cast_to_torch(v) for v in arrays]
-        
+
+        arrays = {k:self._cast_to_torch(v) for k, v in arrays.items()}
+
         super().__init__(arrays, **kwargs)
         self.check_array_type(arrays)
+
+
     @classmethod
     def _cast_to_torch(cls, v):
         import torch
+
         return torch.from_numpy(v) if isinstance(v, np.ndarray) else v
 
     def to(self, device):
-        return self.__class__([v.to(device) for v in self.arrays])
+        return self.__class__({k: v.to(device) for k, v in self.arrays.items()})
 
     def as_torch(self):
-        print('WARNING: This is a torch tensor already')
+        print("WARNING: This is a torch tensor already")
         return self
 
     def check_array_type(self, arrays):
         import torch
-        if arrays:
-            assert isinstance(arrays[0], torch.Tensor), type(arrays[0])
+
+        for _, a in arrays.items():
+            assert isinstance(a, torch.Tensor), type(a)
         super().check_array_type(arrays)
+
+    def register_buffer(self, *, caller, name, persistent=False):
+        assert '__' not in name, name
+        for k, array in self.arrays.items():
+            caller.register_buffer(f'{name}__{k}', array, persistent=persistent)
