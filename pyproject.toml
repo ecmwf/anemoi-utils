@@ -43,9 +43,9 @@ dynamic = [ "version" ]
 dependencies = [
   "aniso8601",
   "importlib-metadata; python_version<'3.10'",
-
+  "python-dateutil",
   "pyyaml",
-  "tomli",  # Only needed before 3.11
+  "tomli; python_version<'3.11'",
   "tqdm",
 ]
 
