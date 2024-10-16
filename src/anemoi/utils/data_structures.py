@@ -229,6 +229,9 @@ class NestedAnemoiTensor(AnemoiTensor):
             arrays = {i: v for i, v in enumerate(arrays)}
         self.arrays = arrays
 
+    def keys(self):
+        return self.arrays.keys()
+
     def clone(self):
         raise NotImplementedError
 
@@ -239,8 +242,8 @@ class NestedAnemoiTensor(AnemoiTensor):
             assert isinstance(a, _type), (type(a), _type)
 
     def __getitem__(self, tupl):
-        assert isinstance(tupl, (int, tuple)), type(tupl)
-        if isinstance(tupl, int):
+        assert isinstance(tupl, (int, tuple, str)), type(tupl)
+        if isinstance(tupl, int) or isinstance(tupl, str):
             return self.arrays[tupl]
         assert len(tupl) == 2
         i, j = tupl
