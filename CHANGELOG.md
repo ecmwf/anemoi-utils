@@ -10,6 +10,10 @@ Keep it human-readable, your future self will thank you!
 
 ## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...HEAD)
 
+### Changed
+
+- Fix pre-commit regex
+
 ## [0.4.0](https://github.com/ecmwf/anemoi-utils/compare/0.3.18...0.4.0) - 2024-10-11
 
 ### Added
