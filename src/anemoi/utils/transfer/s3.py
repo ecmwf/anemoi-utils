@@ -29,10 +29,10 @@ from copy import deepcopy
 
 import tqdm
 
-from .config import load_config
-from .humanize import bytes_to_human
-from .transfer import BaseUpload
-from .transfer import Transfer
+from ..config import load_config
+from ..humanize import bytes_to_human
+from ..transfer import BaseUpload
+from ..transfer import Transfer
 
 LOGGER = logging.getLogger(__name__)
 
