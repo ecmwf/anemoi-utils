@@ -60,6 +60,7 @@ class Failed(Command):
     def __init__(self, name, error):
         self.name = name
         self.error = error
+        traceback.print_tb(error.__traceback__)
 
     def add_arguments(self, command_parser):
         command_parser.add_argument("x", nargs=argparse.REMAINDER)

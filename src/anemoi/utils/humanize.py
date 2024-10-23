@@ -97,7 +97,7 @@ PERIODS = (
 
 
 def _plural(count):
-    if count > 1:
+    if count != 1:
         return "s"
     else:
         return ""

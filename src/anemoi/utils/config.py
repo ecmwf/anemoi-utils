@@ -353,3 +353,22 @@ def check_config_mode(name="settings.toml", secrets_name=None, secrets=None) -> 
             raise SystemError(f"Configuration file {conf} is not secure.\n" f"Please run `chmod 600 {conf}`.")
 
         CHECKED[name] = True
+
+
+def find(metadata, what, result=None):
+    if result is None:
+        result = []
+
+    if isinstance(metadata, list):
+        for i in metadata:
+            find(i, what, result)
+        return result
+
+    if isinstance(metadata, dict):
+        if what in metadata:
+            result.append(metadata[what])
+
+        for k, v in metadata.items():
+            find(v, what, result)
+
+    return result

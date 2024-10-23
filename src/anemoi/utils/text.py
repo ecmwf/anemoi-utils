@@ -173,6 +173,12 @@ def green(text):
     return colored(text, "green")
 
 
+def blue(text):
+    from termcolor import colored
+
+    return colored(text, "blue")
+
+
 class Tree:
     """Tree data structure."""
 
