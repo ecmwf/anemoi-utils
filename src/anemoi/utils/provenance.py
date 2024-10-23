@@ -121,6 +121,7 @@ def _module_versions(full):
 
     roots = {}
     for name, path in sysconfig.get_paths().items():
+        path = os.path.realpath(path)
         if path not in roots:
             roots[path] = name
 
