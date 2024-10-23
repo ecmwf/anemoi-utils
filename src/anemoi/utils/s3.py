@@ -7,3 +7,6 @@
 
 # expose the public API
 from .transfer.s3 import *  # noqa: F401, F403
+
+# TODO: we should perhaps expose only these functions in the public API
+# from .transfer.s3 import upload, download

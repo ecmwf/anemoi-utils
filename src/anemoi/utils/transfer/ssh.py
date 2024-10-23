@@ -101,7 +101,7 @@ class SshUpload(BaseUpload):
         return size
 
 
-def ssh_upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
+def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
     # uploader = SshUpload()
     uploader = RsyncUpload()
 
