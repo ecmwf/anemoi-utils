@@ -26,13 +26,14 @@ import logging
 import os
 import threading
 from copy import deepcopy
+from typing import Iterable
 
 import tqdm
 
 from ..config import load_config
 from ..humanize import bytes_to_human
+from ..transfer import BaseDownload
 from ..transfer import BaseUpload
-from ..transfer import Transfer
 
 LOGGER = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def s3_client(bucket, region=None):
     return thread_local.s3_clients[key]
 
 
-class Upload(BaseUpload):
+class S3Upload(BaseUpload):
 
     def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
 
@@ -149,8 +150,7 @@ class Upload(BaseUpload):
         return size
 
 
-class Download(Transfer):
-    action = "Downloading"
+class S3Download(BaseDownload):
 
     def list_source(self, source):
         yield from _list_objects(source)
@@ -167,14 +167,6 @@ class Download(Transfer):
 
     def source_size(self, s3_object):
         return s3_object["Size"]
-
-    def transfer_file(self, source, target, overwrite, resume, verbosity, progress=None, config=None):
-        try:
-            return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
-        except Exception as e:
-            LOGGER.exception(f"Error transferring {source} to {target}")
-            LOGGER.error(e)
-            raise
 
     def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
         # from boto3.s3.transfer import TransferConfig
@@ -202,7 +194,7 @@ class Download(Transfer):
                 local_size = os.path.getsize(target)
                 if local_size != size:
                     LOGGER.warning(
-                        f"{target} already with different size, re-downloading (remote={size}, local={size})"
+                        f"{target} already with different size, re-downloading (remote={size}, local={local_size})"
                     )
                 else:
                     # if verbosity > 0:
@@ -244,7 +236,7 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
         The number of threads to use when uploading a directory, by default 1
     """
 
-    uploader = Upload()
+    uploader = S3Upload()
 
     if os.path.isdir(source):
         uploader.transfer_folder(
@@ -293,7 +285,7 @@ def download(source, target, *, overwrite=False, resume=False, verbosity=1, prog
     """
     assert source.startswith("s3://")
 
-    downloader = Download()
+    downloader = S3Download()
 
     if source.endswith("/"):
         downloader.transfer_folder(
@@ -384,7 +376,7 @@ def delete(target) -> None:
         _delete_file(target)
 
 
-def list_folder(folder) -> list:
+def list_folder(folder) -> Iterable:
     """List the sub folders in a folder on S3.
 
     Parameters

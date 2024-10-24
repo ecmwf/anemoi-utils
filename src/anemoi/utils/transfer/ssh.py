@@ -61,8 +61,7 @@ class RsyncUpload(BaseUpload):
         return size
 
 
-class SshUpload(BaseUpload):
-    """This class is not used in the current implementation, but it is left here for reference."""
+class ScpUpload(BaseUpload):
 
     def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
 
@@ -101,9 +100,13 @@ class SshUpload(BaseUpload):
         return size
 
 
-def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
-    # uploader = SshUpload()
-    uploader = RsyncUpload()
+def upload(
+    source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1, method="rsync"
+) -> None:
+    uploader = dict(
+        rsync=RsyncUpload,
+        scp=ScpUpload,
+    )[method]()
 
     if os.path.isdir(source):
         uploader.transfer_folder(
