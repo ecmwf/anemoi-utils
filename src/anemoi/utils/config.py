@@ -1,9 +1,12 @@
-# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024 Anemoi contributors.
+#
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
 
 from __future__ import annotations
 
@@ -353,3 +356,22 @@ def check_config_mode(name="settings.toml", secrets_name=None, secrets=None) -> 
             raise SystemError(f"Configuration file {conf} is not secure.\n" f"Please run `chmod 600 {conf}`.")
 
         CHECKED[name] = True
+
+
+def find(metadata, what, result=None):
+    if result is None:
+        result = []
+
+    if isinstance(metadata, list):
+        for i in metadata:
+            find(i, what, result)
+        return result
+
+    if isinstance(metadata, dict):
+        if what in metadata:
+            result.append(metadata[what])
+
+        for k, v in metadata.items():
+            find(v, what, result)
+
+    return result
