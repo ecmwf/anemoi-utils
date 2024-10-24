@@ -45,7 +45,7 @@ def _sanitise_string(obj):
 
     parsed = urlparse(obj, allow_fragments=True)
 
-    if parsed.scheme:
+    if parsed.scheme and parsed.scheme[0].isalpha():
         return _sanitise_url(parsed)
 
     if obj.startswith("/") or obj.startswith("~"):
