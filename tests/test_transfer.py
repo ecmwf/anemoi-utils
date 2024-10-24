@@ -155,6 +155,7 @@ def test_transfer_local_to_s3_to_local(path):
     _delete_file_or_directory(local2)
 
 
+@pytest.mark.skipif(IN_GITHUB, reason="Test requires access to S3")
 @pytest.mark.parametrize("path", ["directory/", "file"])
 def test_transfer_local_to_ssh(path):
     local = LOCAL_TEST_DATA + "/" + path
