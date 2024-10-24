@@ -14,6 +14,7 @@ Keep it human-readable, your future self will thank you!
 
 - Fix pre-commit regex
 - ci: extend python versions [#23] (https://github.com/ecmwf/anemoi-utils/pull/23)
+- Update copyright notice
 
 ## [0.4.0](https://github.com/ecmwf/anemoi-utils/compare/0.3.18...0.4.0) - 2024-10-11
 
