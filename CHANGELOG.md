@@ -11,7 +11,7 @@ Keep it human-readable, your future self will thank you!
 ## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...HEAD)
 
 ### Changed
-
+- Fix: resolve mounted filesystems in provenance
 - Fix pre-commit regex
 - ci: extend python versions [#23] (https://github.com/ecmwf/anemoi-utils/pull/23)
 
