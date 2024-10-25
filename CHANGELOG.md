@@ -10,6 +10,9 @@ Keep it human-readable, your future self will thank you!
 
 ## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...HEAD)
 
+## Fixed
+- Fix `__version__` import in init
+
 ### Changed
 
 - Fix pre-commit regex
