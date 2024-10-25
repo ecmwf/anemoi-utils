@@ -212,7 +212,6 @@ def transfer(
         threads=threads,
         progress=progress,
     )
-    return True
 
 
 def _find_transfer_class(source, target):
