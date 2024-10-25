@@ -60,8 +60,9 @@ class RsyncUpload(BaseUpload):
             "rsync",
             "-av",
             "--partial",
-            # this is not working. It requires a shell command and is not safe.
-            # f"--rsync-path='mkdir -p {os.path.dirname(path)} && rsync'",
+            # it would be nice to avoid two ssh calls, but the following is not possible,
+            # this is because it requires a shell command and would not be safe.
+            # # f"--rsync-path='mkdir -p {os.path.dirname(path)} && rsync'",
             source,
             f"{hostname}:{path}",
         )
