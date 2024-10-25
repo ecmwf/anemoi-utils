@@ -118,7 +118,7 @@ class Loader:
         raise NotImplementedError
 
     @abstractmethod
-    def copy(self, source, target, **kwargs):
+    def run(self, source, target, **kwargs):
         raise NotImplementedError
 
 
@@ -235,7 +235,7 @@ class Transfer:
 
         raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
-    def copy(self):
+    def run(self):
 
         if self.overwrite and os.path.exists(self.target):
             LOGGER.info(f"Deleting {self.target}")
@@ -259,9 +259,9 @@ class Transfer:
 
 
 def transfer(*args, **kwargs) -> Loader:
-    obj = Transfer(*args, **kwargs)
-    obj.copy()
-    return obj
+    copier = Transfer(*args, **kwargs)
+    copier.run()
+    return copier
 
 
 transfer.TransferMethodNotImplementedError = TransferMethodNotImplementedError
