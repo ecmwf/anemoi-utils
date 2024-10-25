@@ -10,7 +10,7 @@ import shutil
 
 import pytest
 
-from anemoi.utils.transfer import _find_transfer_func
+from anemoi.utils.transfer import _find_transfer_class
 from anemoi.utils.transfer import transfer
 
 IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
@@ -46,38 +46,31 @@ LOCAL_TEST_DATA = os.path.dirname(__file__) + "/test-transfer-data"
 @pytest.mark.parametrize("source", LOCAL)
 @pytest.mark.parametrize("target", S3)
 def test_transfer_find_s3_upload(source, target):
-    from anemoi.utils.transfer.s3 import upload as s3_upload
+    from anemoi.utils.transfer.s3 import S3Upload
 
-    assert _find_transfer_func(source, target) == s3_upload
+    assert _find_transfer_class(source, target) == S3Upload
 
 
 @pytest.mark.parametrize("source", S3)
 @pytest.mark.parametrize("target", LOCAL)
 def test_transfer_find_s3_download(source, target):
-    from anemoi.utils.transfer.s3 import download as s3_download
+    from anemoi.utils.transfer.s3 import S3Download
 
-    assert _find_transfer_func(source, target) == s3_download
+    assert _find_transfer_class(source, target) == S3Download
 
 
 @pytest.mark.parametrize("source", LOCAL)
 @pytest.mark.parametrize("target", SSH)
 def test_transfer_find_ssh_upload(source, target):
-    from anemoi.utils.transfer.ssh import upload as ssh_upload
+    from anemoi.utils.transfer.ssh import RsyncUpload
 
-    assert _find_transfer_func(source, target) == ssh_upload
-
-
-# @pytest.mark.parametrize('source', SSH)
-# @pytest.mark.parametrize('target', LOCAL)
-# def test_find_ssh_upload(source, target):
-#    from anemoi.utils.transfer.ssh import download as ssh_download
-#    assert _find_transfer_func(source, target) == ssh_download
+    assert _find_transfer_class(source, target) == RsyncUpload
 
 
 @pytest.mark.parametrize("source", S3 + SSH)
 @pytest.mark.parametrize("target", S3 + SSH)
 def test_transfer_find_none(source, target):
-    assert _find_transfer_func(source, target) is None
+    assert _find_transfer_class(source, target) is None
 
 
 @pytest.mark.skipif(IN_GITHUB, reason="Test requires access to S3")

@@ -8,6 +8,7 @@
 import logging
 import os
 import random
+import shlex
 import subprocess
 
 from ..humanize import bytes_to_human
@@ -33,7 +34,7 @@ def call_process(*args):
 
 class RsyncUpload(BaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
 
         assert target.startswith("ssh://")
 
@@ -49,13 +50,7 @@ class RsyncUpload(BaseUpload):
         if verbosity > 0:
             LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
 
-        call_process(
-            "ssh",
-            hostname,
-            "mkdir",
-            "-p",
-            os.path.dirname(path),
-        )
+        call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(path)))
         call_process(
             "rsync",
             "-av",
@@ -71,7 +66,7 @@ class RsyncUpload(BaseUpload):
 
 class ScpUpload(BaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
 
         assert target.startswith("ssh://")
         target = target[6:]
@@ -85,7 +80,7 @@ class ScpUpload(BaseUpload):
 
         remote_size = None
         try:
-            out = call_process("ssh", hostname, "stat", "-c", "%s", path)
+            out = call_process("ssh", hostname, "stat", "-c", "%s", shlex.quote(path))
             remote_size = int(out)
         except RuntimeError:
             remote_size = None
@@ -102,36 +97,16 @@ class ScpUpload(BaseUpload):
         if remote_size is not None and not overwrite and not resume:
             raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
-        call_process("ssh", hostname, "mkdir", "-p", os.path.dirname(path))
-        call_process("scp", source, f"{hostname}:{path}")
+        call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(path)))
+        call_process("scp", source, shlex.quote(f"{hostname}:{path}"))
 
         return size
 
 
-def upload(
-    source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1, method="rsync"
-) -> None:
-    uploader = dict(
-        rsync=RsyncUpload,
-        scp=ScpUpload,
-    )[method]()
+def upload(source, target, **kwargs) -> None:
+    uploader = RsyncUpload()
 
     if os.path.isdir(source):
-        uploader.transfer_folder(
-            source=source,
-            target=target,
-            overwrite=overwrite,
-            resume=resume,
-            verbosity=verbosity,
-            progress=progress,
-            threads=threads,
-        )
+        uploader.transfer_folder(source=source, target=target, **kwargs)
     else:
-        uploader.transfer_file(
-            source=source,
-            target=target,
-            overwrite=overwrite,
-            resume=resume,
-            verbosity=verbosity,
-            progress=progress,
-        )
+        uploader.transfer_file(source=source, target=target, **kwargs)

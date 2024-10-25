@@ -107,7 +107,7 @@ def s3_client(bucket, region=None):
 
 class S3Upload(BaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
 
         from botocore.exceptions import ClientError
 
@@ -152,6 +152,14 @@ class S3Upload(BaseUpload):
 
 class S3Download(BaseDownload):
 
+    def run(self, source, target, **kwargs):
+        assert source.startswith("s3://")
+
+        if source.endswith("/"):
+            self.transfer_folder(source=source, target=target, **kwargs)
+        else:
+            self.transfer_file(source=source, target=target, **kwargs)
+
     def list_source(self, source):
         yield from _list_objects(source)
 
@@ -168,7 +176,7 @@ class S3Download(BaseDownload):
     def source_size(self, s3_object):
         return s3_object["Size"]
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, config=None):
+    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
         # from boto3.s3.transfer import TransferConfig
 
         _, _, bucket, key = source.split("/", 3)
@@ -211,101 +219,6 @@ class S3Download(BaseDownload):
             s3.download_file(bucket, key, target, Config=config)
 
         return size
-
-
-def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
-    """Upload a file or a folder to S3.
-
-    Parameters
-    ----------
-    source : str
-        A path to a file or a folder to upload.
-    target : str
-        A URL to a file or a folder on S3. The url should start with 's3://'.
-    overwrite : bool, optional
-        If the data is alreay on S3 it will be overwritten, by default False
-    resume : bool, optional
-        If the data is alreay on S3 it will not be uploaded, unless the remote file
-        has a different size, by default False
-    verbosity : int, optional
-        The level of verbosity, by default 1
-    progress: callable, optional
-        A callable that will be called with the number of files, the total size of the files, the total size
-        transferred and a boolean indicating if the transfer has started. By default None
-    threads : int, optional
-        The number of threads to use when uploading a directory, by default 1
-    """
-
-    uploader = S3Upload()
-
-    if os.path.isdir(source):
-        uploader.transfer_folder(
-            source=source,
-            target=target,
-            overwrite=overwrite,
-            resume=resume,
-            verbosity=verbosity,
-            progress=progress,
-            threads=threads,
-        )
-    else:
-        uploader.transfer_file(
-            source=source,
-            target=target,
-            overwrite=overwrite,
-            resume=resume,
-            verbosity=verbosity,
-            progress=progress,
-        )
-
-
-def download(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
-    """Download a file or a folder from S3.
-
-    Parameters
-    ----------
-    source : str
-        The URL of a file or a folder on S3. The url should start with 's3://'. If the URL ends with a '/' it is
-        assumed to be a folder, otherwise it is assumed to be a file.
-    target : str
-        The local path where the file or folder will be downloaded.
-    overwrite : bool, optional
-        If false, files which have already been download will be skipped, unless their size
-        does not match their size on S3 , by default False
-    resume : bool, optional
-        If the data is alreay on local it will not be downloaded, unless the remote file
-        has a different size, by default False
-    verbosity : int, optional
-        The level of verbosity, by default 1
-    progress: callable, optional
-        A callable that will be called with the number of files, the total size of the files, the total size
-        transferred and a boolean indicating if the transfer has started. By default None
-    threads : int, optional
-        The number of threads to use when downloading a directory, by default 1
-    """
-    assert source.startswith("s3://")
-
-    downloader = S3Download()
-
-    if source.endswith("/"):
-        downloader.transfer_folder(
-            source=source,
-            target=target,
-            overwrite=overwrite,
-            resume=resume,
-            verbosity=verbosity,
-            progress=progress,
-            threads=threads,
-        )
-    else:
-        downloader.transfer_file(
-            source=source,
-            target=target,
-            overwrite=overwrite,
-            resume=resume,
-            verbosity=verbosity,
-            progress=progress,
-        )
 
 
 def _list_objects(target, batch=False):

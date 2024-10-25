@@ -22,7 +22,7 @@ def _ignore(number_of_files, total_size, total_transferred, transfering):
     pass
 
 
-class Transfer:
+class BaseTransfer:
 
     def transfer_folder(self, *, source, target, overwrite=False, resume=False, verbosity=1, threads=1, progress=None):
         assert verbosity == 1, verbosity
@@ -93,9 +93,9 @@ class Transfer:
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
 
-    def transfer_file(self, source, target, overwrite, resume, verbosity, progress=None, config=None):
+    def transfer_file(self, source, target, overwrite, resume, verbosity, threads=1, progress=None, config=None):
         try:
-            return self._transfer_file(source, target, overwrite, resume, verbosity, config=config)
+            return self._transfer_file(source, target, overwrite, resume, verbosity, threads=threads, config=config)
         except Exception as e:
             LOGGER.exception(f"Error transferring {source} to {target}")
             LOGGER.error(e)
@@ -117,13 +117,27 @@ class Transfer:
     def source_size(self, local_path):
         raise NotImplementedError
 
+    @abstractmethod
+    def run(self, source, target, **kwargs):
+        raise NotImplementedError
 
-class BaseDownload(Transfer):
+
+class BaseDownload(BaseTransfer):
     action = "Downloading"
 
+    @abstractmethod
+    def run(self, source, target, **kwargs):
+        raise NotImplementedError
 
-class BaseUpload(Transfer):
+
+class BaseUpload(BaseTransfer):
     action = "Uploading"
+
+    def run(self, source, target, **kwargs):
+        if os.path.isdir(source):
+            self.transfer_folder(source=source, target=target, **kwargs)
+        else:
+            self.transfer_file(source=source, target=target, **kwargs)
 
     def list_source(self, source):
         for root, _, files in os.walk(source):
@@ -182,12 +196,14 @@ def transfer(
         LOGGER.info(f"Deleting {target}")
         shutil.rmtree(target)
 
-    func = _find_transfer_func(source, target)
+    cls = _find_transfer_class(source, target)
 
-    if func is None:
+    if cls is None:
         raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
-    func(
+    transferer = cls()
+
+    transferer.run(
         source,
         target,
         overwrite=overwrite,
@@ -199,7 +215,7 @@ def transfer(
     return True
 
 
-def _find_transfer_func(source, target):
+def _find_transfer_class(source, target):
     source_is_ssh = source.startswith("ssh://")
     target_is_ssh = target.startswith("ssh://")
 
@@ -212,18 +228,24 @@ def _find_transfer_func(source, target):
     assert sum([target_is_ssh, target_is_local, target_in_s3]) == 1, (target_is_ssh, target_is_local, target_in_s3)
     assert sum([source_is_ssh, source_is_local, source_in_s3]) == 1, (source_is_ssh, source_is_local, source_in_s3)
 
-    func = None
-
     if source_is_ssh and target_is_local:  # local <- ssh
         # not implemented yet
         # from .ssh import download as func
         pass
+
     if source_is_local and target_is_ssh:  # local -> ssh
-        from .ssh import upload as func
+        from .ssh import RsyncUpload
+
+        return RsyncUpload
 
     if source_in_s3 and target_is_local:  # local <- S3
-        from .s3 import download as func
-    if source_is_local and target_in_s3:  # local -> S3
-        from .s3 import upload as func
+        from .s3 import S3Download
 
-    return func
+        return S3Download
+
+    if source_is_local and target_in_s3:  # local -> S3
+        from .s3 import S3Upload
+
+        return S3Upload
+
+    return None
