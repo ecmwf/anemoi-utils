@@ -16,7 +16,7 @@ Keep it human-readable, your future self will thank you!
 - Fix `__version__` import in init
 
 ### Changed
-
+- Fix: resolve mounted filesystems in provenance
 - Fix pre-commit regex
 - ci: extend python versions [#23] (https://github.com/ecmwf/anemoi-utils/pull/23)
 - Update copyright notice
