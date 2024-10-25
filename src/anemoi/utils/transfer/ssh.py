@@ -17,15 +17,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 def call_process(*args):
-
     proc = subprocess.Popen(
-        " ".join(args),  # this is because of the && in the rsync command
+        args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        shell=True,
     )
     stdout, stderr = proc.communicate()
     if proc.returncode != 0:
+        print(stdout)
         msg = f"{' '.join(args)} failed: {stderr}"
         raise RuntimeError(msg)
 
@@ -51,10 +50,18 @@ class RsyncUpload(BaseUpload):
             LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
 
         call_process(
+            "ssh",
+            hostname,
+            "mkdir",
+            "-p",
+            os.path.dirname(path),
+        )
+        call_process(
             "rsync",
             "-av",
             "--partial",
-            f"--rsync-path='mkdir -p {os.path.dirname(path)} && rsync'",
+            # this is not working. It requires a shell command and is not safe.
+            # f"--rsync-path='mkdir -p {os.path.dirname(path)} && rsync'",
             source,
             f"{hostname}:{path}",
         )
