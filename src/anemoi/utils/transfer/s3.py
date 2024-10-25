@@ -152,7 +152,7 @@ class S3Upload(BaseUpload):
 
 class S3Download(BaseDownload):
 
-    def run(self, source, target, **kwargs):
+    def copy(self, source, target, **kwargs):
         assert source.startswith("s3://")
 
         if source.endswith("/"):

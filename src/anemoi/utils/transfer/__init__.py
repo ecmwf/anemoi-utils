@@ -22,7 +22,7 @@ def _ignore(number_of_files, total_size, total_transferred, transfering):
     pass
 
 
-class BaseTransfer:
+class Loader:
 
     def transfer_folder(self, *, source, target, overwrite=False, resume=False, verbosity=1, threads=1, progress=None):
         assert verbosity == 1, verbosity
@@ -118,22 +118,22 @@ class BaseTransfer:
         raise NotImplementedError
 
     @abstractmethod
-    def run(self, source, target, **kwargs):
+    def copy(self, source, target, **kwargs):
         raise NotImplementedError
 
 
-class BaseDownload(BaseTransfer):
+class BaseDownload(Loader):
     action = "Downloading"
 
     @abstractmethod
-    def run(self, source, target, **kwargs):
+    def copy(self, source, target, **kwargs):
         raise NotImplementedError
 
 
-class BaseUpload(BaseTransfer):
+class BaseUpload(Loader):
     action = "Uploading"
 
-    def run(self, source, target, **kwargs):
+    def copy(self, source, target, **kwargs):
         if os.path.isdir(source):
             self.transfer_folder(source=source, target=target, **kwargs)
         else:
@@ -160,26 +160,23 @@ class TransferMethodNotImplementedError(NotImplementedError):
     pass
 
 
-def transfer(
-    source,
-    target,
-    overwrite=False,
-    resume=False,
-    verbosity=1,
-    threads=1,
-    progress=None,
-):
+class Transfer:
     """Parameters
     ----------
     source : str
-        A path to a file or a folder to upload.
+        A path to a local file or folder or a URL to a file or a folder on S3.
+        The url should start with 's3://'.
     target : str
-        A URL to a file or a folder on S3. The url should start with 's3://'.
+        A path to a local file or folder or a URL to a file or a folder on S3 or a remote folder.
+        The url should start with 's3://' or 'ssh://'.
     overwrite : bool, optional
-        If the data is alreay on S3 it will be overwritten, by default False
+        If the data is alreay on S3 it will be overwritten.
+        Ignored if the target is a remote folder (ssh://), using rsync.
+        By default False
     resume : bool, optional
-        If the data is alreay on S3 it will not be uploaded, unless the remote file
-        has a different size, by default False
+        If the data is alreay on S3 it will not be uploaded, unless the remote file has a different size
+        Ignored if the target is a remote folder (ssh://), using rsync.
+        By default False
     verbosity : int, optional
         The level of verbosity, by default 1
     progress: callable, optional
@@ -189,62 +186,83 @@ def transfer(
         The number of threads to use when uploading a directory, by default 1
     """
 
-    if target == ".":
-        target = os.path.basename(source)
+    TransferMethodNotImplementedError = TransferMethodNotImplementedError
 
-    if overwrite and os.path.exists(target):
-        LOGGER.info(f"Deleting {target}")
-        shutil.rmtree(target)
+    def __init__(self, source, target, overwrite=False, resume=False, verbosity=1, threads=1, progress=None):
+        if target == ".":
+            target = os.path.basename(source)
 
-    cls = _find_transfer_class(source, target)
+        self.source = source
+        self.target = target
+        self.overwrite = overwrite
+        self.resume = resume
+        self.verbosity = verbosity
+        self.threads = threads
+        self.progress = progress
 
-    if cls is None:
+        cls = self._find_transfer_class(self.source, self.target)
+        self.loader = cls()
+
+    @classmethod
+    def _find_transfer_class(self, source, target):
+        from_ssh = source.startswith("ssh://")
+        into_ssh = target.startswith("ssh://")
+
+        from_s3 = source.startswith("s3://")
+        into_s3 = target.startswith("s3://")
+
+        from_local = not from_ssh and not from_s3
+        into_local = not into_ssh and not into_s3
+
+        # check that exactly one source type and one target type is specified
+        assert sum([into_ssh, into_local, into_s3]) == 1, (into_ssh, into_local, into_s3)
+        assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
+
+        if from_local and into_ssh:  # local -> ssh
+            from .ssh import RsyncUpload
+
+            return RsyncUpload
+
+        if from_s3 and into_local:  # local <- S3
+            from .s3 import S3Download
+
+            return S3Download
+
+        if from_local and into_s3:  # local -> S3
+            from .s3 import S3Upload
+
+            return S3Upload
+
         raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
-    transferer = cls()
+    def copy(self):
 
-    transferer.run(
-        source,
-        target,
-        overwrite=overwrite,
-        resume=resume,
-        verbosity=verbosity,
-        threads=threads,
-        progress=progress,
-    )
+        if self.overwrite and os.path.exists(self.target):
+            LOGGER.info(f"Deleting {self.target}")
+            shutil.rmtree(self.target)
+
+        self.loader.copy(
+            self.source,
+            self.target,
+            overwrite=self.overwrite,
+            resume=self.resume,
+            verbosity=self.verbosity,
+            threads=self.threads,
+            progress=self.progress,
+        )
+
+    def rename_target(self):
+        return self.loader.rename_target()
+
+    def delete_target(self):
+        return self.loader.delete_target()
 
 
-def _find_transfer_class(source, target):
-    source_is_ssh = source.startswith("ssh://")
-    target_is_ssh = target.startswith("ssh://")
+def transfer(*args, **kwargs) -> Loader:
+    obj = Transfer(*args, **kwargs)
+    obj.copy()
+    return obj
 
-    source_in_s3 = source.startswith("s3://")
-    target_in_s3 = target.startswith("s3://")
 
-    source_is_local = not source_is_ssh and not source_in_s3
-    target_is_local = not target_is_ssh and not target_in_s3
-
-    assert sum([target_is_ssh, target_is_local, target_in_s3]) == 1, (target_is_ssh, target_is_local, target_in_s3)
-    assert sum([source_is_ssh, source_is_local, source_in_s3]) == 1, (source_is_ssh, source_is_local, source_in_s3)
-
-    if source_is_ssh and target_is_local:  # local <- ssh
-        # not implemented yet
-        # from .ssh import download as func
-        pass
-
-    if source_is_local and target_is_ssh:  # local -> ssh
-        from .ssh import RsyncUpload
-
-        return RsyncUpload
-
-    if source_in_s3 and target_is_local:  # local <- S3
-        from .s3 import S3Download
-
-        return S3Download
-
-    if source_is_local and target_in_s3:  # local -> S3
-        from .s3 import S3Upload
-
-        return S3Upload
-
-    return None
+transfer.TransferMethodNotImplementedError = TransferMethodNotImplementedError
+transfer.__doc__ = Transfer.__doc__
