@@ -88,7 +88,7 @@ def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAM
                 import numpy as np
 
                 supporting_arrays = {}
-                for key, entry in metadata.get("supporting_arrays", {}):
+                for key, entry in metadata.get("supporting_arrays", {}).items():
                     supporting_arrays[key] = np.frombuffer(
                         f.read(entry["path"]),
                         dtype=entry["dtype"],
