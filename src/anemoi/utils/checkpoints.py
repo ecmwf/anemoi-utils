@@ -94,6 +94,8 @@ def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAM
                         dtype=entry["dtype"],
                     ).reshape(entry["shape"])
                 metadata["supporting_arrays"] = supporting_arrays
+                return metadata, supporting_arrays
+
             return metadata
     else:
         raise ValueError(f"Could not find '{name}' in {path}.")
