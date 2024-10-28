@@ -107,8 +107,8 @@ def as_datetime_list(date, default_increment=1):
     return list(_as_datetime_list(date, default_increment))
 
 
-def frequency_to_timedelta(frequency) -> datetime.timedelta:
-    """Convert a frequency to a timedelta object.
+def as_timedelta(frequency) -> datetime.timedelta:
+    """Convert anything to a timedelta object.
 
     Parameters
     ----------
@@ -169,6 +169,11 @@ def frequency_to_timedelta(frequency) -> datetime.timedelta:
         pass
 
     raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
+
+
+def frequency_to_timedelta(frequency) -> datetime.timedelta:
+    """Convert a frequency to a timedelta object."""
+    return as_timedelta(frequency)
 
 
 def frequency_to_string(frequency) -> str:
