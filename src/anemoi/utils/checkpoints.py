@@ -85,20 +85,24 @@ def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAM
         with zipfile.ZipFile(path, "r") as f:
             metadata = json.load(f.open(metadata, "r"))
             if supporting_arrays:
-                import numpy as np
-
-                supporting_arrays = {}
-                for key, entry in metadata.get("supporting_arrays", {}).items():
-                    supporting_arrays[key] = np.frombuffer(
-                        f.read(entry["path"]),
-                        dtype=entry["dtype"],
-                    ).reshape(entry["shape"])
-                metadata["supporting_arrays"] = supporting_arrays
+                metadata["supporting_arrays"] = load_supporting_arrays(f, metadata.get("supporting_arrays", {}))
                 return metadata, supporting_arrays
 
             return metadata
     else:
         raise ValueError(f"Could not find '{name}' in {path}.")
+
+
+def load_supporting_arrays(zipf, entries) -> dict:
+    import numpy as np
+
+    supporting_arrays = {}
+    for key, entry in entries.items():
+        supporting_arrays[key] = np.frombuffer(
+            zipf.read(entry["path"]),
+            dtype=entry["dtype"],
+        ).reshape(entry["shape"])
+    return supporting_arrays
 
 
 def save_metadata(path, metadata, *, supporting_arrays=None, name=DEFAULT_NAME, folder=DEFAULT_FOLDER) -> None:
@@ -166,7 +170,7 @@ def save_metadata(path, metadata, *, supporting_arrays=None, name=DEFAULT_NAME, 
             zipf.writestr(entry["path"], value.tobytes())
 
 
-def _edit_metadata(path, name, callback):
+def _edit_metadata(path, name, callback, supporting_arrays=None):
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
     found = False
@@ -185,6 +189,15 @@ def _edit_metadata(path, name, callback):
         if not found:
             raise ValueError(f"Could not find '{name}' in {path}")
 
+        if supporting_arrays is not None:
+            for key, entry in supporting_arrays.items():
+                value = entry.tobytes()
+                fname = os.path.join(temp_dir, key)
+                os.makedirs(os.path.dirname(fname), exist_ok=True)
+                with open(fname, "wb") as f:
+                    f.write(value)
+                    total += 1
+
         with zipfile.ZipFile(new_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             with tqdm.tqdm(total=total, desc="Rebuilding checkpoint") as pbar:
                 for root, dirs, files in os.walk(temp_dir):
@@ -198,7 +211,7 @@ def _edit_metadata(path, name, callback):
     LOG.info("Updated metadata in %s", path)
 
 
-def replace_metadata(path, metadata, *, name=DEFAULT_NAME):
+def replace_metadata(path, metadata, supporting_arrays=None, *, name=DEFAULT_NAME):
 
     if not isinstance(metadata, dict):
         raise ValueError(f"metadata must be a dict, got {type(metadata)}")
@@ -210,7 +223,7 @@ def replace_metadata(path, metadata, *, name=DEFAULT_NAME):
         with open(full, "w") as f:
             json.dump(metadata, f)
 
-    _edit_metadata(path, name, callback)
+    _edit_metadata(path, name, callback, supporting_arrays)
 
 
 def remove_metadata(path, *, name=DEFAULT_NAME):
