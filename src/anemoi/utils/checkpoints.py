@@ -142,19 +142,19 @@ def save_metadata(path, metadata, *, supporting_arrays=None, name=DEFAULT_NAME, 
 
         metadata = metadata.copy()
         if supporting_arrays is not None:
-            metadata["supporting_arrays"] = {
+            metadata["supporting_arrays_paths"] = {
                 key: dict(path=f"{directory}/{folder}/{key}.numpy", shape=value.shape, dtype=str(value.dtype))
                 for key, value in supporting_arrays.items()
             }
         else:
-            metadata["supporting_arrays"] = {}
+            metadata["supporting_arrays_paths"] = {}
 
         zipf.writestr(
             f"{directory}/{folder}/{name}",
             json.dumps(metadata),
         )
 
-        for name, entry in metadata["supporting_arrays"].items():
+        for name, entry in metadata["supporting_arrays_paths"].items():
             value = supporting_arrays[name]
             LOG.info(
                 "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
