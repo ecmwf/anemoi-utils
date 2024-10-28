@@ -49,6 +49,15 @@ def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
     return False
 
 
+def metadata_root(path: str, *, name: str = DEFAULT_NAME) -> bool:
+
+    with zipfile.ZipFile(path, "r") as f:
+        for b in f.namelist():
+            if os.path.basename(b) == name:
+                return os.path.dirname(b)
+    raise ValueError(f"Could not find '{name}' in {path}.")
+
+
 def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAME) -> dict:
     """Load metadata from a checkpoint file
 
@@ -175,6 +184,7 @@ def _edit_metadata(path, name, callback, supporting_arrays=None):
 
     found = False
 
+    directory = None
     with TemporaryDirectory() as temp_dir:
         zipfile.ZipFile(path, "r").extractall(temp_dir)
         total = 0
@@ -185,14 +195,16 @@ def _edit_metadata(path, name, callback, supporting_arrays=None):
                 if f == name:
                     found = True
                     callback(full)
+                    directory = os.path.dirname(full)
 
         if not found:
             raise ValueError(f"Could not find '{name}' in {path}")
 
         if supporting_arrays is not None:
+
             for key, entry in supporting_arrays.items():
                 value = entry.tobytes()
-                fname = os.path.join(temp_dir, key)
+                fname = os.path.join(directory, f"{key}.numpy")
                 os.makedirs(os.path.dirname(fname), exist_ok=True)
                 with open(fname, "wb") as f:
                     f.write(value)
@@ -223,7 +235,7 @@ def replace_metadata(path, metadata, supporting_arrays=None, *, name=DEFAULT_NAM
         with open(full, "w") as f:
             json.dump(metadata, f)
 
-    _edit_metadata(path, name, callback, supporting_arrays)
+    return _edit_metadata(path, name, callback, supporting_arrays)
 
 
 def remove_metadata(path, *, name=DEFAULT_NAME):
@@ -233,4 +245,4 @@ def remove_metadata(path, *, name=DEFAULT_NAME):
     def callback(full):
         os.remove(full)
 
-    _edit_metadata(path, name, callback)
+    return _edit_metadata(path, name, callback)
