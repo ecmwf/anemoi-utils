@@ -107,6 +107,16 @@ def s3_client(bucket, region=None):
 
 class S3Upload(BaseUpload):
 
+    def get_temporary_target(self, target, pattern):
+        return target
+
+    def rename_target(self, target, temporary_target):
+        pass
+
+    def delete_target(self, target):
+        pass
+        # delete(target)
+
     def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
 
         from botocore.exceptions import ClientError

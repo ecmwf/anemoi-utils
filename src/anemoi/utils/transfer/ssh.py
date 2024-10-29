@@ -32,11 +32,10 @@ def call_process(*args):
     return stdout.decode("utf-8").strip()
 
 
-class RsyncUpload(BaseUpload):
+class SshBaseUpload(BaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
-
-        assert target.startswith("ssh://")
+    def _parse_target(self, target):
+        assert target.startswith("ssh://"), target
 
         target = target[6:]
         hostname, path = target.split(":")
@@ -44,6 +43,31 @@ class RsyncUpload(BaseUpload):
         if "+" in hostname:
             hostnames = hostname.split("+")
             hostname = hostnames[random.randint(0, len(hostnames) - 1)]
+
+        return hostname, path
+
+    def get_temporary_target(self, target, pattern):
+        hostname, path = self._parse_target(target)
+        dirname, basename = os.path.split(path)
+        path = pattern.format(dirname=dirname, basename=basename)
+        return f"ssh://{hostname}:{path}"
+
+    def rename_target(self, target, new_target):
+        hostname, path = self._parse_target(target)
+        hostname, new_path = self._parse_target(new_target)
+        call_process("ssh", hostname, "mv", shlex.quote(path), shlex.quote(new_path))
+
+    def delete_target(self, target):
+        pass
+        # hostname, path = self._parse_target(target)
+        # LOGGER.info(f"Deleting {target}")
+        # call_process("ssh", hostname, "rm", "-rf", shlex.quote(path))
+
+
+class RsyncUpload(SshBaseUpload):
+
+    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+        hostname, path = self._parse_target(target)
 
         size = os.path.getsize(source)
 
@@ -64,14 +88,10 @@ class RsyncUpload(BaseUpload):
         return size
 
 
-class ScpUpload(BaseUpload):
+class ScpUpload(SshBaseUpload):
 
     def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
-
-        assert target.startswith("ssh://")
-        target = target[6:]
-
-        hostname, path = target.split(":")
+        hostname, path = self._parse_target(target)
 
         size = os.path.getsize(source)
 

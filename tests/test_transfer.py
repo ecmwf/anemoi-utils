@@ -150,16 +150,17 @@ def test_transfer_local_to_s3_to_local(path):
 
 
 @pytest.mark.skipif(IN_GITHUB, reason="Test requires ssh access to localhost")
-@pytest.mark.parametrize("path", ["directory/", "file"])
-def test_transfer_local_to_ssh(path):
+@pytest.mark.parametrize("path", ["directory", "directory/", "file"])
+@pytest.mark.parametrize("temporary_target", [True, False])
+def test_transfer_local_to_ssh(path, temporary_target):
     local = LOCAL_TEST_DATA + "/" + path
     remote_path = LOCAL_TEST_DATA + "-as-ssh-" + path
     assert os.path.isabs(remote_path), remote_path
 
     remote = "ssh://localhost:" + remote_path
 
-    transfer(local, remote)
-    transfer(local, remote)
+    transfer(local, remote, temporary_target=temporary_target)
+    transfer(local, remote, temporary_target=temporary_target)
 
     compare(local, remote_path)
 
