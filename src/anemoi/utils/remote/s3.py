@@ -370,3 +370,17 @@ def object_acl(target) -> dict:
     s3 = s3_client()
 
     return s3.get_object_acl(Bucket=bucket, Key=key)
+
+
+def download(source, target, *args, **kwargs):
+    from . import transfer
+
+    assert source.startswith("s3://"), f"source {source} should start with 's3://'"
+    return transfer(source, target, *args, **kwargs)
+
+
+def upload(source, target, *args, **kwargs):
+    from . import transfer
+
+    assert target.startswith("s3://"), f"target {target} should start with 's3://'"
+    return transfer(source, target, *args, **kwargs)
