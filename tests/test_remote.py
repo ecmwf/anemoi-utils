@@ -10,8 +10,9 @@ import shutil
 
 import pytest
 
-from anemoi.utils.transfer import Transfer
-from anemoi.utils.transfer import transfer
+from anemoi.utils.remote import TransferMethodNotImplementedError
+from anemoi.utils.remote import _find_transfer_class
+from anemoi.utils.remote import transfer
 
 IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
 
@@ -46,32 +47,32 @@ LOCAL_TEST_DATA = os.path.dirname(__file__) + "/test-transfer-data"
 @pytest.mark.parametrize("source", LOCAL)
 @pytest.mark.parametrize("target", S3)
 def test_transfer_find_s3_upload(source, target):
-    from anemoi.utils.transfer.s3 import S3Upload
+    from anemoi.utils.remote.s3 import S3Upload
 
-    assert Transfer._find_transfer_class(source, target) == S3Upload
+    assert _find_transfer_class(source, target) == S3Upload
 
 
 @pytest.mark.parametrize("source", S3)
 @pytest.mark.parametrize("target", LOCAL)
 def test_transfer_find_s3_download(source, target):
-    from anemoi.utils.transfer.s3 import S3Download
+    from anemoi.utils.remote.s3 import S3Download
 
-    assert Transfer._find_transfer_class(source, target) == S3Download
+    assert _find_transfer_class(source, target) == S3Download
 
 
 @pytest.mark.parametrize("source", LOCAL)
 @pytest.mark.parametrize("target", SSH)
 def test_transfer_find_ssh_upload(source, target):
-    from anemoi.utils.transfer.ssh import RsyncUpload
+    from anemoi.utils.remote.ssh import RsyncUpload
 
-    assert Transfer._find_transfer_class(source, target) == RsyncUpload
+    assert _find_transfer_class(source, target) == RsyncUpload
 
 
 @pytest.mark.parametrize("source", S3 + SSH)
 @pytest.mark.parametrize("target", S3 + SSH)
 def test_transfer_find_none(source, target):
-    with pytest.raises(transfer.TransferMethodNotImplementedError):
-        assert Transfer._find_transfer_class(source, target)
+    with pytest.raises(TransferMethodNotImplementedError):
+        assert _find_transfer_class(source, target)
 
 
 @pytest.mark.skipif(IN_GITHUB, reason="Test requires access to S3")

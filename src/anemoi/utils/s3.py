@@ -9,13 +9,13 @@
 
 import warnings
 
-from .transfer import transfer
-from .transfer.s3 import delete as delete_
-from .transfer.s3 import s3_client as s3_client_
+from .remote import transfer
+from .remote.s3 import delete as delete_
+from .remote.s3 import s3_client as s3_client_
 
 warnings.warn(
     "The anemoi.utils.s3 module is deprecated and will be removed in a future release. "
-    "Please use the 'anemoi.utils.transfer' or 'anemoi.utils.transfer.s3' module instead.",
+    "Please use the 'anemoi.utils.remote' or 'anemoi.utils.remote.s3' module instead.",
     DeprecationWarning,
     stacklevel=2,
 )
@@ -24,7 +24,7 @@ warnings.warn(
 def s3_client(*args, **kwargs):
     warnings.warn(
         "The 's3_client' function (from anemoi.utils.s3 import s3_client) function is deprecated and will be removed in a future release. "
-        "Please use the 's3_client' function (from anemoi.utils.transfer.s3 import s3_client) instead.",
+        "Please use the 's3_client' function (from anemoi.utils.remote.s3 import s3_client) instead.",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -34,7 +34,7 @@ def s3_client(*args, **kwargs):
 def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
     warnings.warn(
         "The 'upload' function (from anemoi.utils.s3 import upload) function is deprecated and will be removed in a future release. "
-        "Please use the 'transfer' function (from anemoi.utils.transfer import transfer) instead.",
+        "Please use the 'transfer' function (from anemoi.utils.remote import transfer) instead.",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -46,7 +46,7 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
 def download(*args, **kwargs):
     warnings.warn(
         "The 'download' function (from anemoi.utils.s3 import download) function is deprecated and will be removed in a future release. "
-        "Please use the 'transfer' function (from anemoi.utils.transfer import transfer) instead.",
+        "Please use the 'transfer' function (from anemoi.utils.remote import transfer) instead.",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -56,7 +56,7 @@ def download(*args, **kwargs):
 def delete(*args, **kwargs):
     warnings.warn(
         "The 'delete' function (from anemoi.utils.s3 import delete) function is deprecated and will be removed in a future release. "
-        "Please use the 'transfer' function (from anemoi.utils.transfer.s3 import delete) instead.",
+        "Please use the 'transfer' function (from anemoi.utils.remote.s3 import delete) instead.",
         DeprecationWarning,
         stacklevel=2,
     )

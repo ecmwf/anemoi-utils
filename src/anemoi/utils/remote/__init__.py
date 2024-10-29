@@ -216,40 +216,8 @@ class Transfer:
         self.progress = progress
         self.temporary_target = temporary_target
 
-        cls = self._find_transfer_class(self.source, self.target)
+        cls = _find_transfer_class(self.source, self.target)
         self.loader = cls()
-
-    @classmethod
-    def _find_transfer_class(self, source, target):
-        from_ssh = source.startswith("ssh://")
-        into_ssh = target.startswith("ssh://")
-
-        from_s3 = source.startswith("s3://")
-        into_s3 = target.startswith("s3://")
-
-        from_local = not from_ssh and not from_s3
-        into_local = not into_ssh and not into_s3
-
-        # check that exactly one source type and one target type is specified
-        assert sum([into_ssh, into_local, into_s3]) == 1, (into_ssh, into_local, into_s3)
-        assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
-
-        if from_local and into_ssh:  # local -> ssh
-            from .ssh import RsyncUpload
-
-            return RsyncUpload
-
-        if from_s3 and into_local:  # local <- S3
-            from .s3 import S3Download
-
-            return S3Download
-
-        if from_local and into_s3:  # local -> S3
-            from .s3 import S3Upload
-
-            return S3Upload
-
-        raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
     def run(self):
 
@@ -291,6 +259,38 @@ class Transfer:
 
     def delete_target(self, target):
         return self.loader.delete_target(target)
+
+
+def _find_transfer_class(source, target):
+    from_ssh = source.startswith("ssh://")
+    into_ssh = target.startswith("ssh://")
+
+    from_s3 = source.startswith("s3://")
+    into_s3 = target.startswith("s3://")
+
+    from_local = not from_ssh and not from_s3
+    into_local = not into_ssh and not into_s3
+
+    # check that exactly one source type and one target type is specified
+    assert sum([into_ssh, into_local, into_s3]) == 1, (into_ssh, into_local, into_s3)
+    assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
+
+    if from_local and into_ssh:  # local -> ssh
+        from .ssh import RsyncUpload
+
+        return RsyncUpload
+
+    if from_s3 and into_local:  # local <- S3
+        from .s3 import S3Download
+
+        return S3Download
+
+    if from_local and into_s3:  # local -> S3
+        from .s3 import S3Upload
+
+        return S3Upload
+
+    raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
 
 # this is the public API

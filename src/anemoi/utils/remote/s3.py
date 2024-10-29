@@ -32,8 +32,8 @@ import tqdm
 
 from ..config import load_config
 from ..humanize import bytes_to_human
-from ..transfer import BaseDownload
-from ..transfer import BaseUpload
+from . import BaseDownload
+from . import BaseUpload
 
 LOGGER = logging.getLogger(__name__)
 
