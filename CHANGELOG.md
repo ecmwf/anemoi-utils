@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
-## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...HEAD)
+## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...HEAD)
+
+## [0.4.1](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...0.4.1) - 2024-10-23
+
+## Fixed
+- Fix `__version__` import in init
 
 ### Changed
-
+- Fix: resolve mounted filesystems in provenance
 - Fix pre-commit regex
 - ci: extend python versions [#23] (https://github.com/ecmwf/anemoi-utils/pull/23)
 - Update copyright notice
@@ -21,6 +26,7 @@ Keep it human-readable, your future self will thank you!
 ### Added
 
 - Add anemoi-transform link to documentation
+- Add CONTRIBUTORS.md (#33)
 
 ## [0.3.17](https://github.com/ecmwf/anemoi-utils/compare/0.3.13...0.3.17) - 2024-10-01
 

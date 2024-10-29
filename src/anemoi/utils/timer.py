@@ -12,6 +12,7 @@
 
 import logging
 import time
+from collections import defaultdict
 
 from .humanize import seconds_to_human
 
@@ -35,3 +36,39 @@ class Timer:
 
     def __exit__(self, *args):
         self.logger.info("%s: %s.", self.title, seconds_to_human(self.elapsed))
+
+
+class _Timer:
+    """Internal timer class."""
+
+    def __init__(self):
+        self.elapsed = 0.0
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, *args):
+        self.stop()
+
+    def start(self):
+        self._start = time.time()
+
+    def stop(self):
+        self.elapsed += time.time() - self._start
+
+
+class Timers:
+    """A collection of timers."""
+
+    def __init__(self, logger=LOGGER):
+        self.logger = logger
+        self.timers = defaultdict(_Timer)
+
+    def __getitem__(self, name):
+        return self.timers[name]
+
+    def report(self):
+        length = max(len(name) for name in self.timers)
+        for name, timer in sorted(self.timers.items()):
+            self.logger.info("%s: %s.", f"{name:<{length}}", seconds_to_human(timer.elapsed))
