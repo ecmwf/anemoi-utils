@@ -55,6 +55,7 @@ class SshBaseUpload(BaseUpload):
     def rename_target(self, target, new_target):
         hostname, path = self._parse_target(target)
         hostname, new_path = self._parse_target(new_target)
+        call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.basename(new_path)))
         call_process("ssh", hostname, "mv", shlex.quote(path), shlex.quote(new_path))
 
     def delete_target(self, target):
