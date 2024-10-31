@@ -12,6 +12,7 @@ Keep it human-readable, your future self will thank you!
 
 ### Added
 - Add supporting_arrays to checkpoints
+- Add factories registry
 
 ## [0.4.1](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...0.4.1) - 2024-10-23
 

@@ -27,7 +27,12 @@ class Registry:
         self.registered = {}
         self.kind = package.split(".")[-1]
 
-    def register(self, name: str, factory: callable):
+    def register(self, name: str, factory: callable = None):
+
+        # Decorator version
+        if factory is None:
+            return lambda f: self.register(name, f)
+
         self.registered[name] = factory
 
     def _load(self, file):
@@ -77,3 +82,6 @@ class Registry:
     def create(self, name: str, *args, **kwargs):
         factory = self.lookup(name)
         return factory(*args, **kwargs)
+
+    def __call__(self, name: str, *args, **kwargs):
+        return self.create(name, *args, **kwargs)
