@@ -18,6 +18,18 @@ import entrypoints
 LOG = logging.getLogger(__name__)
 
 
+class Wrapper:
+    """A wrapper for the registry"""
+
+    def __init__(self, name, registry):
+        self.name = name
+        self.registry = registry
+
+    def __call__(self, factory):
+        self.registry.register(self.name, factory)
+        return factory
+
+
 class Registry:
     """A registry of factories"""
 
@@ -29,9 +41,8 @@ class Registry:
 
     def register(self, name: str, factory: callable = None):
 
-        # Decorator version
         if factory is None:
-            return lambda f: self.register(name, f)
+            return Wrapper(name, self)
 
         self.registered[name] = factory
 
