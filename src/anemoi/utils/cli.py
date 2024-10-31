@@ -97,8 +97,8 @@ def register_commands(here, package, select, fail=None):
 
         obj = select(imported)
         if obj is not None:
-            if hasattr(obj, "name"):
-                name = obj.name
+            if hasattr(obj, "command"):
+                name = obj.command
             result[name] = obj
 
     for name, e in not_available.items():
