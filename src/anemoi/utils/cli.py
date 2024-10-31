@@ -102,6 +102,13 @@ def register_commands(here, package, select, fail=None):
         if hasattr(obj, "command"):
             name = obj.command
 
+        if name in result:
+            msg = f"Duplicate command '{name}', please choose a different command name for {type(obj)}"
+            raise ValueError(msg)
+        if " " in name:
+            msg = f"Commands cannot contain spaces: '{name}' in {type(obj)}"
+            raise ValueError(msg)
+
         result[name] = obj
 
     for name, e in not_available.items():
