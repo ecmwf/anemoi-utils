@@ -14,7 +14,7 @@ from anemoi.utils.remote import TransferMethodNotImplementedError
 from anemoi.utils.remote import _find_transfer_class
 from anemoi.utils.remote import transfer
 
-IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("CI") is not None)
+IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("IN_CI_HPC") is not None)
 
 LOCAL = [
     "/absolute/path/to/file",
