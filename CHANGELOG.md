@@ -11,7 +11,10 @@ Keep it human-readable, your future self will thank you!
 ## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...HEAD)
 
 ### Added
+- Add supporting_arrays to checkpoints
+- Add factories registry
 - Optional renaming of subcommands via `command` attribute [#34](https://github.com/ecmwf/anemoi-utils/pull/34)
+
 
 ## [0.4.1](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...0.4.1) - 2024-10-23
 
