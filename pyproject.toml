@@ -82,3 +82,8 @@ scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
+
+[tool.pytest.ini_options]
+markers = [
+  "skip_on_hpc: mark a test that should not be run on HPC",
+]

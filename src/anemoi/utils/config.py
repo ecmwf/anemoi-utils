@@ -358,7 +358,7 @@ def check_config_mode(name="settings.toml", secrets_name=None, secrets=None) -> 
         CHECKED[name] = True
 
 
-def find(metadata, what, result=None):
+def find(metadata, what, result=None, *, select: callable = None):
     if result is None:
         result = []
 
@@ -369,7 +369,8 @@ def find(metadata, what, result=None):
 
     if isinstance(metadata, dict):
         if what in metadata:
-            result.append(metadata[what])
+            if select is None or select(metadata[what]):
+                result.append(metadata[what])
 
         for k, v in metadata.items():
             find(v, what, result)

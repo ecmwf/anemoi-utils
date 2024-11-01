@@ -14,6 +14,13 @@ Keep it human-readable, your future self will thank you!
 
 ## [0.4.2](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...0.4.2) - 2024-10-25
 
+### Added
+- Add supporting_arrays to checkpoints
+- Add factories registry
+- Optional renaming of subcommands via `command` attribute [#34](https://github.com/ecmwf/anemoi-utils/pull/34)
+- `skip_on_hpc` pytest marker for tests that should not be run on HPC [36](https://github.com/ecmwf/anemoi-utils/pull/36)
+
+
 ## [0.4.1](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...0.4.1) - 2024-10-23
 
 ## Fixed
@@ -32,6 +39,7 @@ Keep it human-readable, your future self will thank you!
 ### Added
 
 - Add anemoi-transform link to documentation
+- Add CONTRIBUTORS.md (#33)
 
 ## [0.3.17](https://github.com/ecmwf/anemoi-utils/compare/0.3.13...0.3.17) - 2024-10-01
 
