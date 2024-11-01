@@ -14,7 +14,7 @@ from anemoi.utils.remote import TransferMethodNotImplementedError
 from anemoi.utils.remote import _find_transfer_class
 from anemoi.utils.remote import transfer
 
-IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
+IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("GITHUB_OUTPUT") is not None)
 
 LOCAL = [
     "/absolute/path/to/file",
@@ -75,7 +75,7 @@ def test_transfer_find_none(source, target):
         assert _find_transfer_class(source, target)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Test requires access to S3")
+@pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
 def test_transfer_zarr_s3_to_local(tmpdir):
     source = "s3://ml-datasets/aifs-ea-an-oper-0001-mars-20p0-2000-2000-12h-v0-TESTING2.zarr/"
     tmp = tmpdir.strpath + "/test"
@@ -88,7 +88,7 @@ def test_transfer_zarr_s3_to_local(tmpdir):
     transfer(source, tmp, overwrite=True)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Test requires access to S3")
+@pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
 def test_transfer_zarr_local_to_s3(tmpdir):
     fixture = "s3://ml-datasets/aifs-ea-an-oper-0001-mars-20p0-2000-2000-12h-v0-TESTING2.zarr/"
     source = tmpdir.strpath + "/test"
@@ -126,7 +126,7 @@ def compare(local1, local2):
             assert f1.read() == f2.read()
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Test requires access to S3")
+@pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
 @pytest.mark.parametrize("path", ["directory/", "file"])
 def test_transfer_local_to_s3_to_local(path):
     local = LOCAL_TEST_DATA + "/" + path
@@ -150,7 +150,7 @@ def test_transfer_local_to_s3_to_local(path):
     _delete_file_or_directory(local2)
 
 
-@pytest.mark.skipif(IN_GITHUB, reason="Test requires ssh access to localhost")
+@pytest.mark.skipif(IN_CI, reason="Test requires ssh access to localhost")
 @pytest.mark.parametrize("path", ["directory", "directory/", "file"])
 @pytest.mark.parametrize("temporary_target", [True, False])
 def test_transfer_local_to_ssh(path, temporary_target):
