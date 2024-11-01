@@ -5,4 +5,4 @@ build:
   parallel: 64
 
   pytest_cmd: |
-    python -m pytest -vv -m 'not notebook and not no_cache_init' --cov=. --cov-report=xml
+    python -m pytest -vv -m 'not notebook and not no_cache_init and not skip_on_hpc' --cov=. --cov-report=xml
