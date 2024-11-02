@@ -86,6 +86,8 @@ class Registry:
                 self.registered[name] = entry_point.load()
 
         if name not in self.registered:
+            for e in self.registered:
+                LOG.info(f"Registered: {e}")
             raise ValueError(f"Cannot load '{name}' from {self.package}")
 
         return self.registered[name]
