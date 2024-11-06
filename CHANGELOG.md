@@ -45,7 +45,9 @@ Keep it human-readable, your future self will thank you!
 - Changelog merge strategy- Codeowners file
 - Create dependency on wcwidth. MIT licence.
 - Add distribution name dictionary to provenance [#15](https://github.com/ecmwf/anemoi-utils/pull/15) & [#19](https://github.com/ecmwf/anemoi-utils/pull/19)
-- Add anonimize() function.
+- Add anonymize() function.
+- Add transfer to ssh:// target (experimental)
+- Deprecated 'anemoi.utils.s3'
 
 ### Changed
 
