@@ -18,7 +18,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.release.target_commitish }}
+        ref: develop
 
     - name: Update Changelog
       uses: stefanzweifel/changelog-updater-action@v1
