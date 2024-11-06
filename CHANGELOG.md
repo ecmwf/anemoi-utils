@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.5](https://github.com/ecmwf/anemoi-utils/compare/0.4.4...0.4.5) - 2024-11-06
+
+### What's Changed
+
+* upload with ssh by @floriankrb in https://github.com/ecmwf/anemoi-utils/pull/25
+* feat: Add aliases decorator by @HCookie in https://github.com/ecmwf/anemoi-utils/pull/40
+
+**Full Changelog**: https://github.com/ecmwf/anemoi-utils/compare/0.4.4...0.4.5
+
 ## [0.4.4](https://github.com/ecmwf/anemoi-utils/compare/0.4.3...0.4.4) - 2024-11-01
 
 ## [0.4.3](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...0.4.3) - 2024-10-26
@@ -15,6 +24,7 @@ Keep it human-readable, your future self will thank you!
 ## [0.4.2](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...0.4.2) - 2024-10-25
 
 ### Added
+
 - Add supporting_arrays to checkpoints
 - Add factories registry
 - Optional renaming of subcommands via `command` attribute [#34](https://github.com/ecmwf/anemoi-utils/pull/34)
