@@ -8,22 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
-## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...HEAD)
+## [0.4.4](https://github.com/ecmwf/anemoi-utils/compare/0.4.3...0.4.4) - 2024-11-01
+
+## [0.4.3](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...0.4.3) - 2024-10-26
+
+## [0.4.2](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...0.4.2) - 2024-10-25
 
 ### Added
-- Add alias decorator [#40](https://github.com/ecmwf/anemoi-utils/pull/40)
 - Add supporting_arrays to checkpoints
 - Add factories registry
 - Optional renaming of subcommands via `command` attribute [#34](https://github.com/ecmwf/anemoi-utils/pull/34)
 - `skip_on_hpc` pytest marker for tests that should not be run on HPC [36](https://github.com/ecmwf/anemoi-utils/pull/36)
 
-
 ## [0.4.1](https://github.com/ecmwf/anemoi-utils/compare/0.4.0...0.4.1) - 2024-10-23
 
 ## Fixed
+
 - Fix `__version__` import in init
 
 ### Changed
+
 - Fix: resolve mounted filesystems in provenance
 - Fix pre-commit regex
 - ci: extend python versions [#23] (https://github.com/ecmwf/anemoi-utils/pull/23)
