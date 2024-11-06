@@ -33,11 +33,12 @@ class Wrapper:
 class Registry:
     """A registry of factories"""
 
-    def __init__(self, package):
+    def __init__(self, package, key="_type"):
 
         self.package = package
         self.registered = {}
         self.kind = package.split(".")[-1]
+        self.key = key
 
     def register(self, name: str, factory: callable = None):
 
@@ -86,6 +87,8 @@ class Registry:
                 self.registered[name] = entry_point.load()
 
         if name not in self.registered:
+            for e in self.registered:
+                LOG.info(f"Registered: {e}")
             raise ValueError(f"Cannot load '{name}' from {self.package}")
 
         return self.registered[name]
@@ -96,3 +99,31 @@ class Registry:
 
     def __call__(self, name: str, *args, **kwargs):
         return self.create(name, *args, **kwargs)
+
+    def from_config(self, config, *args, **kwargs):
+        if isinstance(config, str):
+            config = {config: {}}
+
+        if not isinstance(config, dict):
+            raise ValueError(f"Invalid config: {config}")
+
+        if self.key in config:
+            config = config.copy()
+            key = config.pop(self.key)
+            return self.create(key, *args, **config, **kwargs)
+
+        if len(config) == 1:
+            key = list(config.keys())[0]
+            value = config[key]
+
+            if isinstance(value, dict):
+                return self.create(key, *args, **value, **kwargs)
+
+            if isinstance(value, list):
+                return self.create(key, *args, *value, **kwargs)
+
+            return self.create(key, *args, value, **kwargs)
+
+        raise ValueError(
+            f"Entry '{config}' must either be a string, a dictionray with a single entry, or a dictionary with a '{self.key}' key"
+        )

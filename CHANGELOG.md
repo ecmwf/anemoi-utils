@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
-## [Unreleased](https://github.com/ecmwf/anemoi-utils/compare/0.4.4...HEAD)
-
 ## [0.4.4](https://github.com/ecmwf/anemoi-utils/compare/0.4.3...0.4.4) - 2024-11-01
 
 ## [0.4.3](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...0.4.3) - 2024-10-26
@@ -17,7 +15,6 @@ Keep it human-readable, your future self will thank you!
 ## [0.4.2](https://github.com/ecmwf/anemoi-utils/compare/0.4.1...0.4.2) - 2024-10-25
 
 ### Added
-
 - Add supporting_arrays to checkpoints
 - Add factories registry
 - Optional renaming of subcommands via `command` attribute [#34](https://github.com/ecmwf/anemoi-utils/pull/34)
@@ -53,7 +50,9 @@ Keep it human-readable, your future self will thank you!
 - Changelog merge strategy- Codeowners file
 - Create dependency on wcwidth. MIT licence.
 - Add distribution name dictionary to provenance [#15](https://github.com/ecmwf/anemoi-utils/pull/15) & [#19](https://github.com/ecmwf/anemoi-utils/pull/19)
-- Add anonimize() function.
+- Add anonymize() function.
+- Add transfer to ssh:// target (experimental)
+- Deprecated 'anemoi.utils.s3'
 
 ### Changed
 

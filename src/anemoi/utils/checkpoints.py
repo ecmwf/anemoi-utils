@@ -94,8 +94,8 @@ def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAM
         with zipfile.ZipFile(path, "r") as f:
             metadata = json.load(f.open(metadata, "r"))
             if supporting_arrays:
-                metadata["supporting_arrays"] = load_supporting_arrays(f, metadata.get("supporting_arrays", {}))
-                return metadata, supporting_arrays
+                arrays = load_supporting_arrays(f, metadata.get("supporting_arrays_paths", {}))
+                return metadata, arrays
 
             return metadata
     else:
