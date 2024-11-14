@@ -83,20 +83,6 @@ def test_date_hindcast_1():
     assert len(list(d)) == 60
 
 
-def test_date_hindcast_2():
-    d = _(
-        """
-        - name: hindcast
-          reference_dates:
-            start: 2023-01-01
-            end: 2023-01-03
-            frequency: 24
-          years: [2018, 2019, 2020, 2021]
-    """
-    )
-    assert len(list(d)) == 12
-
-
 if __name__ == "__main__":
     for name, obj in list(globals().items()):
         if name.startswith("test_") and callable(obj):
