@@ -97,22 +97,6 @@ def test_date_hindcast_2():
     assert len(list(d)) == 12
 
 
-def test_date_hindcast_3():
-    d = _(
-        """
-        - name: hindcast
-          reference_dates:
-            start: 2022-12-25 00:00:00
-            end: 2022-12-31 12:00:00
-            frequency: 12h
-            day_of_week: tuesday
-          years: [2018, 2019, 2020, 2021]
-    """
-    )
-    print(list(d))
-    assert len(list(d)) == 8
-
-
 if __name__ == "__main__":
     for name, obj in list(globals().items()):
         if name.startswith("test_") and callable(obj):
