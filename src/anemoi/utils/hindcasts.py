@@ -27,16 +27,16 @@ class HindcastDatesTimes:
 
         self.reference_dates = reference_dates
 
-        if isinstance(years, list):
-            self.years = years
-        else:
-            self.years = range(1, years + 1)
+        assert isinstance(years, int), f"years must be an integer, got {years}"
+        assert years > 0, f"years must be greater than 0, got {years}"
+        self.years = years
 
     def __iter__(self):
         for reference_date in self.reference_dates:
-            for year in self.years:
-                if reference_date.month == 2 and reference_date.day == 29:
-                    date = datetime.datetime(reference_date.year - year, 2, 28)
-                else:
-                    date = datetime.datetime(reference_date.year - year, reference_date.month, reference_date.day)
+            year, month, day = reference_date.year, reference_date.month, reference_date.day
+            if (month, day) == (2, 29):
+                day = 28
+
+            for i in range(1, self.years + 1):
+                date = datetime.datetime(year - i, month, day)
                 yield (date, reference_date)
