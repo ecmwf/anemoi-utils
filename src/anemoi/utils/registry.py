@@ -30,6 +30,9 @@ class Wrapper:
         return factory
 
 
+_BY_KIND = {}
+
+
 class Registry:
     """A registry of factories"""
 
@@ -39,6 +42,11 @@ class Registry:
         self.registered = {}
         self.kind = package.split(".")[-1]
         self.key = key
+        _BY_KIND[self.kind] = self
+
+    @classmethod
+    def lookup_kind(cls, kind: str):
+        return _BY_KIND.get(kind)
 
     def register(self, name: str, factory: callable = None):
 
@@ -47,6 +55,9 @@ class Registry:
 
         self.registered[name] = factory
 
+    # def registered(self, name: str):
+    #     return name in self.registered
+
     def _load(self, file):
         name, _ = os.path.splitext(file)
         try:
@@ -54,7 +65,9 @@ class Registry:
         except Exception:
             LOG.warning(f"Error loading filter '{self.package}.{name}'", exc_info=True)
 
-    def lookup(self, name: str) -> callable:
+    def lookup(self, name: str, *, return_none=False) -> callable:
+
+        # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', name, self.registered)
         if name in self.registered:
             return self.registered[name]
 
@@ -87,8 +100,12 @@ class Registry:
                 self.registered[name] = entry_point.load()
 
         if name not in self.registered:
+            if return_none:
+                return None
+
             for e in self.registered:
                 LOG.info(f"Registered: {e}")
+
             raise ValueError(f"Cannot load '{name}' from {self.package}")
 
         return self.registered[name]
@@ -97,8 +114,8 @@ class Registry:
         factory = self.lookup(name)
         return factory(*args, **kwargs)
 
-    def __call__(self, name: str, *args, **kwargs):
-        return self.create(name, *args, **kwargs)
+    # def __call__(self, name: str, *args, **kwargs):
+    #     return self.create(name, *args, **kwargs)
 
     def from_config(self, config, *args, **kwargs):
         if isinstance(config, str):
@@ -125,5 +142,5 @@ class Registry:
             return self.create(key, *args, value, **kwargs)
 
         raise ValueError(
-            f"Entry '{config}' must either be a string, a dictionray with a single entry, or a dictionary with a '{self.key}' key"
+            f"Entry '{config}' must either be a string, a dictionary with a single entry, or a dictionary with a '{self.key}' key"
         )
