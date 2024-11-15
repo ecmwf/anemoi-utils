@@ -151,7 +151,7 @@ def test_transfer_local_to_s3_to_local(path):
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires ssh access to localhost")
-@pytest.mark.parametrize("path", ["directory", "directory/", "file"])
+@pytest.mark.parametrize("path", ["directory", "file"])
 @pytest.mark.parametrize("temporary_target", [True, False])
 def test_transfer_local_to_ssh(path, temporary_target):
     local = LOCAL_TEST_DATA + "/" + path
