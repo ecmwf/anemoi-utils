@@ -44,6 +44,9 @@ class SshBaseUpload(BaseUpload):
             hostnames = hostname.split("+")
             hostname = hostnames[random.randint(0, len(hostnames) - 1)]
 
+        if ".." in path.split("/"):
+            raise Exception("Path contains suspicious '..' : {target}")
+
         return hostname, path
 
     def get_temporary_target(self, target, pattern):
