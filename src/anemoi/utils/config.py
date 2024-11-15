@@ -207,7 +207,7 @@ def load_any_dict_format(path) -> dict:
                 return tomllib.load(f)
     except (json.JSONDecodeError, yaml.YAMLError, tomllib.TOMLDecodeError) as e:
         LOG.warning(f"Failed to parse config file {path}", exc_info=e)
-        return ValueError(f"Failed to parse config file {path} [{e}]")
+        raise ValueError(f"Failed to parse config file {path} [{e}]")
 
     return open(path).read()
 
