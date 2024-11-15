@@ -51,8 +51,9 @@ class SshBaseUpload(BaseUpload):
 
     def get_temporary_target(self, target, pattern):
         hostname, path = self._parse_target(target)
-        dirname, basename = os.path.split(path)
-        path = pattern.format(dirname=dirname, basename=basename)
+        if pattern is not None:
+            dirname, basename = os.path.split(path)
+            path = pattern.format(dirname=dirname, basename=basename)
         return f"ssh://{hostname}:{path}"
 
     def rename_target(self, target, new_target):
