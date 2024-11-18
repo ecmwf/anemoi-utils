@@ -192,6 +192,9 @@ class S3Download(BaseDownload):
         _, _, bucket, key = source.split("/", 3)
         s3 = s3_client(bucket)
 
+        if key.endswith("/"):
+            return 0
+
         try:
             response = s3.head_object(Bucket=bucket, Key=key)
         except s3.exceptions.ClientError as e:

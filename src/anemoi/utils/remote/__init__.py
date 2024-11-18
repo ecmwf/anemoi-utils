@@ -138,6 +138,8 @@ class BaseDownload(Loader):
         raise NotImplementedError
 
     def get_temporary_target(self, target, pattern):
+        if pattern is None:
+            return target
         dirname, basename = os.path.split(target)
         return pattern.format(dirname=dirname, basename=basename)
 
@@ -199,13 +201,13 @@ class Transfer:
             target = os.path.basename(source)
 
         temporary_target = {
-            False: "{dirname}/{basename}",
+            False: None,
             True: "{dirname}-downloading/{basename}",
             "-tmp/*": "{dirname}-tmp/{basename}",
             "*-tmp": "{dirname}/{basename}-tmp",
             "tmp-*": "{dirname}/tmp-{basename}",
         }.get(temporary_target, temporary_target)
-        assert isinstance(temporary_target, str), (type(temporary_target), temporary_target)
+        assert temporary_target is None or isinstance(temporary_target, str), (type(temporary_target), temporary_target)
 
         self.source = source
         self.target = target
