@@ -199,6 +199,8 @@ class Transfer:
     ):
         if target == ".":
             target = os.path.basename(source)
+            if not target:
+                target = os.path.basename(os.path.dirname(source))
 
         temporary_target = {
             False: None,
