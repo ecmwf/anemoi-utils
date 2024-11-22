@@ -15,10 +15,6 @@ on:
   #     - "test_action"
   workflow_dispatch: ~
 
-permissions:
-  projects: write  # Allows the workflow to interact with project boards
-  contents: read   # Necessary for most GitHub workflows
-
 jobs:
   add-to-project:
     name: Add issue to project
@@ -29,6 +25,6 @@ jobs:
           # You can target a project in a different organization
           # to the issue
           project-url: https://github.com/orgs/ecmwf-lab/projects/1
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
           # labeled: bug, needs-triage
           # label-operator: OR
