@@ -1,58 +1,31 @@
-name: ci
+name: Add bugs to bugs project
 
 on:
-  # Trigger the workflow on push to master or develop, except tag creation
-  push:
-    branches:
-      - 'main'
-      - 'develop'
-    tags-ignore:
-      - '**'
-    paths:
-      - "src/**"
-      - "tests/**"
-
-  # Trigger the workflow on pull request
-  pull_request: ~
-
-  # Trigger the workflow manually installs
+  issues:
+    types:
+      - opened
+      - labeled
+      - reopened
+  pull_request:
+    types:
+      - opened
+      - labeled
+  # push:
+  #   branches:
+  #     - "test_action"
   workflow_dispatch: ~
 
-  # Trigger after public PR approved for CI
-  pull_request_target:
-    types: [labeled]
 
 jobs:
-  # Run CI including downstream packages on self-hosted runners
-  downstream-ci:
-    name: downstream-ci
-    if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
-    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
-    with:
-      anemoi-utils: ecmwf/anemoi-utils@${{ github.event.pull_request.head.sha || github.sha }}
-      codecov_upload: true
-      skip_matrix_jobs: |
-        gnu@debian-11
-        clang@rocky-8.6
-        gnu@debian-11
-        gnu@rocky-8.6
-        clang@rocky-8.6
-        gnu@fedora-37
-    secrets: inherit
-
-#   # Build downstream packages on HPC
-#  downstream-ci-hpc:
-#    name: downstream-ci-hpc
-#    if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
-#    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
-#    with:
-#      anemoi-utils: ecmwf/anemoi-utils@${{ github.event.pull_request.head.sha || github.sha }}
-#      codecov_upload: true
-#      skip_matrix_jobs: |
-#        gnu@debian-11
-#        clang@rocky-8.6
-#        gnu@debian-11
-#        gnu@rocky-8.6
-#        clang@rocky-8.6
-#        gnu@fedora-37
-#    secrets: inherit
+  add-to-project:
+    name: Add issue to project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          # You can target a project in a different organization
+          # to the issue
+          project-url: https://github.com/orgs/ecmwf-lab/projects/1
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          labeled: bug, needs-triage
+          label-operator: OR
