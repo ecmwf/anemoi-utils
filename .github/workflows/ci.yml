@@ -15,6 +15,9 @@ on:
   #     - "test_action"
   workflow_dispatch: ~
 
+permissions:
+  projects: write  # Allows the workflow to interact with project boards
+  contents: read   # Necessary for most GitHub workflows
 
 jobs:
   add-to-project:
