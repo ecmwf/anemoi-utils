@@ -4,7 +4,7 @@ on:
   issues:
     types:
       - opened
-      - labeled
+      #- labeled
       - reopened
   pull_request:
     types:
@@ -27,5 +27,5 @@ jobs:
           # to the issue
           project-url: https://github.com/orgs/ecmwf-lab/projects/1
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          labeled: bug, needs-triage
-          label-operator: OR
+          # labeled: bug, needs-triage
+          # label-operator: OR
