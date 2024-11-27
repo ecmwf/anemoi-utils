@@ -108,18 +108,20 @@ class DotDict(dict):
 
 def is_omegaconf_dict(value) -> bool:
     try:
-      from omegaconf import DictConfig
-      return isinstance(value, DictConfig)
+        from omegaconf import DictConfig
+
+        return isinstance(value, DictConfig)
     except ImportError:
-      return False
+        return False
 
 
 def is_omegaconf_list(value) -> bool:
     try:
-      from omegaconf import ListConfig
-      return isinstance(value, ListConfig)
+        from omegaconf import ListConfig
+
+        return isinstance(value, ListConfig)
     except ImportError:
-      return False
+        return False
 
 
 CONFIG = {}
