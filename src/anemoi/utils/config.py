@@ -376,3 +376,11 @@ def find(metadata, what, result=None, *, select: callable = None):
             find(v, what, result)
 
     return result
+
+
+def merge_configs(*configs):
+    result = {}
+    for config in configs:
+        _merge_dicts(result, config)
+
+    return result
