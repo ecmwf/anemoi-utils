@@ -337,3 +337,15 @@ class TorchNestedAnemoiTensor(NestedAnemoiTensor):
         assert '__' not in name, name
         for k, array in self.arrays.items():
             caller.register_buffer(f'{name}__{k}', array, persistent=persistent)
+
+
+def define_anemoi_tensor(data: dict, sources: list[str], indices: dict) -> TorchNestedAnemoiTensor:
+    import torch
+    
+    tt = {}
+    for name in sources:
+        valid_values_mask = ~torch.isnan(data[name]).any((0, 2))
+        tt[name] = data[name][:, valid_values_mask][..., indices[name]]
+        
+    return TorchNestedAnemoiTensor(tt)
+
