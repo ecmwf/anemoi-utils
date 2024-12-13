@@ -1,3 +1,4 @@
+name: Run Release Please
 on:
   push:
     branches:
@@ -7,7 +8,6 @@ permissions:
   contents: write
   pull-requests: write
 
-name: Run Release Please
 jobs:
   release-please:
     runs-on: ubuntu-latest
