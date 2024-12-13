@@ -50,14 +50,14 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            if isinstance(v, dict):
+            if isinstance(v, dict) or is_omegaconf_dict(v):
                 self[k] = DotDict(v)
 
-            if isinstance(v, list):
-                self[k] = [DotDict(i) if isinstance(i, dict) else i for i in v]
+            if isinstance(v, list) or is_omegaconf_list(v):
+                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
 
             if isinstance(v, tuple):
-                self[k] = [DotDict(i) if isinstance(i, dict) else i for i in v]
+                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
 
     @classmethod
     def from_file(cls, path: str):
@@ -104,6 +104,24 @@ class DotDict(dict):
 
     def __repr__(self) -> str:
         return f"DotDict({super().__repr__()})"
+
+
+def is_omegaconf_dict(value) -> bool:
+    try:
+        from omegaconf import DictConfig
+
+        return isinstance(value, DictConfig)
+    except ImportError:
+        return False
+
+
+def is_omegaconf_list(value) -> bool:
+    try:
+        from omegaconf import ListConfig
+
+        return isinstance(value, ListConfig)
+    except ImportError:
+        return False
 
 
 CONFIG = {}
@@ -374,5 +392,13 @@ def find(metadata, what, result=None, *, select: callable = None):
 
         for k, v in metadata.items():
             find(v, what, result)
+
+    return result
+
+
+def merge_configs(*configs):
+    result = {}
+    for config in configs:
+        _merge_dicts(result, config)
 
     return result
