@@ -1,0 +1,63 @@
+{
+  // optional top-level defaults that can be overridden per package:
+
+  // set default package release-type to "python"
+  // absence defaults to "node"
+  "release-type": "python",
+
+  // BREAKING CHANGE only bumps semver minor if version < 1.0.0
+  // absence defaults to false
+  "bump-minor-pre-major": true,
+
+  // feat commits bump semver patch instead of minor if version < 1.0.0
+  // absence defaults to false
+  "bump-patch-for-minor-pre-major": true,
+
+  // set default github host in changelog
+  // absence defaults to https://github.com
+  "changelog-host": "https://example.com",
+
+  // if true, create separate pull requests for each package instead of a
+  // single manifest release pull request
+  // absence defaults to false and one pull request will be raised
+  "separate-pull-requests": true,
+
+  // if true, always update existing pull requests when changes are added,
+  // instead of only when the release notes change.
+  // This option may increase the number of API calls used, but can be useful
+  // if pull requests must not be out-of-date with the base branch.
+  // absence defaults to false
+  "always-update": true,
+
+  // The type of changelog to use, either using the realase-please default
+  // or leveraging the Github tooling to generate.
+  "changelog-type": "github",
+
+  // "pull-request-header": "",
+
+  // "pull-request-footer": "",
+
+  // per package configuration: at least one entry required.
+  // the key is the relative path from the repo root to the folder that contains
+  // all the files for that package.
+  // the value is an object with the following optional keys:
+  // - overrides for above top-level defaults AND
+  // - "package-name": Ignored by packages whose release-type implements source
+  //                   code package name lookup (e.g. "node"). Required for all
+  //                   other packages (e.g. "python")
+  // - "changelog-path": Path + filename of the changelog relative to the
+  //                     *package* directory. defaults to "CHANGELOG.md". E.g.
+  //                     for a package key of "path/to/mypkg", the location in
+  //                     the repo is path/to/pkg/CHANGELOG.md
+  // - "changelog-host": Override the GitHub host when writing changelog.
+  //                     Defaults to "https://github.com". E.g. for a commit of
+  //                     "abc123", it's hyperlink in changelog is
+  //                     https://github.com/<org>/<repo>/commit/abc123
+  "packages": {
+    // `.` is a special case for handling to root of the repository
+    ".": {
+        "package-name": "anemoi-utils"
+    }
+  }
+
+}
