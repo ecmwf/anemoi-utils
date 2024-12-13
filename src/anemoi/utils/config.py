@@ -223,6 +223,23 @@ def load_any_dict_format(path) -> dict:
         if path.endswith(".toml"):
             with open(path, "rb") as f:
                 return tomllib.load(f)
+
+        if path == "-":
+            import sys
+
+            config = sys.stdin.read()
+
+            parsers = [(yaml.safe_load, "yaml"), (json.loads, "json"), (tomllib.loads, "toml")]
+
+            for parser, parser_type in parsers:
+                try:
+                    LOG.debug(f"Trying {parser_type} parser for stdin")
+                    return parser(config)
+                except Exception:
+                    pass
+
+            raise ValueError("Failed to parse configuration from stdin")
+
     except (json.JSONDecodeError, yaml.YAMLError, tomllib.TOMLDecodeError) as e:
         LOG.warning(f"Failed to parse config file {path}", exc_info=e)
         raise ValueError(f"Failed to parse config file {path} [{e}]")
