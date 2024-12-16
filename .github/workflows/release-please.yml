@@ -20,5 +20,5 @@ jobs:
           token: ${{ secrets.REPO_SYNC_ACTION_PAT }}
           # optional. customize path to .release-please-config.json
           config-file: .release-please-config.json
-          #
+          # Currently releases are done "from main" to have a stable branch
           target-branch: main
