@@ -1,0 +1,31 @@
+name: Merge main into develop
+on:
+  push:
+    branches:
+      - main
+
+
+permissions:
+  # Needed to read branches
+  contents: read
+  # Needed to create PR's
+  pull-requests: write
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Opening pull request
+        id: pull
+        uses: jdtx0/branch-sync@1.5.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.REPO_SYNC_ACTION_PAT }}
+          FROM_BRANCH: "main"
+          TO_BRANCH: "develop"
+          PULL_REQUEST_AUTO_MERGE_METHOD: "merge"

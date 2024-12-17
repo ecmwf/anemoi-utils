@@ -1,0 +1,19 @@
+{
+  "release-type": "python",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "separate-pull-requests": true,
+  "always-update": true,
+  "changelog-type": "github",
+  "include-component-in-tag": false,
+  "include-v-in-tag": false,
+  "pull-request-title-pattern": "chore${scope}: Preparing Next Release for ${component} ${version}",
+  "pull-request-header": ":robot:This is an automated PR using `release-please`.\n\nThe following changes will be included in the release, once the next version is triggered.\n\nContent of the next Release",
+  "pull-request-footer": "> [!IMPORTANT]\n> Merging this PR creates a release. Please refer to the [documentation](https://github.com/googleapis/release-please) if you're unsure.",
+  "packages": {
+    ".": {
+        "package-name": "anemoi-utils"
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}
