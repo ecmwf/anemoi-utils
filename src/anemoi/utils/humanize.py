@@ -689,3 +689,36 @@ def print_dates(dates) -> None:
         A list of dates, as datetime objects or strings.
     """
     print(compress_dates(dates))
+
+
+def make_list_int(value) -> list:
+    """Convert a string like "1/2/3" or "1/to/3" or "1/to/10/by/2" to a list of integers.
+
+    Parameters
+    ----------
+    value : str, list, tuple, int
+        The value to convert to a list of integers.
+
+    Returns
+    -------
+    list
+        A list of integers.
+    """
+    if isinstance(value, str):
+        if "/" not in value:
+            return [int(value)]
+        bits = value.split("/")
+        if len(bits) == 3 and bits[1].lower() == "to":
+            value = list(range(int(bits[0]), int(bits[2]) + 1, 1))
+
+        elif len(bits) == 5 and bits[1].lower() == "to" and bits[3].lower() == "by":
+            value = list(range(int(bits[0]), int(bits[2]) + int(bits[4]), int(bits[4])))
+
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return value
+    if isinstance(value, int):
+        return [value]
+
+    raise ValueError(f"Cannot make list from {value}")
