@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## 0.4.11 (2024-12-18)
+
+<!-- Release notes generated using configuration in .github/release.yml at develop -->
+
+## What's Changed
+### Other Changes
+* Feature request: Add option to read configuration from stdin by @mpartio in https://github.com/ecmwf/anemoi-utils/pull/59
+* feat(plots): Add quick map plot for debugging by @b8raoult in https://github.com/ecmwf/anemoi-utils/pull/69
+
+## New Contributors
+* @mpartio made their first contribution in https://github.com/ecmwf/anemoi-utils/pull/59
+
+**Full Changelog**: https://github.com/ecmwf/anemoi-utils/compare/0.4.10...0.4.11
+
 ## [0.4.5](https://github.com/ecmwf/anemoi-utils/compare/0.4.4...0.4.5) - 2024-11-06
 
 ### What's Changed
