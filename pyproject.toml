@@ -1,13 +1,11 @@
-#!/usr/bin/env python
-# (C) Copyright 2024 ECMWF.
+# (C) Copyright 2024 Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
-
-# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
 
 [build-system]
 requires = [ "setuptools>=60", "setuptools-scm>=8" ]
@@ -35,6 +33,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -42,8 +41,10 @@ classifiers = [
 dynamic = [ "version" ]
 dependencies = [
   "aniso8601",
+  "importlib-metadata; python_version<'3.10'",
+  "python-dateutil",
   "pyyaml",
-  "tomli",     # Only needed before 3.11
+  "tomli; python_version<'3.11'",
   "tqdm",
 ]
 
@@ -80,3 +81,8 @@ scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
+
+[tool.pytest.ini_options]
+markers = [
+  "skip_on_hpc: mark a test that should not be run on HPC",
+]

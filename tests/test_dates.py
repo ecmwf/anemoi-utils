@@ -1,9 +1,12 @@
-# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024 Anemoi contributors.
+#
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
 
 import datetime
 from textwrap import dedent
@@ -78,36 +81,6 @@ def test_date_hindcast_1():
     """
     )
     assert len(list(d)) == 60
-
-
-def test_date_hindcast_2():
-    d = _(
-        """
-        - name: hindcast
-          reference_dates:
-            start: 2023-01-01
-            end: 2023-01-03
-            frequency: 24
-          years: [2018, 2019, 2020, 2021]
-    """
-    )
-    assert len(list(d)) == 12
-
-
-def test_date_hindcast_3():
-    d = _(
-        """
-        - name: hindcast
-          reference_dates:
-            start: 2022-12-25 00:00:00
-            end: 2022-12-31 12:00:00
-            frequency: 12h
-            day_of_week: tuesday
-          years: [2018, 2019, 2020, 2021]
-    """
-    )
-    print(list(d))
-    assert len(list(d)) == 8
 
 
 if __name__ == "__main__":

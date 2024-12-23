@@ -1,9 +1,12 @@
-# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024 Anemoi contributors.
+#
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
 
 from __future__ import annotations
 
@@ -47,14 +50,14 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            if isinstance(v, dict):
+            if isinstance(v, dict) or is_omegaconf_dict(v):
                 self[k] = DotDict(v)
 
-            if isinstance(v, list):
-                self[k] = [DotDict(i) if isinstance(i, dict) else i for i in v]
+            if isinstance(v, list) or is_omegaconf_list(v):
+                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
 
             if isinstance(v, tuple):
-                self[k] = [DotDict(i) if isinstance(i, dict) else i for i in v]
+                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
 
     @classmethod
     def from_file(cls, path: str):
@@ -101,6 +104,24 @@ class DotDict(dict):
 
     def __repr__(self) -> str:
         return f"DotDict({super().__repr__()})"
+
+
+def is_omegaconf_dict(value) -> bool:
+    try:
+        from omegaconf import DictConfig
+
+        return isinstance(value, DictConfig)
+    except ImportError:
+        return False
+
+
+def is_omegaconf_list(value) -> bool:
+    try:
+        from omegaconf import ListConfig
+
+        return isinstance(value, ListConfig)
+    except ImportError:
+        return False
 
 
 CONFIG = {}
@@ -202,9 +223,26 @@ def load_any_dict_format(path) -> dict:
         if path.endswith(".toml"):
             with open(path, "rb") as f:
                 return tomllib.load(f)
+
+        if path == "-":
+            import sys
+
+            config = sys.stdin.read()
+
+            parsers = [(yaml.safe_load, "yaml"), (json.loads, "json"), (tomllib.loads, "toml")]
+
+            for parser, parser_type in parsers:
+                try:
+                    LOG.debug(f"Trying {parser_type} parser for stdin")
+                    return parser(config)
+                except Exception:
+                    pass
+
+            raise ValueError("Failed to parse configuration from stdin")
+
     except (json.JSONDecodeError, yaml.YAMLError, tomllib.TOMLDecodeError) as e:
         LOG.warning(f"Failed to parse config file {path}", exc_info=e)
-        return ValueError(f"Failed to parse config file {path} [{e}]")
+        raise ValueError(f"Failed to parse config file {path} [{e}]")
 
     return open(path).read()
 
@@ -353,3 +391,31 @@ def check_config_mode(name="settings.toml", secrets_name=None, secrets=None) -> 
             raise SystemError(f"Configuration file {conf} is not secure.\n" f"Please run `chmod 600 {conf}`.")
 
         CHECKED[name] = True
+
+
+def find(metadata, what, result=None, *, select: callable = None):
+    if result is None:
+        result = []
+
+    if isinstance(metadata, list):
+        for i in metadata:
+            find(i, what, result)
+        return result
+
+    if isinstance(metadata, dict):
+        if what in metadata:
+            if select is None or select(metadata[what]):
+                result.append(metadata[what])
+
+        for k, v in metadata.items():
+            find(v, what, result)
+
+    return result
+
+
+def merge_configs(*configs):
+    result = {}
+    for config in configs:
+        _merge_dicts(result, config)
+
+    return result

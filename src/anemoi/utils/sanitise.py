@@ -1,6 +1,8 @@
-# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024 Anemoi contributors.
+#
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
@@ -45,7 +47,7 @@ def _sanitise_string(obj):
 
     parsed = urlparse(obj, allow_fragments=True)
 
-    if parsed.scheme:
+    if parsed.scheme and parsed.scheme[0].isalpha():
         return _sanitise_url(parsed)
 
     if obj.startswith("/") or obj.startswith("~"):

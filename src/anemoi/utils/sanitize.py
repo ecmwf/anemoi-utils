@@ -7,21 +7,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from anemoi.utils.cli import cli_main
-from anemoi.utils.cli import make_parser
 
-from . import __version__
-from .commands import COMMANDS
+from .sanitise import sanitise as sanitize
 
-
-# For read-the-docs
-def create_parser():
-    return make_parser(__doc__, COMMANDS)
-
-
-def main():
-    cli_main(__version__, __doc__, COMMANDS)
-
-
-if __name__ == "__main__":
-    main()
+__all__ = ["sanitize"]

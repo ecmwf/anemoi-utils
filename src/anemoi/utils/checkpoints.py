@@ -1,10 +1,12 @@
-# (C) Copyright 2024 ECMWF.
+# (C) Copyright 2024 Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
 
 """Read and write extra metadata in PyTorch checkpoints files. These files
 are zip archives containing the model weights.
@@ -25,7 +27,7 @@ DEFAULT_NAME = "ai-models.json"
 DEFAULT_FOLDER = "anemoi-metadata"
 
 
-def has_metadata(path: str, name: str = DEFAULT_NAME) -> bool:
+def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
     """Check if a checkpoint file has a metadata file
 
     Parameters
@@ -47,13 +49,26 @@ def has_metadata(path: str, name: str = DEFAULT_NAME) -> bool:
     return False
 
 
-def load_metadata(path: str, name: str = DEFAULT_NAME) -> dict:
+def metadata_root(path: str, *, name: str = DEFAULT_NAME) -> bool:
+
+    with zipfile.ZipFile(path, "r") as f:
+        for b in f.namelist():
+            if os.path.basename(b) == name:
+                return os.path.dirname(b)
+    raise ValueError(f"Could not find '{name}' in {path}.")
+
+
+def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAME) -> dict:
     """Load metadata from a checkpoint file
 
     Parameters
     ----------
     path : str
         The path to the checkpoint file
+
+    supporting_arrays: bool, optional
+        If True, the function will return a dictionary with the supporting arrays
+
     name : str, optional
         The name of the metadata file in the zip archive
 
@@ -77,12 +92,29 @@ def load_metadata(path: str, name: str = DEFAULT_NAME) -> dict:
 
     if metadata is not None:
         with zipfile.ZipFile(path, "r") as f:
-            return json.load(f.open(metadata, "r"))
+            metadata = json.load(f.open(metadata, "r"))
+            if supporting_arrays:
+                arrays = load_supporting_arrays(f, metadata.get("supporting_arrays_paths", {}))
+                return metadata, arrays
+
+            return metadata
     else:
         raise ValueError(f"Could not find '{name}' in {path}.")
 
 
-def save_metadata(path, metadata, name=DEFAULT_NAME, folder=DEFAULT_FOLDER) -> None:
+def load_supporting_arrays(zipf, entries) -> dict:
+    import numpy as np
+
+    supporting_arrays = {}
+    for key, entry in entries.items():
+        supporting_arrays[key] = np.frombuffer(
+            zipf.read(entry["path"]),
+            dtype=entry["dtype"],
+        ).reshape(entry["shape"])
+    return supporting_arrays
+
+
+def save_metadata(path, metadata, *, supporting_arrays=None, name=DEFAULT_NAME, folder=DEFAULT_FOLDER) -> None:
     """Save metadata to a checkpoint file
 
     Parameters
@@ -91,6 +123,8 @@ def save_metadata(path, metadata, name=DEFAULT_NAME, folder=DEFAULT_FOLDER) -> N
         The path to the checkpoint file
     metadata : JSON
         A JSON serializable object
+    supporting_arrays: dict, optional
+        A dictionary of supporting NumPy arrays
     name : str, optional
         The name of the metadata file in the zip archive
     folder : str, optional
@@ -116,19 +150,41 @@ def save_metadata(path, metadata, name=DEFAULT_NAME, folder=DEFAULT_FOLDER) -> N
 
         directory = list(directories)[0]
 
+        LOG.info("Adding extra information to checkpoint %s", path)
         LOG.info("Saving metadata to %s/%s/%s", directory, folder, name)
+
+        metadata = metadata.copy()
+        if supporting_arrays is not None:
+            metadata["supporting_arrays_paths"] = {
+                key: dict(path=f"{directory}/{folder}/{key}.numpy", shape=value.shape, dtype=str(value.dtype))
+                for key, value in supporting_arrays.items()
+            }
+        else:
+            metadata["supporting_arrays_paths"] = {}
 
         zipf.writestr(
             f"{directory}/{folder}/{name}",
             json.dumps(metadata),
         )
 
+        for name, entry in metadata["supporting_arrays_paths"].items():
+            value = supporting_arrays[name]
+            LOG.info(
+                "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
+                name,
+                entry["path"],
+                entry["shape"],
+                entry["dtype"],
+            )
+            zipf.writestr(entry["path"], value.tobytes())
 
-def _edit_metadata(path, name, callback):
+
+def _edit_metadata(path, name, callback, supporting_arrays=None):
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
     found = False
 
+    directory = None
     with TemporaryDirectory() as temp_dir:
         zipfile.ZipFile(path, "r").extractall(temp_dir)
         total = 0
@@ -139,9 +195,20 @@ def _edit_metadata(path, name, callback):
                 if f == name:
                     found = True
                     callback(full)
+                    directory = os.path.dirname(full)
 
         if not found:
             raise ValueError(f"Could not find '{name}' in {path}")
+
+        if supporting_arrays is not None:
+
+            for key, entry in supporting_arrays.items():
+                value = entry.tobytes()
+                fname = os.path.join(directory, f"{key}.numpy")
+                os.makedirs(os.path.dirname(fname), exist_ok=True)
+                with open(fname, "wb") as f:
+                    f.write(value)
+                    total += 1
 
         with zipfile.ZipFile(new_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             with tqdm.tqdm(total=total, desc="Rebuilding checkpoint") as pbar:
@@ -156,7 +223,7 @@ def _edit_metadata(path, name, callback):
     LOG.info("Updated metadata in %s", path)
 
 
-def replace_metadata(path, metadata, name=DEFAULT_NAME):
+def replace_metadata(path, metadata, supporting_arrays=None, *, name=DEFAULT_NAME):
 
     if not isinstance(metadata, dict):
         raise ValueError(f"metadata must be a dict, got {type(metadata)}")
@@ -168,14 +235,14 @@ def replace_metadata(path, metadata, name=DEFAULT_NAME):
         with open(full, "w") as f:
             json.dump(metadata, f)
 
-    _edit_metadata(path, name, callback)
+    return _edit_metadata(path, name, callback, supporting_arrays)
 
 
-def remove_metadata(path, name=DEFAULT_NAME):
+def remove_metadata(path, *, name=DEFAULT_NAME):
 
     LOG.info("Removing metadata '%s' from %s", name, path)
 
     def callback(full):
         os.remove(full)
 
-    _edit_metadata(path, name, callback)
+    return _edit_metadata(path, name, callback)

@@ -1,9 +1,12 @@
-# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024 Anemoi contributors.
+#
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
 
 """Collect information about the current environment, like:
 
@@ -21,6 +24,7 @@ import os
 import subprocess
 import sys
 import sysconfig
+from functools import cache
 
 LOG = logging.getLogger(__name__)
 
@@ -120,6 +124,7 @@ def _module_versions(full):
 
     roots = {}
     for name, path in sysconfig.get_paths().items():
+        path = os.path.realpath(path)
         if path not in roots:
             roots[path] = name
 
@@ -141,6 +146,37 @@ def _module_versions(full):
             version(versions, k, v, roots, namespaces, paths, full)
 
     return versions, paths
+
+
+@cache
+def package_distributions() -> dict[str, list[str]]:
+    # Takes a significant amount of time to run
+    # so cache the result
+    from importlib import metadata
+
+    # For python 3.9 support
+    if not hasattr(metadata, "packages_distributions"):
+        import importlib_metadata as metadata
+
+    return metadata.packages_distributions()
+
+
+def import_name_to_distribution_name(packages: list):
+    distribution_names = {}
+    package_distribution_names = package_distributions()
+
+    for package in [p for p in packages if p in package_distribution_names]:
+        distr_name = package_distribution_names[package]
+        if isinstance(distr_name, list):
+            if len(distr_name) > 1:
+                # Multiple distributions for the same package, i.e. anemoi-graphs, anemoi-utils, ..., Don't know how to handle this
+                continue
+            distr_name = distr_name[0]
+
+        if distr_name != package:
+            distribution_names[package] = distr_name
+
+    return distribution_names
 
 
 def module_versions(full):
@@ -339,6 +375,7 @@ def gather_provenance_info(assets=[], full=False) -> dict:
             time=datetime.datetime.utcnow().isoformat(),
             python=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             module_versions=versions,
+            distribution_names=import_name_to_distribution_name(versions.keys()),
             git_versions=git_versions,
         )
     else:
@@ -349,6 +386,7 @@ def gather_provenance_info(assets=[], full=False) -> dict:
             python_path=sys.path,
             config_paths=sysconfig.get_paths(),
             module_versions=versions,
+            distribution_names=import_name_to_distribution_name(versions.keys()),
             git_versions=git_versions,
             platform=platform_info(),
             gpus=gpu_info(),
