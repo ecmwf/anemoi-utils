@@ -31,7 +31,7 @@ GRIDS_URL_PATTERN = "https://get.ecmwf.int/repository/anemoi/grids/grid-{name}.n
 def _grids(name):
     from anemoi.utils.config import load_config
 
-    user_path = load_config().get("utils").get("grids_path")
+    user_path = load_config().get("utils", {}).get("grids_path")
     if user_path:
         path = os.path.expanduser(os.path.join(user_path, f"grid-{name}.npz"))
         if os.path.exists(path):
