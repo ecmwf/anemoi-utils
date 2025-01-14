@@ -42,6 +42,7 @@ dynamic = [ "version" ]
 dependencies = [
   "aniso8601",
   "importlib-metadata; python_version<'3.10'",
+  "numpy",
   "python-dateutil",
   "pyyaml",
   "tomli; python_version<'3.11'",
