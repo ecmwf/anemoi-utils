@@ -14,11 +14,47 @@ import os
 import time
 from threading import Lock
 
+import numpy as np
+
 LOCK = Lock()
 CACHE = {}
 
 
-def cache(key, proc, collection="default", expires=None):
+def _json_save(path, data):
+    with open(path, "w") as f:
+        json.dump(data, f)
+
+
+def _json_load(path):
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def _npz_save(path, data):
+    return np.savez(path, **data)
+
+
+def _npz_load(path):
+    return np.load(path, allow_pickle=True)
+
+
+def _get_cache_path(collection):
+    return os.path.join(os.path.expanduser("~"), ".cache", "anemoi", collection)
+
+
+def clean_cache(collection="default"):
+    path = _get_cache_path(collection)
+    if not os.path.exists(path):
+        return
+    for filename in os.listdir(path):
+        os.remove(os.path.join(path, filename))
+
+
+def cache(key, proc, collection="default", expires=None, encoding="json"):
+    load, save, ext = dict(
+        json=(_json_load, _json_save, ""),
+        npz=(_npz_load, _npz_save, ".npz"),
+    )[encoding]
 
     key = json.dumps(key, sort_keys=True)
     m = hashlib.md5()
@@ -28,24 +64,22 @@ def cache(key, proc, collection="default", expires=None):
     if m in CACHE:
         return CACHE[m]
 
-    path = os.path.join(os.path.expanduser("~"), ".cache", "anemoi", collection)
+    path = _get_cache_path(collection)
     os.makedirs(path, exist_ok=True)
 
-    filename = os.path.join(path, m)
+    filename = os.path.join(path, m) + ext
     if os.path.exists(filename):
-        with open(filename, "r") as f:
-            data = json.load(f)
-            if expires is None or data["expires"] > time.time():
-                if data["key"] == key:
-                    return data["value"]
+        data = load(filename)
+        if expires is None or data["expires"] > time.time():
+            if data["key"] == key:
+                return data["value"]
 
     value = proc()
     data = {"key": key, "value": value}
     if expires is not None:
         data["expires"] = time.time() + expires
 
-    with open(filename, "w") as f:
-        json.dump(data, f)
+    save(filename, data)
 
     CACHE[m] = value
     return value
@@ -54,9 +88,10 @@ def cache(key, proc, collection="default", expires=None):
 class cached:
     """Decorator to cache the result of a function."""
 
-    def __init__(self, collection="default", expires=None):
+    def __init__(self, collection="default", expires=None, encoding="json"):
         self.collection = collection
         self.expires = expires
+        self.encoding = encoding
 
     def __call__(self, func):
 
@@ -69,6 +104,7 @@ class cached:
                     lambda: func(*args, **kwargs),
                     self.collection,
                     self.expires,
+                    self.encoding,
                 )
 
         return wrapped
