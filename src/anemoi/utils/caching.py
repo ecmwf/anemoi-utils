@@ -65,7 +65,6 @@ def cache(key, proc, collection="default", expires=None, encoding="json"):
         return CACHE[m]
 
     path = _get_cache_path(collection)
-    os.makedirs(path, exist_ok=True)
 
     filename = os.path.join(path, m) + ext
     if os.path.exists(filename):
@@ -79,6 +78,7 @@ def cache(key, proc, collection="default", expires=None, encoding="json"):
     if expires is not None:
         data["expires"] = time.time() + expires
 
+    os.makedirs(path, exist_ok=True)
     save(filename, data)
 
     CACHE[m] = value

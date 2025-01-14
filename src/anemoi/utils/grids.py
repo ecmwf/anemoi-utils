@@ -13,6 +13,7 @@
 """
 
 import logging
+import os
 from io import BytesIO
 
 import numpy as np
@@ -28,8 +29,19 @@ GRIDS_URL_PATTERN = "https://get.ecmwf.int/repository/anemoi/grids/grid-{name}.n
 
 @cached(collection="grids", encoding="npz")
 def _grids(name):
+    from anemoi.utils.config import load_config
+
+    user_path = load_config().get("utils").get("grids_path")
+    if user_path:
+        path = os.path.expanduser(os.path.join(user_path, f"grid-{name}.npz"))
+        if os.path.exists(path):
+            LOG.warning("Loading grids from custom user path %s", path)
+            with open(path, "rb") as f:
+                return f.read()
+        else:
+            LOG.warning("Custom user path %s does not exist", path)
+
     url = GRIDS_URL_PATTERN.format(name=name.lower())
-    LOG.error("Downloading grids from %s", url)
     LOG.warning("Downloading grids from %s", url)
     response = requests.get(url)
     response.raise_for_status()
