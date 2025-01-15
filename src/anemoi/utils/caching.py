@@ -115,4 +115,10 @@ class NpzCacher(Cacher):
 
 # PUBLIC API
 def cached(collection="default", expires=None, encoding="json"):
+    """Decorator to cache the result of a function.
+
+    Default is to use a json file to store the cache, but you can also use npz files
+    to cache dict of numpy arrays.
+
+    """
     return dict(json=JsonCacher, npz=NpzCacher)[encoding](collection, expires)
