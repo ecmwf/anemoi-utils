@@ -89,6 +89,9 @@ def _grids(name):
 
 
 def grids(name):
+    if name.endswith(".npz"):
+        return dict(np.load(name))
+
     data = _grids(name)
     npz = np.load(BytesIO(data))
     return dict(npz)
