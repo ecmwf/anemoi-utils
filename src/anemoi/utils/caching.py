@@ -20,29 +20,13 @@ LOCK = Lock()
 CACHE = {}
 
 
-def _json_save(path, data):
-    with open(path, "w") as f:
-        json.dump(data, f)
-
-
-def _json_load(path):
-    with open(path, "r") as f:
-        return json.load(f)
-
-
-def _npz_save(path, data):
-    return np.savez(path, **data)
-
-
-def _npz_load(path):
-    return np.load(path, allow_pickle=True)
-
-
 def _get_cache_path(collection):
     return os.path.join(os.path.expanduser("~"), ".cache", "anemoi", collection)
 
 
 def clean_cache(collection="default"):
+    global CACHE
+    CACHE = {}
     path = _get_cache_path(collection)
     if not os.path.exists(path):
         return
@@ -50,48 +34,13 @@ def clean_cache(collection="default"):
         os.remove(os.path.join(path, filename))
 
 
-def cache(key, proc, collection="default", expires=None, encoding="json"):
-    load, save, ext = dict(
-        json=(_json_load, _json_save, ""),
-        npz=(_npz_load, _npz_save, ".npz"),
-    )[encoding]
+class Cacher:
+    """This class implements a simple caching mechanism.
+    Private class, do not use directly"""
 
-    key = json.dumps(key, sort_keys=True)
-    m = hashlib.md5()
-    m.update(key.encode("utf-8"))
-    m = m.hexdigest()
-
-    if m in CACHE:
-        return CACHE[m]
-
-    path = _get_cache_path(collection)
-
-    filename = os.path.join(path, m) + ext
-    if os.path.exists(filename):
-        data = load(filename)
-        if expires is None or data["expires"] > time.time():
-            if data["key"] == key:
-                return data["value"]
-
-    value = proc()
-    data = {"key": key, "value": value}
-    if expires is not None:
-        data["expires"] = time.time() + expires
-
-    os.makedirs(path, exist_ok=True)
-    save(filename, data)
-
-    CACHE[m] = value
-    return value
-
-
-class cached:
-    """Decorator to cache the result of a function."""
-
-    def __init__(self, collection="default", expires=None, encoding="json"):
+    def __init__(self, collection, expires):
         self.collection = collection
         self.expires = expires
-        self.encoding = encoding
 
     def __call__(self, func):
 
@@ -99,12 +48,77 @@ class cached:
 
         def wrapped(*args, **kwargs):
             with LOCK:
-                return cache(
+                return self.cache(
                     (full, args, kwargs),
                     lambda: func(*args, **kwargs),
-                    self.collection,
-                    self.expires,
-                    self.encoding,
                 )
 
         return wrapped
+
+    def cache(self, key, proc):
+
+        key = json.dumps(key, sort_keys=True)
+        m = hashlib.md5()
+        m.update(key.encode("utf-8"))
+        m = m.hexdigest()
+
+        if m in CACHE:
+            return CACHE[m]
+
+        path = _get_cache_path(self.collection)
+
+        filename = os.path.join(path, m) + self.ext
+        if os.path.exists(filename):
+            data = self.load(filename)
+            if self.expires is None or data["expires"] > time.time():
+                if data["key"] == key:
+                    return data["value"]
+
+        value = proc()
+        data = {"key": key, "value": value}
+        if self.expires is not None:
+            data["expires"] = time.time() + self.expires
+
+        os.makedirs(path, exist_ok=True)
+        temp_filename = self.save(filename, data)
+        os.rename(temp_filename, filename)
+
+        CACHE[m] = value
+        return value
+
+
+class JsonCacher(Cacher):
+    ext = ""
+
+    def save(self, path, data):
+        temp_path = path + ".tmp"
+        with open(temp_path, "w") as f:
+            json.dump(data, f)
+        return temp_path
+
+    def load(self, path):
+        with open(path, "r") as f:
+            return json.load(f)
+
+
+class NpzCacher(Cacher):
+    ext = ".npz"
+
+    def save(self, path, data):
+        temp_path = path + ".tmp.npz"
+        np.savez(temp_path, **data)
+        return temp_path
+
+    def load(self, path):
+        return np.load(path, allow_pickle=True)
+
+
+# PUBLIC API
+def cached(collection="default", expires=None, encoding="json"):
+    """Decorator to cache the result of a function.
+
+    Default is to use a json file to store the cache, but you can also use npz files
+    to cache dict of numpy arrays.
+
+    """
+    return dict(json=JsonCacher, npz=NpzCacher)[encoding](collection, expires)
