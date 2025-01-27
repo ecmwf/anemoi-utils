@@ -155,12 +155,19 @@ def as_timedelta(frequency) -> datetime.timedelta:
         unit = {"h": "hours", "d": "days", "s": "seconds", "m": "minutes"}[unit]
         return datetime.timedelta(**{unit: v})
 
-    m = frequency.split(":")
-    if len(m) == 2:
-        return datetime.timedelta(hours=int(m[0]), minutes=int(m[1]))
+    if re.match(r"^\d+:\d+(:\d+)?$", frequency):
+        m = frequency.split(":")
+        if len(m) == 2:
+            return datetime.timedelta(hours=int(m[0]), minutes=int(m[1]))
 
-    if len(m) == 3:
-        return datetime.timedelta(hours=int(m[0]), minutes=int(m[1]), seconds=int(m[2]))
+        if len(m) == 3:
+            return datetime.timedelta(hours=int(m[0]), minutes=int(m[1]), seconds=int(m[2]))
+
+    if re.match(r"^\d+ days?, \d+:\d+:\d+$", frequency):
+        m = frequency.split(", ")
+        days = int(m[0].split()[0])
+        hms = m[1].split(":")
+        return datetime.timedelta(days=days, hours=int(hms[0]), minutes=int(hms[1]), seconds=int(hms[2]))
 
     # ISO8601
     try:
