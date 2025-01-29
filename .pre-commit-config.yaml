@@ -76,5 +76,3 @@ repos:
         - --disable=E113     # Disable empty docstrings
 ci:
   autoupdate_schedule: monthly
-ci:
-  autoupdate_schedule: monthly

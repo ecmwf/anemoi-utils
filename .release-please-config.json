@@ -7,9 +7,10 @@
   "changelog-type": "github",
   "include-component-in-tag": false,
   "include-v-in-tag": false,
+  "draft": true,
   "pull-request-title-pattern": "chore${scope}: Preparing Next Release for ${component} ${version}",
-  "pull-request-header": ":robot:This is an automated PR using `release-please`.\n\nThe following changes will be included in the release, once the next version is triggered.\n\nContent of the next Release",
-  "pull-request-footer": "> [!IMPORTANT]\n> Merging this PR creates a release. Please refer to the [documentation](https://github.com/googleapis/release-please) if you're unsure.",
+  "pull-request-header": ":robot: Automated Release PR\n\nThis PR was created by `release-please` to prepare the next release. Once merged:\n\n1. A new version tag will be created\n2. A GitHub release will be published\n3. The changelog will be updated\n\nChanges to be included in the next release:",
+  "pull-request-footer": "> [!IMPORTANT]\n> :warning: Merging this PR will:\n> - Create a new release\n> - Trigger deployment pipelines\n> - Update package versions\n\n **Before merging:**\n - Ensure all tests pass\n - Review the changelog carefully\n - Get required approvals\n\n [Release-please documentation](https://github.com/googleapis/release-please)",
   "packages": {
     ".": {
         "package-name": "anemoi-utils"
