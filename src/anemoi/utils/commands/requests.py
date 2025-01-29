@@ -6,6 +6,7 @@
 # nor does it submit to any jurisdiction.
 
 import json
+import sys
 
 from anemoi.utils.mars.requests import print_request
 
@@ -22,8 +23,11 @@ class Requests(Command):
         command_parser.add_argument("--only-one-field", action="store_true")
 
     def run(self, args):
-        with open(args.input) as f:
-            requests = json.load(f)
+        if args.input == "-":
+            requests = json.load(sys.stdin)
+        else:
+            with open(args.input) as f:
+                requests = json.load(f)
 
         if args.only_one_field:
             for r in requests:
