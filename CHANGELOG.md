@@ -17,7 +17,6 @@ Keep it human-readable, your future self will thank you!
 * feat: better support for timedelta larger than 24h by @floriankrb in https://github.com/ecmwf/anemoi-utils/pull/81
 * feat(requests): read input from stdin by @gmertes in https://github.com/ecmwf/anemoi-utils/pull/82
 * chore: synced file(s) with ecmwf-actions/reusable-workflows by @DeployDuck in https://github.com/ecmwf/anemoi-utils/pull/80
-* chore(main): Preparing Next Release for  0.4.12 by @DeployDuck in https://github.com/ecmwf/anemoi-utils/pull/83
 
 ## New Contributors
 * @DeployDuck made their first contribution in https://github.com/ecmwf/anemoi-utils/pull/80
