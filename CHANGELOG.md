@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## 0.4.12 (2025-01-30)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes 🔗
+* feat: better support for timedelta larger than 24h by @floriankrb in https://github.com/ecmwf/anemoi-utils/pull/81
+* feat(requests): read input from stdin by @gmertes in https://github.com/ecmwf/anemoi-utils/pull/82
+* chore: synced file(s) with ecmwf-actions/reusable-workflows by @DeployDuck in https://github.com/ecmwf/anemoi-utils/pull/80
+
+## New Contributors
+* @DeployDuck made their first contribution in https://github.com/ecmwf/anemoi-utils/pull/80
+
+**Full Changelog**: https://github.com/ecmwf/anemoi-utils/compare/0.4.11...0.4.12
+
 ## 0.4.11 (2025-01-17)
 
 <!-- Release notes generated using configuration in .github/release.yml at develop -->
