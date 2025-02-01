@@ -12,6 +12,7 @@ import importlib
 import logging
 import os
 import sys
+from functools import cached_property
 
 import entrypoints
 
@@ -39,7 +40,7 @@ class Registry:
     def __init__(self, package, key="_type"):
 
         self.package = package
-        self.registered = {}
+        self._registered = {}
         self.kind = package.split(".")[-1]
         self.key = key
         _BY_KIND[self.kind] = self
@@ -53,10 +54,25 @@ class Registry:
         if factory is None:
             return Wrapper(name, self)
 
-        self.registered[name] = factory
+        self._registered[name] = factory
 
-    # def registered(self, name: str):
-    #     return name in self.registered
+    def names(self):
+
+        package = importlib.import_module(self.package)
+        root = os.path.dirname(package.__file__)
+        result = []
+
+        for file in os.listdir(root):
+            if file[0] == ".":
+                continue
+            if file == "__init__.py":
+                continue
+            if file.endswith(".py"):
+                result.append(file[:-3])
+            if os.path.isdir(os.path.join(root, file)):
+                if os.path.exists(os.path.join(root, file, "__init__.py")):
+                    result.append(file)
+        return result
 
     def _load(self, file):
         name, _ = os.path.splitext(file)
@@ -67,9 +83,19 @@ class Registry:
 
     def lookup(self, name: str, *, return_none=False) -> callable:
 
-        # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', name, self.registered)
-        if name in self.registered:
-            return self.registered[name]
+        if name not in self.registered:
+            if return_none:
+                return None
+
+            for e in self._registered:
+                LOG.info(f"Registered: {e}")
+
+            raise ValueError(f"Cannot load '{name}' from {self.package}")
+
+        return self.registered[name]
+
+    @cached_property
+    def registered(self):
 
         directory = sys.modules[self.package].__path__[0]
 
@@ -92,23 +118,13 @@ class Registry:
 
         entrypoint_group = f"anemoi.{self.kind}"
         for entry_point in entrypoints.get_group_all(entrypoint_group):
-            if entry_point.name == name:
-                if name in self.registered:
-                    LOG.warning(
-                        f"Overwriting builtin '{name}' from {self.package} with plugin '{entry_point.module_name}'"
-                    )
-                self.registered[name] = entry_point.load()
+            if entry_point.name in self._registered:
+                LOG.warning(
+                    f"Overwriting builtin '{entry_point.name}' from {self.package} with plugin '{entry_point.module_name}'"
+                )
+            self._registered[entry_point.name] = entry_point.load()
 
-        if name not in self.registered:
-            if return_none:
-                return None
-
-            for e in self.registered:
-                LOG.info(f"Registered: {e}")
-
-            raise ValueError(f"Cannot load '{name}' from {self.package}")
-
-        return self.registered[name]
+        return self._registered
 
     def create(self, name: str, *args, **kwargs):
         factory = self.lookup(name)

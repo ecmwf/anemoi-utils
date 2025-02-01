@@ -36,13 +36,11 @@ def plot_values(
     ax.add_feature(cfeature.BORDERS, linestyle=":")
 
     missing_values = np.isnan(values)
-
     if missing_value is None:
-        values = values[~missing_values]
-        longitudes = longitudes[~missing_values]
-        latitudes = latitudes[~missing_values]
-    else:
-        values = np.where(missing_values, missing_value, values)
+        min = np.nanmin(values)
+        missing_value = min - np.abs(min) * 0.001
+
+    values = np.where(missing_values, missing_value, values)
 
     if max_value is not None:
         values = np.where(values > max_value, max_value, values)
