@@ -8,9 +8,7 @@
 # nor does it submit to any jurisdiction.
 
 
-"""Utilities for working with grids.
-
-"""
+"""Utilities for working with grids."""
 
 import logging
 import os

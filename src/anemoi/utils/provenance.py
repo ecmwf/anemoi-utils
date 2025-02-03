@@ -10,10 +10,10 @@
 
 """Collect information about the current environment, like:
 
- - The Python version
- - The versions of the modules which are currently loaded
- - The git information for the modules which are currently loaded from a git repository
- - ...
+- The Python version
+- The versions of the modules which are currently loaded
+- The git information for the modules which are currently loaded from a git repository
+- ...
 
 """
 
