@@ -36,7 +36,8 @@ def clean_cache(collection="default"):
 
 class Cacher:
     """This class implements a simple caching mechanism.
-    Private class, do not use directly"""
+    Private class, do not use directly
+    """
 
     def __init__(self, collection, expires):
         self.collection = collection
