@@ -245,6 +245,7 @@ def import_name_to_distribution_name(packages: List[str]) -> Dict[str, str]:
     dict
         The dictionary mapping import names to distribution names.
     """
+
     distribution_names = {}
     package_distribution_names = package_distributions()
 

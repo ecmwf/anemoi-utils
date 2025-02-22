@@ -18,6 +18,7 @@ from collections import defaultdict
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import Generator
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -924,7 +925,9 @@ def shorten_list(lst: Union[List[Any], Tuple[Any]], max_length: int = 5) -> Unio
 
 def _compress_dates(
     dates: List[datetime.datetime],
-) -> Union[List[datetime.datetime], Tuple[datetime.datetime, datetime.datetime, datetime.timedelta]]:
+) -> Generator[
+    Union[List[datetime.datetime], Tuple[datetime.datetime, datetime.datetime, datetime.timedelta]], None, None
+]:
     """Compress a list of dates into a more compact representation.
 
     Parameters
