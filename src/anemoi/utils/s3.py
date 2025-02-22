@@ -8,6 +8,9 @@
 # nor does it submit to any jurisdiction.
 
 import warnings
+from typing import Any
+from typing import Callable
+from typing import Optional
 
 from .remote import transfer
 from .remote.s3 import delete as delete_
@@ -21,7 +24,7 @@ warnings.warn(
 )
 
 
-def s3_client(*args, **kwargs):
+def s3_client(*args: Any, **kwargs: Any) -> Any:
     warnings.warn(
         "The 's3_client' function (from anemoi.utils.s3 import s3_client) function is deprecated and will be removed in a future release. "
         "Please use the 's3_client' function (from anemoi.utils.remote.s3 import s3_client) instead.",
@@ -31,7 +34,16 @@ def s3_client(*args, **kwargs):
     return s3_client_(*args, **kwargs)
 
 
-def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
+def upload(
+    source: str,
+    target: str,
+    *,
+    overwrite: bool = False,
+    resume: bool = False,
+    verbosity: int = 1,
+    progress: Optional[Callable] = None,
+    threads: int = 1,
+) -> None:
     warnings.warn(
         "The 'upload' function (from anemoi.utils.s3 import upload) function is deprecated and will be removed in a future release. "
         "Please use the 'transfer' function (from anemoi.utils.remote import transfer) instead.",
@@ -43,7 +55,7 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
     )
 
 
-def download(*args, **kwargs):
+def download(*args: Any, **kwargs: Any) -> Any:
     warnings.warn(
         "The 'download' function (from anemoi.utils.s3 import download) function is deprecated and will be removed in a future release. "
         "Please use the 'transfer' function (from anemoi.utils.remote import transfer) instead.",
@@ -53,7 +65,7 @@ def download(*args, **kwargs):
     return transfer(*args, **kwargs)
 
 
-def delete(*args, **kwargs):
+def delete(*args: Any, **kwargs: Any) -> Any:
     warnings.warn(
         "The 'delete' function (from anemoi.utils.s3 import delete) function is deprecated and will be removed in a future release. "
         "Please use the 'transfer' function (from anemoi.utils.remote.s3 import delete) instead.",

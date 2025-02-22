@@ -14,7 +14,6 @@
  - The versions of the modules which are currently loaded
  - The git information for the modules which are currently loaded from a git repository
  - ...
-
 """
 
 import datetime
@@ -25,11 +24,17 @@ import subprocess
 import sys
 import sysconfig
 from functools import cache
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 LOG = logging.getLogger(__name__)
 
 
-def lookup_git_repo(path):
+def lookup_git_repo(path: str) -> Optional[Any]:
     from git import InvalidGitRepositoryError
     from git import Repo
 
@@ -42,7 +47,7 @@ def lookup_git_repo(path):
     return None
 
 
-def _check_for_git(paths, full):
+def _check_for_git(paths: List[Tuple[str, str]], full: bool) -> Dict[str, Any]:
     versions = {}
     for name, path in paths:
         repo = lookup_git_repo(path)
@@ -77,7 +82,9 @@ def _check_for_git(paths, full):
     return versions
 
 
-def version(versions, name, module, roots, namespaces, paths, full):
+def version(
+    versions: Dict[str, Any], name: str, module: Any, roots: Dict[str, str], namespaces: set, paths: set, full: bool
+) -> None:
     path = None
 
     if hasattr(module, "__file__"):
@@ -119,7 +126,7 @@ def version(versions, name, module, roots, namespaces, paths, full):
     versions[name] = str(module)
 
 
-def _module_versions(full):
+def _module_versions(full: bool) -> Tuple[Dict[str, Any], set]:
     # https://docs.python.org/3/library/sysconfig.html
 
     roots = {}
@@ -149,7 +156,7 @@ def _module_versions(full):
 
 
 @cache
-def package_distributions() -> dict[str, list[str]]:
+def package_distributions() -> Dict[str, List[str]]:
     # Takes a significant amount of time to run
     # so cache the result
     from importlib import metadata
@@ -161,7 +168,7 @@ def package_distributions() -> dict[str, list[str]]:
     return metadata.packages_distributions()
 
 
-def import_name_to_distribution_name(packages: list):
+def import_name_to_distribution_name(packages: List[str]) -> Dict[str, str]:
     distribution_names = {}
     package_distribution_names = package_distributions()
 
@@ -179,13 +186,13 @@ def import_name_to_distribution_name(packages: list):
     return distribution_names
 
 
-def module_versions(full):
+def module_versions(full: bool) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     versions, paths = _module_versions(full)
     git_versions = _check_for_git(paths, full)
     return versions, git_versions
 
 
-def _name(obj):
+def _name(obj: Any) -> str:
     if hasattr(obj, "__name__"):
         if hasattr(obj, "__module__"):
             return f"{obj.__module__}.{obj.__name__}"
@@ -195,8 +202,7 @@ def _name(obj):
     return str(obj)
 
 
-def _paths(path_or_object):
-
+def _paths(path_or_object: Union[None, str, List[str], Tuple[str], Any]) -> List[Tuple[str, str]]:
     if path_or_object is None:
         _, paths = _module_versions(full=False)
         return paths
@@ -235,7 +241,7 @@ def _paths(path_or_object):
     return paths
 
 
-def git_check(*args) -> dict:
+def git_check(*args: Any) -> Dict[str, Any]:
     """Return the git information for the given arguments.
 
     Arguments can be:
@@ -278,7 +284,7 @@ def git_check(*args) -> dict:
     return result
 
 
-def platform_info():
+def platform_info() -> Dict[str, Any]:
     import platform
 
     r = {}
@@ -300,7 +306,7 @@ def platform_info():
     return r
 
 
-def gpu_info():
+def gpu_info() -> Union[str, List[Dict[str, Any]]]:
     import nvsmi
 
     if not nvsmi.is_nvidia_smi_on_path():
@@ -312,7 +318,7 @@ def gpu_info():
         return e.output.decode("utf-8").strip()
 
 
-def path_md5(path):
+def path_md5(path: str) -> str:
     import hashlib
 
     hash = hashlib.md5()
@@ -322,7 +328,7 @@ def path_md5(path):
     return hash.hexdigest()
 
 
-def assets_info(paths):
+def assets_info(paths: List[str]) -> Dict[str, Any]:
     result = {}
 
     for path in paths:
@@ -351,8 +357,8 @@ def assets_info(paths):
     return result
 
 
-def gather_provenance_info(assets=[], full=False) -> dict:
-    """Gather information about the current environment
+def gather_provenance_info(assets: List[str] = [], full: bool = False) -> Dict[str, Any]:
+    """Gather information about the current environment.
 
     Parameters
     ----------

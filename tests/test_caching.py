@@ -14,7 +14,15 @@ from anemoi.utils.caching import cached
 from anemoi.utils.caching import clean_cache
 
 
-def check(f, data):
+class Data(dict):
+    """Simple class to store data and count the number of calls to the function."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.n = 0
+
+
+def check(f: callable, data: Data) -> None:
     """Check that the function f returns the expected values from the data.
     The function f is called three times for each value in the data.
     The number of actual calls to the function is checked to make sure the cache is used when it should be.
@@ -34,14 +42,6 @@ def check(f, data):
         assert data.n == i + 1
 
 
-class Data(dict):
-    """Simple class to store data and count the number of calls to the function."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.n = 0
-
-
 global DATA
 
 #########################################
@@ -52,13 +52,13 @@ values_a = Data(a=1, b=2)
 
 
 @cached(collection="test", expires=0)
-def func_a(x):
+def func_a(x: str) -> int:
     global values_a
     values_a.n += 1
     return values_a[x]
 
 
-def test_cached_basic(*values, **kwargs):
+def test_cached_basic(*values: str, **kwargs: dict) -> None:
     clean_cache("test")
     check(func_a, values_a)
 
@@ -75,13 +75,13 @@ values_c = Data(
 
 
 @cached(collection="test", expires=0, encoding="npz")
-def func_c(x):
+def func_c(x: str) -> dict:
     global values_c
     values_c.n += 1
     return values_c[x]
 
 
-def test_cached_npz(*values, **kwargs):
+def test_cached_npz(*values: str, **kwargs: dict) -> None:
     clean_cache("test")
     check(func_c, values_c)
 
@@ -93,13 +93,13 @@ values_d = Data(a="4", b=5.0, c=dict(d=6), e=[7, 8, 9], f=(10, 11, 12))
 
 
 @cached(collection="test", expires=0)
-def func_d(x):
+def func_d(x: str) -> any:
     global values_d
     values_d.n += 1
     return values_d[x]
 
 
-def test_cached_various_types(*values, **kwargs):
+def test_cached_various_types(*values: str, **kwargs: dict) -> None:
     clean_cache("test")
     check(func_d, values_d)
 

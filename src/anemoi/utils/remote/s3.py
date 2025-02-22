@@ -19,13 +19,13 @@ to use a different S3 compatible service::
 Alternatively, the `endpoint_url`, and keys can be set in one of
 the `~/.config/anemoi/settings.toml`
 or `~/.config/anemoi/settings-secrets.toml` files.
-
 """
 
 import logging
 import os
 import threading
 from copy import deepcopy
+from typing import Any
 from typing import Iterable
 
 import tqdm
@@ -43,7 +43,7 @@ LOGGER = logging.getLogger(__name__)
 thread_local = threading.local()
 
 
-def s3_client(bucket, region=None):
+def s3_client(bucket: str, region: str = None) -> Any:
     import boto3
     from botocore import UNSIGNED
     from botocore.client import Config
@@ -107,17 +107,19 @@ def s3_client(bucket, region=None):
 
 class S3Upload(BaseUpload):
 
-    def get_temporary_target(self, target, pattern):
+    def get_temporary_target(self, target: str, pattern: str) -> str:
         return target
 
-    def rename_target(self, target, temporary_target):
+    def rename_target(self, target: str, temporary_target: str) -> None:
         pass
 
-    def delete_target(self, target):
+    def delete_target(self, target: str) -> None:
         pass
         # delete(target)
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
 
         from botocore.exceptions import ClientError
 
@@ -162,7 +164,7 @@ class S3Upload(BaseUpload):
 
 class S3Download(BaseDownload):
 
-    def copy(self, source, target, **kwargs):
+    def copy(self, source: str, target: str, **kwargs) -> None:
         assert source.startswith("s3://")
 
         if source.endswith("/"):
@@ -170,23 +172,25 @@ class S3Download(BaseDownload):
         else:
             self.transfer_file(source=source, target=target, **kwargs)
 
-    def list_source(self, source):
+    def list_source(self, source: str) -> Iterable:
         yield from _list_objects(source)
 
-    def source_path(self, s3_object, source):
+    def source_path(self, s3_object: dict, source: str) -> str:
         _, _, bucket, _ = source.split("/", 3)
         return f"s3://{bucket}/{s3_object['Key']}"
 
-    def target_path(self, s3_object, source, target):
+    def target_path(self, s3_object: dict, source: str, target: str) -> str:
         _, _, _, folder = source.split("/", 3)
         local_path = os.path.join(target, os.path.relpath(s3_object["Key"], folder))
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         return local_path
 
-    def source_size(self, s3_object):
+    def source_size(self, s3_object: dict) -> int:
         return s3_object["Size"]
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
         # from boto3.s3.transfer import TransferConfig
 
         _, _, bucket, key = source.split("/", 3)
@@ -234,7 +238,7 @@ class S3Download(BaseDownload):
         return size
 
 
-def _list_objects(target, batch=False):
+def _list_objects(target: str, batch: bool = False) -> Iterable:
     _, _, bucket, prefix = target.split("/", 3)
     s3 = s3_client(bucket)
 
@@ -249,7 +253,7 @@ def _list_objects(target, batch=False):
                 yield from objects
 
 
-def _delete_folder(target) -> None:
+def _delete_folder(target: str) -> None:
     _, _, bucket, _ = target.split("/", 3)
     s3 = s3_client(bucket)
 
@@ -261,7 +265,7 @@ def _delete_folder(target) -> None:
         LOGGER.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
-def _delete_file(target) -> None:
+def _delete_file(target: str) -> None:
     from botocore.exceptions import ClientError
 
     _, _, bucket, key = target.split("/", 3)
@@ -284,7 +288,7 @@ def _delete_file(target) -> None:
     LOGGER.info(f"{target} is deleted")
 
 
-def delete(target) -> None:
+def delete(target: str) -> None:
     """Delete a file or a folder from S3.
 
     Parameters
@@ -302,7 +306,7 @@ def delete(target) -> None:
         _delete_file(target)
 
 
-def list_folder(folder) -> Iterable:
+def list_folder(folder: str) -> Iterable:
     """List the sub folders in a folder on S3.
 
     Parameters
@@ -330,7 +334,7 @@ def list_folder(folder) -> Iterable:
             yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes")]
 
 
-def object_info(target) -> dict:
+def object_info(target: str) -> dict:
     """Get information about an object on S3.
 
     Parameters
@@ -355,7 +359,7 @@ def object_info(target) -> dict:
         raise
 
 
-def object_acl(target) -> dict:
+def object_acl(target: str) -> dict:
     """Get information about an object's ACL on S3.
 
     Parameters
@@ -375,14 +379,14 @@ def object_acl(target) -> dict:
     return s3.get_object_acl(Bucket=bucket, Key=key)
 
 
-def download(source, target, *args, **kwargs):
+def download(source: str, target: str, *args, **kwargs) -> None:
     from . import transfer
 
     assert source.startswith("s3://"), f"source {source} should start with 's3://'"
     return transfer(source, target, *args, **kwargs)
 
 
-def upload(source, target, *args, **kwargs):
+def upload(source: str, target: str, *args, **kwargs) -> None:
     from . import transfer
 
     assert target.startswith("s3://"), f"target {target} should start with 's3://'"

@@ -17,7 +17,7 @@ from . import BaseUpload
 LOGGER = logging.getLogger(__name__)
 
 
-def call_process(*args):
+def call_process(*args: str) -> str:
     proc = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
@@ -34,7 +34,7 @@ def call_process(*args):
 
 class SshBaseUpload(BaseUpload):
 
-    def _parse_target(self, target):
+    def _parse_target(self, target: str) -> tuple[str, str]:
         assert target.startswith("ssh://"), target
 
         target = target[6:]
@@ -49,20 +49,20 @@ class SshBaseUpload(BaseUpload):
 
         return hostname, path
 
-    def get_temporary_target(self, target, pattern):
+    def get_temporary_target(self, target: str, pattern: str) -> str:
         hostname, path = self._parse_target(target)
         if pattern is not None:
             dirname, basename = os.path.split(path)
             path = pattern.format(dirname=dirname, basename=basename)
         return f"ssh://{hostname}:{path}"
 
-    def rename_target(self, target, new_target):
+    def rename_target(self, target: str, new_target: str) -> None:
         hostname, path = self._parse_target(target)
         hostname, new_path = self._parse_target(new_target)
         call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(new_path)))
         call_process("ssh", hostname, "mv", shlex.quote(path), shlex.quote(new_path))
 
-    def delete_target(self, target):
+    def delete_target(self, target: str) -> None:
         pass
         # hostname, path = self._parse_target(target)
         # LOGGER.info(f"Deleting {target}")
@@ -71,7 +71,9 @@ class SshBaseUpload(BaseUpload):
 
 class RsyncUpload(SshBaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
         hostname, path = self._parse_target(target)
 
         size = os.path.getsize(source)
@@ -95,7 +97,9 @@ class RsyncUpload(SshBaseUpload):
 
 class ScpUpload(SshBaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
         hostname, path = self._parse_target(target)
 
         size = os.path.getsize(source)
@@ -128,7 +132,7 @@ class ScpUpload(SshBaseUpload):
         return size
 
 
-def upload(source, target, **kwargs) -> None:
+def upload(source: str, target: str, **kwargs) -> None:
     uploader = RsyncUpload()
 
     if os.path.isdir(source):

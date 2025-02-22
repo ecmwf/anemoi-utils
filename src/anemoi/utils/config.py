@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import threading
+from typing import Any
 
 import yaml
 
@@ -43,7 +44,6 @@ class DotDict(dict):
     The DotDict class has the same constructor as the dict class.
 
     >>> d = DotDict(a=1, b=2)
-
     """
 
     def __init__(self, *args, **kwargs):
@@ -60,7 +60,7 @@ class DotDict(dict):
                 self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
 
     @classmethod
-    def from_file(cls, path: str):
+    def from_file(cls, path: str) -> DotDict:
         _, ext = os.path.splitext(path)
         if ext == ".yaml" or ext == ".yml":
             return cls.from_yaml_file(path)
@@ -72,32 +72,32 @@ class DotDict(dict):
             raise ValueError(f"Unknown file extension {ext}")
 
     @classmethod
-    def from_yaml_file(cls, path: str):
+    def from_yaml_file(cls, path: str) -> DotDict:
         with open(path, "r") as file:
             data = yaml.safe_load(file)
 
         return cls(data)
 
     @classmethod
-    def from_json_file(cls, path: str):
+    def from_json_file(cls, path: str) -> DotDict:
         with open(path, "r") as file:
             data = json.load(file)
 
         return cls(data)
 
     @classmethod
-    def from_toml_file(cls, path: str):
+    def from_toml_file(cls, path: str) -> DotDict:
         with open(path, "r") as file:
             data = tomllib.load(file)
         return cls(data)
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         try:
             return self[attr]
         except KeyError:
             raise AttributeError(attr)
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr: str, value: Any) -> None:
         if isinstance(value, dict):
             value = DotDict(value)
         self[attr] = value
@@ -106,7 +106,7 @@ class DotDict(dict):
         return f"DotDict({super().__repr__()})"
 
 
-def is_omegaconf_dict(value) -> bool:
+def is_omegaconf_dict(value: Any) -> bool:
     try:
         from omegaconf import DictConfig
 
@@ -115,7 +115,7 @@ def is_omegaconf_dict(value) -> bool:
         return False
 
 
-def is_omegaconf_list(value) -> bool:
+def is_omegaconf_list(value: Any) -> bool:
     try:
         from omegaconf import ListConfig
 
@@ -130,7 +130,7 @@ CONFIG_LOCK = threading.RLock()
 QUIET = False
 
 
-def _find(config, what, result=None):
+def _find(config: dict | list, what: str, result: list = None) -> list:
     if result is None:
         result = []
 
@@ -149,7 +149,7 @@ def _find(config, what, result=None):
     return result
 
 
-def _merge_dicts(a, b):
+def _merge_dicts(a: dict, b: dict) -> None:
     for k, v in b.items():
         if k in a and isinstance(a[k], dict) and isinstance(v, dict):
             _merge_dicts(a[k], v)
@@ -157,7 +157,7 @@ def _merge_dicts(a, b):
             a[k] = v
 
 
-def _set_defaults(a, b):
+def _set_defaults(a: dict, b: dict) -> None:
     for k, v in b.items():
         if k in a and isinstance(a[k], dict) and isinstance(v, dict):
             _set_defaults(a[k], v)
@@ -165,7 +165,7 @@ def _set_defaults(a, b):
             a.setdefault(k, v)
 
 
-def config_path(name="settings.toml"):
+def config_path(name: str = "settings.toml") -> str:
     global QUIET
 
     if name.startswith("/") or name.startswith("."):
@@ -197,7 +197,7 @@ def config_path(name="settings.toml"):
     return full
 
 
-def load_any_dict_format(path) -> dict:
+def load_any_dict_format(path: str) -> dict:
     """Load a configuration file in any supported format: JSON, YAML and TOML.
 
     Parameters
@@ -247,8 +247,7 @@ def load_any_dict_format(path) -> dict:
     return open(path).read()
 
 
-def _load_config(name="settings.toml", secrets=None, defaults=None):
-
+def _load_config(name: str = "settings.toml", secrets: str | list[str] = None, defaults: str | dict = None) -> DotDict:
     key = json.dumps((name, secrets, defaults), sort_keys=True, default=str)
     if key in CONFIG:
         return CONFIG[key]
@@ -287,7 +286,7 @@ def _load_config(name="settings.toml", secrets=None, defaults=None):
     return CONFIG[key]
 
 
-def _save_config(name, data) -> None:
+def _save_config(name: str, data: Any) -> None:
     CONFIG.pop(name, None)
 
     conf = config_path(name)
@@ -309,7 +308,7 @@ def _save_config(name, data) -> None:
         f.write(data)
 
 
-def save_config(name, data) -> None:
+def save_config(name: str, data: Any) -> None:
     """Save a configuration file.
 
     Parameters
@@ -319,13 +318,14 @@ def save_config(name, data) -> None:
 
     data : Any
         The data to save.
-
     """
     with CONFIG_LOCK:
         _save_config(name, data)
 
 
-def load_config(name="settings.toml", secrets=None, defaults=None) -> DotDict | str:
+def load_config(
+    name: str = "settings.toml", secrets: str | list[str] = None, defaults: str | dict = None
+) -> DotDict | str:
     """Read a configuration file.
 
     Parameters
@@ -347,8 +347,7 @@ def load_config(name="settings.toml", secrets=None, defaults=None) -> DotDict | 
         return _load_config(name, secrets, defaults)
 
 
-def load_raw_config(name, default=None) -> DotDict | str:
-
+def load_raw_config(name: str, default: Any = None) -> DotDict | str:
     path = config_path(name)
     if os.path.exists(path):
         return load_any_dict_format(path)
@@ -356,7 +355,7 @@ def load_raw_config(name, default=None) -> DotDict | str:
     return default
 
 
-def check_config_mode(name="settings.toml", secrets_name=None, secrets=None) -> None:
+def check_config_mode(name: str = "settings.toml", secrets_name: str = None, secrets: list[str] = None) -> None:
     """Check that a configuration file is secure.
 
     Parameters
@@ -393,7 +392,7 @@ def check_config_mode(name="settings.toml", secrets_name=None, secrets=None) -> 
         CHECKED[name] = True
 
 
-def find(metadata, what, result=None, *, select: callable = None):
+def find(metadata: dict | list, what: str, result: list = None, *, select: callable = None) -> list:
     if result is None:
         result = []
 
@@ -413,7 +412,7 @@ def find(metadata, what, result=None, *, select: callable = None):
     return result
 
 
-def merge_configs(*configs):
+def merge_configs(*configs: dict) -> dict:
     result = {}
     for config in configs:
         _merge_dicts(result, config)

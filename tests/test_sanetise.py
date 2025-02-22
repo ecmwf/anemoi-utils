@@ -11,7 +11,7 @@
 from anemoi.utils.sanitise import sanitise
 
 
-def test_sanitise_urls():
+def test_sanitise_urls() -> None:
     assert sanitise("http://johndoe:password@host:port/path") == "http://user:***@host:port/path"
 
     assert sanitise("http://www.example.com/path?pass=secret") == "http://www.example.com/path?pass=hidden"
@@ -47,7 +47,7 @@ def test_sanitise_urls():
     assert sanitise("http://www.example.com/path;login=secret") == "http://www.example.com/path;login=hidden"
 
 
-def test_sanitise_paths():
+def test_sanitise_paths() -> None:
     # We want to keep earthkit-data's url and path pattern
 
     assert sanitise("/home/johndoe/.ssh/id_rsa") == "/.../id_rsa"

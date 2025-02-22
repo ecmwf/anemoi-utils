@@ -11,6 +11,6 @@
 from anemoi.utils import provenance
 
 
-def test_gather():
-    """Test success of gather_provenance_info"""
+def test_gather() -> None:
+    """Test success of gather_provenance_info."""
     provenance.gather_provenance_info()

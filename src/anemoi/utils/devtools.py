@@ -8,28 +8,36 @@
 # nor does it submit to any jurisdiction.
 
 
+from typing import Any
+
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
 
-"""FOR DEVELOPMENT PURPOSES ONLY
+"""FOR DEVELOPMENT PURPOSES ONLY.
 
 This module contains
-
 """
 
 # TODO: use earthkit-plots
 
 
-def fix(lons):
+def fix(lons: np.ndarray) -> np.ndarray:
     return np.where(lons > 180, lons - 360, lons)
 
 
 def plot_values(
-    values, latitudes, longitudes, title=None, missing_value=None, min_value=None, max_value=None, **kwargs
-):
+    values: np.ndarray,
+    latitudes: np.ndarray,
+    longitudes: np.ndarray,
+    title: str = None,
+    missing_value: float = None,
+    min_value: float = None,
+    max_value: float = None,
+    **kwargs: dict,
+) -> plt.Axes:
 
     _, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
     ax.coastlines()
@@ -77,7 +85,7 @@ def plot_values(
     return ax
 
 
-def plot_field(field, title=None, **kwargs):
+def plot_field(field: Any, title: str = None, **kwargs: dict) -> plt.Axes:
     values = field.to_numpy(flatten=True)
     latitudes, longitudes = field.grid_points()
     return plot_values(values, latitudes, longitudes, title=title, **kwargs)

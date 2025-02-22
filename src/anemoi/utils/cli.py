@@ -14,6 +14,7 @@ import logging
 import os
 import sys
 import traceback
+from typing import Callable
 
 try:
     import argcomplete
@@ -26,11 +27,11 @@ LOG = logging.getLogger(__name__)
 class Command:
     accept_unknown_args = False
 
-    def run(self, args):
+    def run(self, args: argparse.Namespace) -> None:
         raise NotImplementedError(f"Command not implemented: {args.command}")
 
 
-def make_parser(description, commands):
+def make_parser(description: str, commands: dict[str, Command]) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -60,20 +61,20 @@ def make_parser(description, commands):
 class Failed(Command):
     """Command not available."""
 
-    def __init__(self, name, error):
+    def __init__(self, name: str, error: ImportError):
         self.name = name
         self.error = error
         traceback.print_tb(error.__traceback__)
 
-    def add_arguments(self, command_parser):
+    def add_arguments(self, command_parser: argparse.ArgumentParser) -> None:
         command_parser.add_argument("x", nargs=argparse.REMAINDER)
 
-    def run(self, args):
+    def run(self, args: argparse.Namespace) -> None:
         print(f"Command '{self.name}' not available: {self.error}")
         sys.exit(1)
 
 
-def register_commands(here, package, select, fail=None):
+def register_commands(here: str, package: str, select: Callable, fail: Callable = None) -> dict[str, Command]:
     result = {}
     not_available = {}
 
@@ -120,7 +121,7 @@ def register_commands(here, package, select, fail=None):
     return result
 
 
-def cli_main(version, description, commands):
+def cli_main(version: str, description: str, commands: dict[str, Command]) -> None:
     parser = make_parser(description, commands)
     args, unknown = parser.parse_known_args()
     if argcomplete:

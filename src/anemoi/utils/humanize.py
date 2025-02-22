@@ -8,19 +8,26 @@
 # nor does it submit to any jurisdiction.
 
 
-"""Generate human readable strings"""
+"""Generate human readable strings."""
 
 import datetime
 import json
 import re
 import warnings
 from collections import defaultdict
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from anemoi.utils.dates import as_datetime
 
 
 def bytes_to_human(n: float) -> str:
-    """Convert a number of bytes to a human readable string
+    """Convert a number of bytes to a human readable string.
 
     >>> bytes(4096)
     '4 KiB'
@@ -68,7 +75,7 @@ def bytes(n: float) -> str:
     return bytes_to_human(n)
 
 
-def base2_to_human(n) -> str:
+def base2_to_human(n: float) -> str:
 
     u = ["", "K", "M", "G", "T", " P", "E", "Z", "Y"]
     i = 0
@@ -78,7 +85,7 @@ def base2_to_human(n) -> str:
     return "%g%s" % (int(n * 10 + 0.5) / 10.0, u[i])
 
 
-def base2(n) -> str:
+def base2(n: float) -> str:
 
     warnings.warn(
         "Function base2 is deprecated and will be removed in a future version. Use base2_to_human instead.",
@@ -97,15 +104,15 @@ PERIODS = (
 )
 
 
-def _plural(count):
+def _plural(count: int) -> str:
     if count != 1:
         return "s"
     else:
         return ""
 
 
-def seconds_to_human(seconds: float) -> str:
-    """Convert a number of seconds to a human readable string
+def seconds_to_human(seconds: Union[float, datetime.timedelta]) -> str:
+    """Convert a number of seconds to a human readable string.
 
     >>> seconds_to_human(4000)
     '1 hour 6 minutes 40 seconds'
@@ -119,7 +126,6 @@ def seconds_to_human(seconds: float) -> str:
     -------
     str
         A human readable string
-
     """
     if isinstance(seconds, datetime.timedelta):
         seconds = seconds.total_seconds()
@@ -172,7 +178,7 @@ def seconds(seconds: float) -> str:
     return seconds_to_human(seconds)
 
 
-def plural(value, what):
+def plural(value: int, what: str) -> str:
     return f"{value:,} {what}{_plural(value)}"
 
 
@@ -202,7 +208,7 @@ MONTH = [
 ]
 
 
-def __(n):
+def __(n: int) -> str:
     if n in (11, 12, 13):
         return "th"
 
@@ -218,8 +224,10 @@ def __(n):
     return "th"
 
 
-def when(then, now=None, short=True, use_utc=False) -> str:
-    """Generate a human readable string for a date, relative to now
+def when(
+    then: datetime.datetime, now: Optional[datetime.datetime] = None, short: bool = True, use_utc: bool = False
+) -> str:
+    """Generate a human readable string for a date, relative to now.
 
     >>> when(datetime.datetime.now() - datetime.timedelta(hours=2))
     '2 hours ago'
@@ -251,7 +259,6 @@ def when(then, now=None, short=True, use_utc=False) -> str:
     -------
     str
         A human readable string
-
     """
     last = "last"
 
@@ -344,7 +351,7 @@ def when(then, now=None, short=True, use_utc=False) -> str:
     )
 
 
-def string_distance(s, t):
+def string_distance(s: str, t: str) -> int:
     import numpy as np
 
     m = len(s)
@@ -369,8 +376,8 @@ def string_distance(s, t):
     return d[m, n]
 
 
-def did_you_mean(word, vocabulary) -> str:
-    """Pick the closest word in a vocabulary
+def did_you_mean(word: str, vocabulary: List[str]) -> str:
+    """Pick the closest word in a vocabulary.
 
     >>> did_you_mean("aple", ["banana", "lemon", "apple", "orange"])
     'apple'
@@ -392,14 +399,14 @@ def did_you_mean(word, vocabulary) -> str:
     return best
 
 
-def dict_to_human(query):
+def dict_to_human(query: Dict[str, Any]) -> str:
     lst = [f"{k}={v}" for k, v in sorted(query.items())]
 
     return list_to_human(lst)
 
 
-def list_to_human(lst, conjunction="and") -> str:
-    """Convert a list of strings to a human readable string
+def list_to_human(lst: List[str], conjunction: str = "and") -> str:
+    """Convert a list of strings to a human readable string.
 
     >>> list_to_human(["banana", "lemon", "apple", "orange"])
     'banana, lemon, apple and orange'
@@ -425,7 +432,7 @@ def list_to_human(lst, conjunction="and") -> str:
     return f" {conjunction} ".join(lst)
 
 
-def human_to_number(value, name, units, none_ok):
+def human_to_number(value: Union[str, int], name: str, units: Dict[str, int], none_ok: bool) -> Optional[int]:
     if value is None and none_ok:
         return None
 
@@ -444,7 +451,9 @@ def human_to_number(value, name, units, none_ok):
     return value * units[unit]
 
 
-def as_number(value, name=None, units=None, none_ok=False):
+def as_number(
+    value: Union[str, int], name: Optional[str] = None, units: Optional[Dict[str, int]] = None, none_ok: bool = False
+) -> Optional[int]:
     warnings.warn(
         "Function as_number is deprecated and will be removed in a future version. Use human_to_number instead.",
         category=DeprecationWarning,
@@ -453,12 +462,12 @@ def as_number(value, name=None, units=None, none_ok=False):
     return human_to_number(value, name, units, none_ok)
 
 
-def human_seconds(value, name=None, none_ok=False):
+def human_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
     units = dict(s=1, m=60, h=3600, d=86400, w=86400 * 7)
     return human_to_number(value, name, units, none_ok)
 
 
-def as_seconds(value, name=None, none_ok=False):
+def as_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
     warnings.warn(
         "Function as_seconds is deprecated and will be removed in a future version. Use human_seconds instead.",
         category=DeprecationWarning,
@@ -467,12 +476,12 @@ def as_seconds(value, name=None, none_ok=False):
     return human_seconds(value, name, none_ok)
 
 
-def human_to_percent(value, name=None, none_ok=False):
+def human_to_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
     units = {"%": 1}
     return human_to_number(value, name, units, none_ok)
 
 
-def as_percent(value, name=None, none_ok=False):
+def as_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
     warnings.warn(
         "Function as_percent is deprecated and will be removed in a future version. Use human_to_percent instead.",
         category=DeprecationWarning,
@@ -481,7 +490,7 @@ def as_percent(value, name=None, none_ok=False):
     return human_to_percent(value, name, none_ok)
 
 
-def human_to_bytes(value, name=None, none_ok=False):
+def human_to_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
     units = {}
     n = 1
     for u in "KMGTP":
@@ -492,7 +501,7 @@ def human_to_bytes(value, name=None, none_ok=False):
     return human_to_number(value, name, units, none_ok)
 
 
-def as_bytes(value, name=None, none_ok=False):
+def as_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
     warnings.warn(
         "Function as_bytes is deprecated and will be removed in a future version. Use human_to_bytes instead.",
         category=DeprecationWarning,
@@ -501,7 +510,7 @@ def as_bytes(value, name=None, none_ok=False):
     return human_to_bytes(value, name, none_ok)
 
 
-def human_to_timedelta(value, name=None, none_ok=False):
+def human_to_timedelta(value: str, name: Optional[str] = None, none_ok: bool = False) -> datetime.timedelta:
     if value is None and none_ok:
         return None
 
@@ -537,7 +546,7 @@ def human_to_timedelta(value, name=None, none_ok=False):
     )
 
 
-def as_timedelta(value, name=None, none_ok=False):
+def as_timedelta(value: str, name: Optional[str] = None, none_ok: bool = False) -> datetime.timedelta:
     warnings.warn(
         "Function as_timedelta is deprecated and will be removed in a future version. Use human_to_timedelta instead.",
         category=DeprecationWarning,
@@ -546,14 +555,14 @@ def as_timedelta(value, name=None, none_ok=False):
     return human_to_timedelta(value, name, none_ok)
 
 
-def rounded_datetime(d):
+def rounded_datetime(d: datetime.datetime) -> datetime.datetime:
     if float(d.microsecond) / 1000.0 / 1000.0 >= 0.5:
         d = d + datetime.timedelta(seconds=1)
     d = d.replace(microsecond=0)
     return d
 
 
-def json_pretty_dump(obj, max_line_length=120, default=str) -> str:
+def json_pretty_dump(obj: Any, max_line_length: int = 120, default: Callable = str) -> str:
     """Custom JSON dump function that keeps dicts and lists on one line if they are short enough.
 
     Parameters
@@ -571,7 +580,7 @@ def json_pretty_dump(obj, max_line_length=120, default=str) -> str:
         JSON string.
     """
 
-    def _format_json(obj, indent_level=0):
+    def _format_json(obj: Any, indent_level: int = 0) -> str:
         """Helper function to format JSON objects with custom pretty-print rules.
 
         Parameters
@@ -609,7 +618,7 @@ def json_pretty_dump(obj, max_line_length=120, default=str) -> str:
     return _format_json(obj)
 
 
-def shorten_list(lst, max_length=5) -> list:
+def shorten_list(lst: Union[List[Any], Tuple[Any]], max_length: int = 5) -> Union[List[Any], Tuple[Any]]:
     """Shorten a list to a maximum length.
 
     Parameters
@@ -634,7 +643,9 @@ def shorten_list(lst, max_length=5) -> list:
         return result
 
 
-def _compress_dates(dates):
+def _compress_dates(
+    dates: List[datetime.datetime],
+) -> Union[List[datetime.datetime], Tuple[datetime.datetime, datetime.datetime, datetime.timedelta]]:
     dates = sorted(dates)
     if len(dates) < 3:
         yield dates
@@ -654,7 +665,7 @@ def _compress_dates(dates):
         yield from _compress_dates([curr] + dates)
 
 
-def compress_dates(dates) -> str:
+def compress_dates(dates: List[Union[datetime.datetime, str]]) -> str:
     """Compress a list of dates into a human-readable format.
 
     Parameters
@@ -680,7 +691,7 @@ def compress_dates(dates) -> str:
     return result
 
 
-def print_dates(dates) -> None:
+def print_dates(dates: List[Union[datetime.datetime, str]]) -> None:
     """Print a list of dates in a human-readable format.
 
     Parameters
@@ -691,7 +702,7 @@ def print_dates(dates) -> None:
     print(compress_dates(dates))
 
 
-def make_list_int(value) -> list:
+def make_list_int(value: Union[str, List[int], Tuple[int], int]) -> List[int]:
     """Convert a string like "1/2/3" or "1/to/3" or "1/to/10/by/2" to a list of integers.
 
     Parameters

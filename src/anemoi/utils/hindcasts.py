@@ -9,13 +9,16 @@
 
 
 import datetime
+from typing import Iterator
+from typing import List
+from typing import Tuple
 
 
 class HindcastDatesTimes:
     """The HindcastDatesTimes class is an iterator that generates datetime objects within a given range."""
 
-    def __init__(self, reference_dates, years=20):
-        """_summary_
+    def __init__(self, reference_dates: List[datetime.datetime], years: int = 20):
+        """_summary_.
 
         Parameters
         ----------
@@ -31,7 +34,7 @@ class HindcastDatesTimes:
         assert years > 0, f"years must be greater than 0, got {years}"
         self.years = years
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[datetime.datetime, datetime.datetime]]:
         for reference_date in self.reference_dates:
             year, month, day = reference_date.year, reference_date.month, reference_date.day
             if (month, day) == (2, 29):

@@ -19,17 +19,17 @@ thread_local = threading.local()
 LOGGER = logging.getLogger(__name__)
 
 
-def set_logging_name(name):
+def set_logging_name(name: str) -> None:
     thread_local.logging_name = name
 
 
 class ThreadCustomFormatter(logging.Formatter):
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         record.logging_name = thread_local.logging_name
         return super().format(record)
 
 
-def enable_logging_name(name="main"):
+def enable_logging_name(name: str = "main") -> None:
     thread_local.logging_name = name
 
     formatter = ThreadCustomFormatter("%(asctime)s - %(logging_name)s - %(levelname)s - %(message)s")

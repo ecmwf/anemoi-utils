@@ -6,9 +6,12 @@
 # nor does it submit to any jurisdiction.
 
 import sys
+from typing import Any
+from typing import Dict
+from typing import TextIO
 
 
-def print_request(verb, request, file=sys.stdout):
+def print_request(verb: str, request: Dict[str, Any], file: TextIO = sys.stdout) -> None:
     r = [verb]
     for k, v in request.items():
         if not isinstance(v, (list, tuple, set)):

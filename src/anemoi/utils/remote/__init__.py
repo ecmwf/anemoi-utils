@@ -10,6 +10,9 @@ import logging
 import os
 import shutil
 from abc import abstractmethod
+from typing import Any
+from typing import Dict
+from typing import Iterable
 
 import tqdm
 
@@ -18,13 +21,23 @@ from ..humanize import bytes_to_human
 LOGGER = logging.getLogger(__name__)
 
 
-def _ignore(number_of_files, total_size, total_transferred, transfering):
+def _ignore(number_of_files: int, total_size: int, total_transferred: int, transfering: bool) -> None:
     pass
 
 
 class Loader:
 
-    def transfer_folder(self, *, source, target, overwrite=False, resume=False, verbosity=1, threads=1, progress=None):
+    def transfer_folder(
+        self,
+        *,
+        source: str,
+        target: str,
+        overwrite: bool = False,
+        resume: bool = False,
+        verbosity: int = 1,
+        threads: int = 1,
+        progress: callable = None,
+    ) -> None:
         assert verbosity == 1, verbosity
 
         if progress is None:
@@ -93,7 +106,17 @@ class Loader:
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
 
-    def transfer_file(self, source, target, overwrite, resume, verbosity, threads=1, progress=None, config=None):
+    def transfer_file(
+        self,
+        source: str,
+        target: str,
+        overwrite: bool,
+        resume: bool,
+        verbosity: int,
+        threads: int = 1,
+        progress: callable = None,
+        config: dict = None,
+    ) -> int:
         try:
             return self._transfer_file(source, target, overwrite, resume, verbosity, threads=threads, config=config)
         except Exception as e:
@@ -102,31 +125,31 @@ class Loader:
             raise
 
     @abstractmethod
-    def list_source(self, source):
+    def list_source(self, source: str) -> Iterable:
         raise NotImplementedError
 
     @abstractmethod
-    def source_path(self, local_path, source):
+    def source_path(self, local_path: str, source: str) -> str:
         raise NotImplementedError
 
     @abstractmethod
-    def target_path(self, source_path, source, target):
+    def target_path(self, source_path: str, source: str, target: str) -> str:
         raise NotImplementedError
 
     @abstractmethod
-    def source_size(self, local_path):
+    def source_size(self, local_path: str) -> int:
         raise NotImplementedError
 
     @abstractmethod
-    def copy(self, source, target, **kwargs):
+    def copy(self, source: str, target: str, **kwargs) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def get_temporary_target(self, target, pattern):
+    def get_temporary_target(self, target: str, pattern: str) -> str:
         raise NotImplementedError
 
     @abstractmethod
-    def rename_target(self, target, temporary_target):
+    def rename_target(self, target: str, temporary_target: str) -> None:
         raise NotImplementedError
 
 
@@ -134,19 +157,19 @@ class BaseDownload(Loader):
     action = "Downloading"
 
     @abstractmethod
-    def copy(self, source, target, **kwargs):
+    def copy(self, source: str, target: str, **kwargs) -> None:
         raise NotImplementedError
 
-    def get_temporary_target(self, target, pattern):
+    def get_temporary_target(self, target: str, pattern: str) -> str:
         if pattern is None:
             return target
         dirname, basename = os.path.split(target)
         return pattern.format(dirname=dirname, basename=basename)
 
-    def rename_target(self, target, new_target):
+    def rename_target(self, target: str, new_target: str) -> None:
         os.rename(target, new_target)
 
-    def delete_target(self, target):
+    def delete_target(self, target: str) -> None:
         if os.path.exists(target):
             shutil.rmtree(target)
 
@@ -154,26 +177,26 @@ class BaseDownload(Loader):
 class BaseUpload(Loader):
     action = "Uploading"
 
-    def copy(self, source, target, **kwargs):
+    def copy(self, source: str, target: str, **kwargs) -> None:
         if os.path.isdir(source):
             self.transfer_folder(source=source, target=target, **kwargs)
         else:
             self.transfer_file(source=source, target=target, **kwargs)
 
-    def list_source(self, source):
+    def list_source(self, source: str) -> Iterable:
         for root, _, files in os.walk(source):
             for file in files:
                 yield os.path.join(root, file)
 
-    def source_path(self, local_path, source):
+    def source_path(self, local_path: str, source: str) -> str:
         return local_path
 
-    def target_path(self, source_path, source, target):
+    def target_path(self, source_path: str, source: str, target: str) -> str:
         relative_path = os.path.relpath(source_path, source)
         path = os.path.join(target, relative_path)
         return path
 
-    def source_size(self, local_path):
+    def source_size(self, local_path: str) -> int:
         return os.path.getsize(local_path)
 
 
@@ -188,21 +211,21 @@ class Transfer:
 
     def __init__(
         self,
-        source,
-        target,
-        overwrite=False,
-        resume=False,
-        verbosity=1,
-        threads=1,
-        progress=None,
-        temporary_target=False,
+        source: str,
+        target: str,
+        overwrite: bool = False,
+        resume: bool = False,
+        verbosity: int = 1,
+        threads: int = 1,
+        progress: callable = None,
+        temporary_target: bool = False,
     ):
         if target == ".":
             target = os.path.basename(source)
             if not target:
                 target = os.path.basename(os.path.dirname(source))
 
-        temporary_target = {
+        temporary_target: Dict[Any, Any] = {
             False: None,
             True: "{dirname}-downloading/{basename}",
             "-tmp/*": "{dirname}-tmp/{basename}",
@@ -223,7 +246,7 @@ class Transfer:
         cls = _find_transfer_class(self.source, self.target)
         self.loader = cls()
 
-    def run(self):
+    def run(self) -> "Transfer":
 
         target = self.loader.get_temporary_target(self.target, self.temporary_target)
         if target != self.target:
@@ -256,16 +279,16 @@ class Transfer:
 
         return self
 
-    def rename_target(self, target, new_target):
+    def rename_target(self, target: str, new_target: str) -> None:
         if target != new_target:
             LOGGER.info(f"Renaming temporary target {target} into {self.target}")
             return self.loader.rename_target(target, new_target)
 
-    def delete_target(self, target):
+    def delete_target(self, target: str) -> None:
         return self.loader.delete_target(target)
 
 
-def _find_transfer_class(source, target):
+def _find_transfer_class(source: str, target: str) -> type:
     from_ssh = source.startswith("ssh://")
     into_ssh = target.startswith("ssh://")
 
@@ -300,7 +323,7 @@ def _find_transfer_class(source, target):
 # this is the public API
 def transfer(*args, **kwargs) -> Loader:
     """Parameters
-    ----------
+    -------------
     source : str
         A path to a local file or folder or a URL to a file or a folder on S3.
         The url should start with 's3://'.
@@ -316,7 +339,7 @@ def transfer(*args, **kwargs) -> Loader:
         By default False
     verbosity : int, optional
         The level of verbosity, by default 1
-    progress: callable, optional
+    progress : callable, optional
         A callable that will be called with the number of files, the total size of the files, the total size
         transferred and a boolean indicating if the transfer has started. By default None
     threads : int, optional
@@ -325,7 +348,7 @@ def transfer(*args, **kwargs) -> Loader:
         Experimental feature
         If True and if the target location supports it, the data will be uploaded to a temporary location
         then renamed to the final location. Supported by SSH and local targets, not supported by S3.
-        By default False
+        By default False.
     """
     copier = Transfer(*args, **kwargs)
     copier.run()

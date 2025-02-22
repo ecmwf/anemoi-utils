@@ -16,13 +16,13 @@ import yaml
 from anemoi.utils.dates import datetimes_factory
 
 
-def _(txt):
+def _(txt: str) -> datetimes_factory:
     txt = dedent(txt)
     config = yaml.safe_load(txt)
     return datetimes_factory(config)
 
 
-def test_date_1():
+def test_date_1() -> None:
     d = _(
         """
           - 2023-01-01
@@ -33,7 +33,7 @@ def test_date_1():
     assert len(list(d)) == 3
 
 
-def test_date_2():
+def test_date_2() -> None:
     d = _(
         """
         start: 2023-01-01
@@ -45,7 +45,7 @@ def test_date_2():
     assert len(list(d)) == 4
 
 
-def test_date_3():
+def test_date_3() -> None:
     d = _(
         """
         - start: 2023-01-01
@@ -69,7 +69,7 @@ def test_date_3():
     assert len(list(d)) == 10
 
 
-def test_date_hindcast_1():
+def test_date_hindcast_1() -> None:
     d = _(
         """
         - name: hindcast

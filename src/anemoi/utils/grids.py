@@ -8,9 +8,7 @@
 # nor does it submit to any jurisdiction.
 
 
-"""Utilities for working with grids.
-
-"""
+"""Utilities for working with grids."""
 
 import logging
 import os
@@ -27,14 +25,14 @@ LOG = logging.getLogger(__name__)
 GRIDS_URL_PATTERN = "https://get.ecmwf.int/repository/anemoi/grids/grid-{name}.npz"
 
 
-def xyz_to_latlon(x, y, z):
+def xyz_to_latlon(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return (
         np.rad2deg(np.arcsin(np.minimum(1.0, np.maximum(-1.0, z)))),
         np.rad2deg(np.arctan2(y, x)),
     )
 
 
-def latlon_to_xyz(lat, lon, radius=1.0):
+def latlon_to_xyz(lat: np.ndarray, lon: np.ndarray, radius: float = 1.0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     # https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_geodetic_to_ECEF_coordinates
     # We assume that the Earth is a sphere of radius 1 so N(phi) = 1
     # We assume h = 0
@@ -54,7 +52,12 @@ def latlon_to_xyz(lat, lon, radius=1.0):
     return x, y, z
 
 
-def nearest_grid_points(source_latitudes, source_longitudes, target_latitudes, target_longitudes):
+def nearest_grid_points(
+    source_latitudes: np.ndarray,
+    source_longitudes: np.ndarray,
+    target_latitudes: np.ndarray,
+    target_longitudes: np.ndarray,
+) -> np.ndarray:
     from scipy.spatial import cKDTree
 
     source_xyz = latlon_to_xyz(source_latitudes, source_longitudes)
@@ -68,7 +71,7 @@ def nearest_grid_points(source_latitudes, source_longitudes, target_latitudes, t
 
 
 @cached(collection="grids", encoding="npz")
-def _grids(name):
+def _grids(name: str) -> bytes:
     from anemoi.utils.config import load_config
 
     user_path = load_config().get("utils", {}).get("grids_path")
@@ -88,7 +91,7 @@ def _grids(name):
     return response.content
 
 
-def grids(name):
+def grids(name: str) -> dict:
     if name.endswith(".npz"):
         return dict(np.load(name))
 

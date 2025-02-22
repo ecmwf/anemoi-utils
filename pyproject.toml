@@ -87,3 +87,14 @@ version_file = "src/anemoi/utils/_version.py"
 markers = [
   "skip_on_hpc: mark a test that should not be run on HPC",
 ]
+
+[tool.mypy]
+strict = false
+exclude = [
+  "docs/**",
+]
+
+[tool.pydocstringformatter]
+write = true
+exclude = "docs/**"
+style = "numpydoc"

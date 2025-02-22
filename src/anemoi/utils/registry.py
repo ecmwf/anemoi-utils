@@ -12,6 +12,11 @@ import importlib
 import logging
 import os
 import sys
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Optional
+from typing import Union
 
 import entrypoints
 
@@ -19,13 +24,13 @@ LOG = logging.getLogger(__name__)
 
 
 class Wrapper:
-    """A wrapper for the registry"""
+    """A wrapper for the registry."""
 
-    def __init__(self, name, registry):
+    def __init__(self, name: str, registry: "Registry"):
         self.name = name
         self.registry = registry
 
-    def __call__(self, factory):
+    def __call__(self, factory: Callable) -> Callable:
         self.registry.register(self.name, factory)
         return factory
 
@@ -34,10 +39,9 @@ _BY_KIND = {}
 
 
 class Registry:
-    """A registry of factories"""
+    """A registry of factories."""
 
-    def __init__(self, package, key="_type"):
-
+    def __init__(self, package: str, key: str = "_type"):
         self.package = package
         self.registered = {}
         self.kind = package.split(".")[-1]
@@ -45,11 +49,10 @@ class Registry:
         _BY_KIND[self.kind] = self
 
     @classmethod
-    def lookup_kind(cls, kind: str):
+    def lookup_kind(cls, kind: str) -> Optional["Registry"]:
         return _BY_KIND.get(kind)
 
-    def register(self, name: str, factory: callable = None):
-
+    def register(self, name: str, factory: Optional[Callable] = None) -> Optional[Wrapper]:
         if factory is None:
             return Wrapper(name, self)
 
@@ -58,15 +61,14 @@ class Registry:
     # def registered(self, name: str):
     #     return name in self.registered
 
-    def _load(self, file):
+    def _load(self, file: str) -> None:
         name, _ = os.path.splitext(file)
         try:
             importlib.import_module(f".{name}", package=self.package)
         except Exception:
             LOG.warning(f"Error loading filter '{self.package}.{name}'", exc_info=True)
 
-    def lookup(self, name: str, *, return_none=False) -> callable:
-
+    def lookup(self, name: str, *, return_none: bool = False) -> Optional[Callable]:
         # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', name, self.registered)
         if name in self.registered:
             return self.registered[name]
@@ -110,14 +112,14 @@ class Registry:
 
         return self.registered[name]
 
-    def create(self, name: str, *args, **kwargs):
+    def create(self, name: str, *args: Any, **kwargs: Any) -> Any:
         factory = self.lookup(name)
         return factory(*args, **kwargs)
 
     # def __call__(self, name: str, *args, **kwargs):
     #     return self.create(name, *args, **kwargs)
 
-    def from_config(self, config, *args, **kwargs):
+    def from_config(self, config: Union[str, Dict[str, Any]], *args: Any, **kwargs: Any) -> Any:
         if isinstance(config, str):
             config = {config: {}}
 
