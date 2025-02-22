@@ -168,19 +168,59 @@ class JsonCacher(Cacher):
         return temp_path
 
     def load(self, path: str) -> dict:
+        """Load data from a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the JSON file
+
+        Returns
+        -------
+        dict
+            The loaded data
+        """
         with open(path, "r") as f:
             return json.load(f)
 
 
 class NpzCacher(Cacher):
+    """Cacher that uses NPZ files."""
+
     ext = ".npz"
 
     def save(self, path: str, data: dict) -> str:
+        """Save data to an NPZ file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the NPZ file
+        data : dict
+            The data to save
+
+        Returns
+        -------
+        str
+            The temporary file path
+        """
         temp_path = path + ".tmp.npz"
         np.savez(temp_path, **data)
         return temp_path
 
     def load(self, path: str) -> dict:
+        """Load data from an NPZ file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the NPZ file
+
+        Returns
+        -------
+        dict
+            The loaded data
+        """
         return np.load(path, allow_pickle=True)
 
 
@@ -190,5 +230,19 @@ def cached(collection: str = "default", expires: int | None = None, encoding: st
 
     Default is to use a json file to store the cache, but you can also use npz files
     to cache dict of numpy arrays.
+
+    Parameters
+    ----------
+    collection : str, optional
+        The name of the collection, by default "default"
+    expires : int | None, optional
+        The expiration time in seconds, or None for no expiration, by default None
+    encoding : str, optional
+        The encoding type, either "json" or "npz", by default "json"
+
+    Returns
+    -------
+    Callable
+        The decorated function
     """
     return dict(json=JsonCacher, npz=NpzCacher)[encoding](collection, expires)
