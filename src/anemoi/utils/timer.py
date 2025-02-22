@@ -21,7 +21,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Timer:
-    """Context manager to measure elapsed time."""
+    """Context manager to measure elapsed time.
+
+    Parameters
+    ----------
+    title : str
+        The title of the timer.
+    logger : logging.Logger, optional
+        The logger to use for logging the elapsed time, by default LOGGER.
+    """
 
     def __init__(self, title: str, logger: logging.Logger = LOGGER):
         self.title = title
@@ -33,6 +41,7 @@ class Timer:
 
     @property
     def elapsed(self) -> float:
+        """Float: The elapsed time in seconds."""
         return time.time() - self.start
 
     def __exit__(self, *args: Any):
@@ -53,23 +62,44 @@ class _Timer:
         self.stop()
 
     def start(self) -> None:
+        """Start the timer."""
         self._start = time.time()
 
     def stop(self) -> None:
+        """Stop the timer and accumulate the elapsed time."""
         self.elapsed += time.time() - self._start
 
 
 class Timers:
-    """A collection of timers."""
+    """A collection of timers.
+
+    Parameters
+    ----------
+    logger : logging.Logger, optional
+        The logger to use for logging the elapsed time, by default LOGGER.
+    """
 
     def __init__(self, logger: logging.Logger = LOGGER):
         self.logger = logger
         self.timers = defaultdict(_Timer)
 
     def __getitem__(self, name: str) -> _Timer:
+        """Get a timer by name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the timer.
+
+        Returns
+        -------
+        _Timer
+            The timer with the given name.
+        """
         return self.timers[name]
 
     def report(self) -> None:
+        """Log the elapsed time for all timers."""
         length = max(len(name) for name in self.timers)
         for name, timer in sorted(self.timers.items()):
             self.logger.info("%s: %s.", f"{name:<{length}}", seconds_to_human(timer.elapsed))

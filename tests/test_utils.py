@@ -16,6 +16,7 @@ from anemoi.utils.grib import shortname_to_paramid
 
 
 def test_dotdict() -> None:
+    """Test the DotDict class for nested dictionary access and assignment."""
     d = DotDict(a=1, b=2, c=dict(d=3, e=4), e=[1, dict(a=3), 3])
     assert d.a == 1
     assert d.b == 2
@@ -35,6 +36,7 @@ def test_dotdict() -> None:
 
 
 def test_merge_dicts() -> None:
+    """Test the _merge_dicts function for merging nested dictionaries."""
     a = dict(a=1, b=2, c=dict(d=3, e=4))
     b = dict(a=10, c=dict(a=30, e=40), d=9)
     _merge_dicts(a, b)
@@ -42,6 +44,7 @@ def test_merge_dicts() -> None:
 
 
 def test_set_defaults() -> None:
+    """Test the _set_defaults function for setting default values in nested dictionaries."""
     a = dict(a=1, b=2, c=dict(d=3, e=4))
     b = dict(a=10, c=dict(a=30, e=40), d=9)
     _set_defaults(a, b)

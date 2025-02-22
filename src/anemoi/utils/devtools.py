@@ -25,6 +25,18 @@ This module contains
 
 
 def fix(lons: np.ndarray) -> np.ndarray:
+    """Fix longitudes greater than 180 degrees.
+
+    Parameters
+    ----------
+    lons : np.ndarray
+        Array of longitudes.
+
+    Returns
+    -------
+    np.ndarray
+        Array of fixed longitudes.
+    """
     return np.where(lons > 180, lons - 360, lons)
 
 
@@ -38,7 +50,32 @@ def plot_values(
     max_value: float = None,
     **kwargs: dict,
 ) -> plt.Axes:
+    """Plot values on a map.
 
+    Parameters
+    ----------
+    values : np.ndarray
+        Array of values to plot.
+    latitudes : np.ndarray
+        Array of latitudes.
+    longitudes : np.ndarray
+        Array of longitudes.
+    title : str, optional
+        Title of the plot, by default None.
+    missing_value : float, optional
+        Value to use for missing data, by default None.
+    min_value : float, optional
+        Minimum value for the plot, by default None.
+    max_value : float, optional
+        Maximum value for the plot, by default None.
+    **kwargs : dict
+        Additional keyword arguments for the plot.
+
+    Returns
+    -------
+    plt.Axes
+        The plot axes.
+    """
     _, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
     ax.coastlines()
     ax.add_feature(cfeature.BORDERS, linestyle=":")
@@ -86,6 +123,22 @@ def plot_values(
 
 
 def plot_field(field: Any, title: str = None, **kwargs: dict) -> plt.Axes:
+    """Plot a field on a map.
+
+    Parameters
+    ----------
+    field : Any
+        The field to plot.
+    title : str, optional
+        Title of the plot, by default None.
+    **kwargs : dict
+        Additional keyword arguments for the plot.
+
+    Returns
+    -------
+    plt.Axes
+        The plot axes.
+    """
     values = field.to_numpy(flatten=True)
     latitudes, longitudes = field.grid_points()
     return plot_values(values, latitudes, longitudes, title=title, **kwargs)

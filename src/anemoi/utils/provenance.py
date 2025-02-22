@@ -35,6 +35,18 @@ LOG = logging.getLogger(__name__)
 
 
 def lookup_git_repo(path: str) -> Optional[Any]:
+    """Lookup the git repository for a given path.
+
+    Parameters
+    ----------
+    path : str
+        The path to lookup.
+
+    Returns
+    -------
+    Repo, optional
+        The git repository if found, otherwise None.
+    """
     from git import InvalidGitRepositoryError
     from git import Repo
 
@@ -48,6 +60,20 @@ def lookup_git_repo(path: str) -> Optional[Any]:
 
 
 def _check_for_git(paths: List[Tuple[str, str]], full: bool) -> Dict[str, Any]:
+    """Check for git information for the given paths.
+
+    Parameters
+    ----------
+    paths : list of tuple
+        The list of paths to check.
+    full : bool
+        Whether to collect full information.
+
+    Returns
+    -------
+    dict
+        The git information for the given paths.
+    """
     versions = {}
     for name, path in paths:
         repo = lookup_git_repo(path)
@@ -85,6 +111,25 @@ def _check_for_git(paths: List[Tuple[str, str]], full: bool) -> Dict[str, Any]:
 def version(
     versions: Dict[str, Any], name: str, module: Any, roots: Dict[str, str], namespaces: set, paths: set, full: bool
 ) -> None:
+    """Collect version information for a module.
+
+    Parameters
+    ----------
+    versions : dict
+        The dictionary to store the version information.
+    name : str
+        The name of the module.
+    module : Any
+        The module to collect information for.
+    roots : dict
+        The dictionary of root paths.
+    namespaces : set
+        The set of namespaces.
+    paths : set
+        The set of paths.
+    full : bool
+        Whether to collect full information.
+    """
     path = None
 
     if hasattr(module, "__file__"):
@@ -127,6 +172,18 @@ def version(
 
 
 def _module_versions(full: bool) -> Tuple[Dict[str, Any], set]:
+    """Collect version information for all loaded modules.
+
+    Parameters
+    ----------
+    full : bool
+        Whether to collect full information.
+
+    Returns
+    -------
+    tuple of dict and set
+        The version information and the set of paths.
+    """
     # https://docs.python.org/3/library/sysconfig.html
 
     roots = {}
@@ -157,6 +214,13 @@ def _module_versions(full: bool) -> Tuple[Dict[str, Any], set]:
 
 @cache
 def package_distributions() -> Dict[str, List[str]]:
+    """Get the package distributions.
+
+    Returns
+    -------
+    dict
+        The package distributions.
+    """
     # Takes a significant amount of time to run
     # so cache the result
     from importlib import metadata
@@ -169,6 +233,18 @@ def package_distributions() -> Dict[str, List[str]]:
 
 
 def import_name_to_distribution_name(packages: List[str]) -> Dict[str, str]:
+    """Convert import names to distribution names.
+
+    Parameters
+    ----------
+    packages : list of str
+        The list of import names.
+
+    Returns
+    -------
+    dict
+        The dictionary mapping import names to distribution names.
+    """
     distribution_names = {}
     package_distribution_names = package_distributions()
 
@@ -187,12 +263,36 @@ def import_name_to_distribution_name(packages: List[str]) -> Dict[str, str]:
 
 
 def module_versions(full: bool) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Collect version information for all loaded modules and their git information.
+
+    Parameters
+    ----------
+    full : bool
+        Whether to collect full information.
+
+    Returns
+    -------
+    tuple of dict and dict
+        The version information and the git information.
+    """
     versions, paths = _module_versions(full)
     git_versions = _check_for_git(paths, full)
     return versions, git_versions
 
 
 def _name(obj: Any) -> str:
+    """Get the name of an object.
+
+    Parameters
+    ----------
+    obj : Any
+        The object to get the name of.
+
+    Returns
+    -------
+    str
+        The name of the object.
+    """
     if hasattr(obj, "__name__"):
         if hasattr(obj, "__module__"):
             return f"{obj.__module__}.{obj.__name__}"
@@ -203,6 +303,18 @@ def _name(obj: Any) -> str:
 
 
 def _paths(path_or_object: Union[None, str, List[str], Tuple[str], Any]) -> List[Tuple[str, str]]:
+    """Get the paths for a given path or object.
+
+    Parameters
+    ----------
+    path_or_object : str, list, tuple, or object
+        The path or object to get the paths for.
+
+    Returns
+    -------
+    list of tuple
+        The list of paths.
+    """
     if path_or_object is None:
         _, paths = _module_versions(full=False)
         return paths
@@ -285,6 +397,13 @@ def git_check(*args: Any) -> Dict[str, Any]:
 
 
 def platform_info() -> Dict[str, Any]:
+    """Get the platform information.
+
+    Returns
+    -------
+    dict
+        The platform information.
+    """
     import platform
 
     r = {}
@@ -307,6 +426,13 @@ def platform_info() -> Dict[str, Any]:
 
 
 def gpu_info() -> Union[str, List[Dict[str, Any]]]:
+    """Get the GPU information.
+
+    Returns
+    -------
+    str or list of dict
+        The GPU information or an error message.
+    """
     import nvsmi
 
     if not nvsmi.is_nvidia_smi_on_path():
@@ -319,6 +445,18 @@ def gpu_info() -> Union[str, List[Dict[str, Any]]]:
 
 
 def path_md5(path: str) -> str:
+    """Calculate the MD5 hash of a file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file.
+
+    Returns
+    -------
+    str
+        The MD5 hash of the file.
+    """
     import hashlib
 
     hash = hashlib.md5()
@@ -329,6 +467,18 @@ def path_md5(path: str) -> str:
 
 
 def assets_info(paths: List[str]) -> Dict[str, Any]:
+    """Get information about the given assets.
+
+    Parameters
+    ----------
+    paths : list of str
+        The list of paths to the assets.
+
+    Returns
+    -------
+    dict
+        The information about the assets.
+    """
     result = {}
 
     for path in paths:

@@ -15,7 +15,13 @@ from anemoi.utils.caching import clean_cache
 
 
 class Data(dict):
-    """Simple class to store data and count the number of calls to the function."""
+    """Simple class to store data and count the number of calls to the function.
+
+    Attributes
+    ----------
+    n : int
+        The number of calls to the function.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -23,7 +29,9 @@ class Data(dict):
 
 
 def check(f: callable, data: Data) -> None:
-    """Check that the function f returns the expected values from the data.
+    """Check that the function f returns the expected values from the data."""
+
+    """
     The function f is called three times for each value in the data.
     The number of actual calls to the function is checked to make sure the cache is used when it should be.
     """
@@ -59,6 +67,7 @@ def func_a(x: str) -> int:
 
 
 def test_cached_basic(*values: str, **kwargs: dict) -> None:
+    """Test the cached decorator with basic data types."""
     clean_cache("test")
     check(func_a, values_a)
 
@@ -82,6 +91,7 @@ def func_c(x: str) -> dict:
 
 
 def test_cached_npz(*values: str, **kwargs: dict) -> None:
+    """Test the cached decorator with numpy arrays."""
     clean_cache("test")
     check(func_c, values_c)
 

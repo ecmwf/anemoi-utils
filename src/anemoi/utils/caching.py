@@ -23,10 +23,29 @@ CACHE = {}
 
 
 def _get_cache_path(collection: str) -> str:
+    """Get the cache path for a collection.
+
+    Parameters
+    ----------
+    collection : str
+        The name of the collection
+
+    Returns
+    -------
+    str
+        The cache path
+    """
     return os.path.join(os.path.expanduser("~"), ".cache", "anemoi", collection)
 
 
 def clean_cache(collection: str = "default") -> None:
+    """Clean the cache for a collection.
+
+    Parameters
+    ----------
+    collection : str, optional
+        The name of the collection, by default "default"
+    """
     global CACHE
     CACHE = {}
     path = _get_cache_path(collection)
@@ -42,11 +61,31 @@ class Cacher:
     """
 
     def __init__(self, collection: str, expires: int | None):
+        """Initialize the Cacher.
+
+        Parameters
+        ----------
+        collection : str
+            The name of the collection
+        expires : int | None
+            The expiration time in seconds, or None for no expiration
+        """
         self.collection = collection
         self.expires = expires
 
     def __call__(self, func: Callable) -> Callable:
+        """Wrap a function with caching.
 
+        Parameters
+        ----------
+        func : Callable
+            The function to wrap
+
+        Returns
+        -------
+        Callable
+            The wrapped function
+        """
         full = f"{func.__module__}.{func.__name__}"
 
         def wrapped(*args, **kwargs):
@@ -59,7 +98,20 @@ class Cacher:
         return wrapped
 
     def cache(self, key: tuple, proc: Callable) -> Any:
+        """Cache the result of a function.
 
+        Parameters
+        ----------
+        key : tuple
+            The cache key
+        proc : Callable
+            The function to call if the result is not cached
+
+        Returns
+        -------
+        Any
+            The cached result
+        """
         key = json.dumps(key, sort_keys=True)
         m = hashlib.md5()
         m.update(key.encode("utf-8"))
@@ -91,9 +143,25 @@ class Cacher:
 
 
 class JsonCacher(Cacher):
+    """Cacher that uses JSON files."""
+
     ext = ""
 
     def save(self, path: str, data: dict) -> str:
+        """Save data to a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the JSON file
+        data : dict
+            The data to save
+
+        Returns
+        -------
+        str
+            The temporary file path
+        """
         temp_path = path + ".tmp"
         with open(temp_path, "w") as f:
             json.dump(data, f)

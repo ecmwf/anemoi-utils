@@ -47,6 +47,15 @@ class DotDict(dict):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize a DotDict instance.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments for the dict constructor.
+        **kwargs : dict
+            Keyword arguments for the dict constructor.
+        """
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
@@ -61,6 +70,18 @@ class DotDict(dict):
 
     @classmethod
     def from_file(cls, path: str) -> DotDict:
+        """Create a DotDict from a file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the file.
+
+        Returns
+        -------
+        DotDict
+            The created DotDict.
+        """
         _, ext = os.path.splitext(path)
         if ext == ".yaml" or ext == ".yml":
             return cls.from_yaml_file(path)
@@ -73,6 +94,18 @@ class DotDict(dict):
 
     @classmethod
     def from_yaml_file(cls, path: str) -> DotDict:
+        """Create a DotDict from a YAML file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the YAML file.
+
+        Returns
+        -------
+        DotDict
+            The created DotDict.
+        """
         with open(path, "r") as file:
             data = yaml.safe_load(file)
 
@@ -80,6 +113,18 @@ class DotDict(dict):
 
     @classmethod
     def from_json_file(cls, path: str) -> DotDict:
+        """Create a DotDict from a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the JSON file.
+
+        Returns
+        -------
+        DotDict
+            The created DotDict.
+        """
         with open(path, "r") as file:
             data = json.load(file)
 
@@ -87,26 +132,78 @@ class DotDict(dict):
 
     @classmethod
     def from_toml_file(cls, path: str) -> DotDict:
+        """Create a DotDict from a TOML file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the TOML file.
+
+        Returns
+        -------
+        DotDict
+            The created DotDict.
+        """
         with open(path, "r") as file:
             data = tomllib.load(file)
         return cls(data)
 
     def __getattr__(self, attr: str) -> Any:
+        """Get an attribute.
+
+        Parameters
+        ----------
+        attr : str
+            The attribute name.
+
+        Returns
+        -------
+        Any
+            The attribute value.
+        """
         try:
             return self[attr]
         except KeyError:
             raise AttributeError(attr)
 
     def __setattr__(self, attr: str, value: Any) -> None:
+        """Set an attribute.
+
+        Parameters
+        ----------
+        attr : str
+            The attribute name.
+        value : Any
+            The attribute value.
+        """
         if isinstance(value, dict):
             value = DotDict(value)
         self[attr] = value
 
     def __repr__(self) -> str:
+        """Return a string representation of the DotDict.
+
+        Returns
+        -------
+        str
+            The string representation.
+        """
         return f"DotDict({super().__repr__()})"
 
 
 def is_omegaconf_dict(value: Any) -> bool:
+    """Check if a value is an OmegaConf DictConfig.
+
+    Parameters
+    ----------
+    value : Any
+        The value to check.
+
+    Returns
+    -------
+    bool
+        True if the value is a DictConfig, False otherwise.
+    """
     try:
         from omegaconf import DictConfig
 
@@ -116,6 +213,18 @@ def is_omegaconf_dict(value: Any) -> bool:
 
 
 def is_omegaconf_list(value: Any) -> bool:
+    """Check if a value is an OmegaConf ListConfig.
+
+    Parameters
+    ----------
+    value : Any
+        The value to check.
+
+    Returns
+    -------
+    bool
+        True if the value is a ListConfig, False otherwise.
+    """
     try:
         from omegaconf import ListConfig
 
@@ -131,6 +240,22 @@ QUIET = False
 
 
 def _find(config: dict | list, what: str, result: list = None) -> list:
+    """Find all occurrences of a key in a nested dictionary or list.
+
+    Parameters
+    ----------
+    config : dict or list
+        The configuration to search.
+    what : str
+        The key to search for.
+    result : list, optional
+        The list to store results, by default None.
+
+    Returns
+    -------
+    list
+        The list of found values.
+    """
     if result is None:
         result = []
 
@@ -150,6 +275,15 @@ def _find(config: dict | list, what: str, result: list = None) -> list:
 
 
 def _merge_dicts(a: dict, b: dict) -> None:
+    """Merge two dictionaries recursively.
+
+    Parameters
+    ----------
+    a : dict
+        The first dictionary.
+    b : dict
+        The second dictionary.
+    """
     for k, v in b.items():
         if k in a and isinstance(a[k], dict) and isinstance(v, dict):
             _merge_dicts(a[k], v)
@@ -158,6 +292,15 @@ def _merge_dicts(a: dict, b: dict) -> None:
 
 
 def _set_defaults(a: dict, b: dict) -> None:
+    """Set default values in a dictionary.
+
+    Parameters
+    ----------
+    a : dict
+        The dictionary to set defaults in.
+    b : dict
+        The dictionary with default values.
+    """
     for k, v in b.items():
         if k in a and isinstance(a[k], dict) and isinstance(v, dict):
             _set_defaults(a[k], v)
@@ -166,6 +309,18 @@ def _set_defaults(a: dict, b: dict) -> None:
 
 
 def config_path(name: str = "settings.toml") -> str:
+    """Get the path to a configuration file.
+
+    Parameters
+    ----------
+    name : str, optional
+        The name of the configuration file, by default "settings.toml".
+
+    Returns
+    -------
+    str
+        The path to the configuration file.
+    """
     global QUIET
 
     if name.startswith("/") or name.startswith("."):
@@ -248,6 +403,22 @@ def load_any_dict_format(path: str) -> dict:
 
 
 def _load_config(name: str = "settings.toml", secrets: str | list[str] = None, defaults: str | dict = None) -> DotDict:
+    """Load a configuration file.
+
+    Parameters
+    ----------
+    name : str, optional
+        The name of the configuration file, by default "settings.toml".
+    secrets : str or list, optional
+        The name of the secrets file, by default None.
+    defaults : str or dict, optional
+        The name of the defaults file, by default None.
+
+    Returns
+    -------
+    DotDict
+        The loaded configuration.
+    """
     key = json.dumps((name, secrets, defaults), sort_keys=True, default=str)
     if key in CONFIG:
         return CONFIG[key]
@@ -287,6 +458,15 @@ def _load_config(name: str = "settings.toml", secrets: str | list[str] = None, d
 
 
 def _save_config(name: str, data: Any) -> None:
+    """Save a configuration file.
+
+    Parameters
+    ----------
+    name : str
+        The name of the configuration file.
+    data : Any
+        The data to save.
+    """
     CONFIG.pop(name, None)
 
     conf = config_path(name)
@@ -348,6 +528,20 @@ def load_config(
 
 
 def load_raw_config(name: str, default: Any = None) -> DotDict | str:
+    """Load a raw configuration file.
+
+    Parameters
+    ----------
+    name : str
+        The name of the configuration file.
+    default : Any, optional
+        The default value if the file does not exist, by default None.
+
+    Returns
+    -------
+    DotDict or str
+        The loaded configuration or the default value.
+    """
     path = config_path(name)
     if os.path.exists(path):
         return load_any_dict_format(path)
@@ -393,6 +587,24 @@ def check_config_mode(name: str = "settings.toml", secrets_name: str = None, sec
 
 
 def find(metadata: dict | list, what: str, result: list = None, *, select: callable = None) -> list:
+    """Find all occurrences of a key in a nested dictionary or list with an optional selector.
+
+    Parameters
+    ----------
+    metadata : dict or list
+        The metadata to search.
+    what : str
+        The key to search for.
+    result : list, optional
+        The list to store results, by default None.
+    select : callable, optional
+        A function to filter the results, by default None.
+
+    Returns
+    -------
+    list
+        The list of found values.
+    """
     if result is None:
         result = []
 
@@ -413,6 +625,18 @@ def find(metadata: dict | list, what: str, result: list = None, *, select: calla
 
 
 def merge_configs(*configs: dict) -> dict:
+    """Merge multiple configuration dictionaries.
+
+    Parameters
+    ----------
+    *configs : dict
+        The configuration dictionaries to merge.
+
+    Returns
+    -------
+    dict
+        The merged configuration dictionary.
+    """
     result = {}
     for config in configs:
         _merge_dicts(result, config)
