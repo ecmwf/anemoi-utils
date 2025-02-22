@@ -24,13 +24,21 @@ class Data(dict):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the Data object."""
         super().__init__(*args, **kwargs)
         self.n = 0
 
 
 def check(f: callable, data: Data) -> None:
-    """Check that the function f returns the expected values from the data."""
+    """Check that the function f returns the expected values from the data.
 
+    Parameters
+    ----------
+    f : callable
+        The function to be tested.
+    data : Data
+        The data to be used for testing.
+    """
     """
     The function f is called three times for each value in the data.
     The number of actual calls to the function is checked to make sure the cache is used when it should be.
@@ -61,13 +69,33 @@ values_a = Data(a=1, b=2)
 
 @cached(collection="test", expires=0)
 def func_a(x: str) -> int:
+    """Example function to be cached.
+
+    Parameters
+    ----------
+    x : str
+        The key to access the data.
+
+    Returns
+    -------
+    int
+        The value associated with the key.
+    """
     global values_a
     values_a.n += 1
     return values_a[x]
 
 
 def test_cached_basic(*values: str, **kwargs: dict) -> None:
-    """Test the cached decorator with basic data types."""
+    """Test the cached decorator with basic data types.
+
+    Parameters
+    ----------
+    values : str
+        The values to be tested.
+    kwargs : dict
+        Additional keyword arguments.
+    """
     clean_cache("test")
     check(func_a, values_a)
 
@@ -85,13 +113,33 @@ values_c = Data(
 
 @cached(collection="test", expires=0, encoding="npz")
 def func_c(x: str) -> dict:
+    """Example function to be cached with numpy arrays.
+
+    Parameters
+    ----------
+    x : str
+        The key to access the data.
+
+    Returns
+    -------
+    dict
+        The value associated with the key.
+    """
     global values_c
     values_c.n += 1
     return values_c[x]
 
 
 def test_cached_npz(*values: str, **kwargs: dict) -> None:
-    """Test the cached decorator with numpy arrays."""
+    """Test the cached decorator with numpy arrays.
+
+    Parameters
+    ----------
+    values : str
+        The values to be tested.
+    kwargs : dict
+        Additional keyword arguments.
+    """
     clean_cache("test")
     check(func_c, values_c)
 
@@ -104,12 +152,33 @@ values_d = Data(a="4", b=5.0, c=dict(d=6), e=[7, 8, 9], f=(10, 11, 12))
 
 @cached(collection="test", expires=0)
 def func_d(x: str) -> any:
+    """Example function to be cached with various data types.
+
+    Parameters
+    ----------
+    x : str
+        The key to access the data.
+
+    Returns
+    -------
+    any
+        The value associated with the key.
+    """
     global values_d
     values_d.n += 1
     return values_d[x]
 
 
 def test_cached_various_types(*values: str, **kwargs: dict) -> None:
+    """Test the cached decorator with various data types.
+
+    Parameters
+    ----------
+    values : str
+        The values to be tested.
+    kwargs : dict
+        Additional keyword arguments.
+    """
     clean_cache("test")
     check(func_d, values_d)
 

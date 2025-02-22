@@ -23,7 +23,7 @@ RE1 = re.compile(r"{([^}]*)}")
 RE2 = re.compile(r"\(([^}]*)\)")
 
 
-def sanitise(obj):
+def sanitise(obj: Any) -> Any:
     """Sanitise an object by replacing all full paths with shortened versions and URL passwords with '***'.
 
     Parameters

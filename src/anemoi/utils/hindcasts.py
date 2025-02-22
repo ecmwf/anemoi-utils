@@ -15,19 +15,26 @@ from typing import Tuple
 
 
 class HindcastDatesTimes:
-    """The HindcastDatesTimes class is an iterator that generates datetime objects within a given range."""
+    """The HindcastDatesTimes class is an iterator that generates datetime objects within a given range.
+
+    Attributes
+    ----------
+    reference_dates : List[datetime.datetime]
+        List of reference dates.
+    years : int
+        Number of years to go back from each reference date.
+    """
 
     def __init__(self, reference_dates: List[datetime.datetime], years: int = 20):
-        """_summary_.
+        """Initialize the HindcastDatesTimes iterator.
 
         Parameters
         ----------
-        reference_dates : _type_
-            _description_
+        reference_dates : List[datetime.datetime]
+            List of reference dates.
         years : int, optional
-            _description_, by default 20
+            Number of years to go back from each reference date, by default 20.
         """
-
         self.reference_dates = reference_dates
 
         assert isinstance(years, int), f"years must be an integer, got {years}"
@@ -35,6 +42,13 @@ class HindcastDatesTimes:
         self.years = years
 
     def __iter__(self) -> Iterator[Tuple[datetime.datetime, datetime.datetime]]:
+        """Generate tuples of past dates and their corresponding reference dates.
+
+        Yields
+        ------
+        Iterator[Tuple[datetime.datetime, datetime.datetime]]
+            Tuples containing a past date and its corresponding reference date.
+        """
         for reference_date in self.reference_dates:
             year, month, day = reference_date.year, reference_date.month, reference_date.day
             if (month, day) == (2, 29):

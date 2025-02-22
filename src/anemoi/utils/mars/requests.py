@@ -12,6 +12,17 @@ from typing import TextIO
 
 
 def print_request(verb: str, request: Dict[str, Any], file: TextIO = sys.stdout) -> None:
+    """Prints a formatted request.
+
+    Parameters
+    ----------
+    verb : str
+        A mars verb
+    request : Dict[str, Any]
+        The request parameters.
+    file : TextIO, optional
+        The file to which the request is printed, by default sys.stdout.
+    """
     r = [verb]
     for k, v in request.items():
         if not isinstance(v, (list, tuple, set)):

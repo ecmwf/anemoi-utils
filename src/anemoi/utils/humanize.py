@@ -29,29 +29,22 @@ from anemoi.utils.dates import as_datetime
 def bytes_to_human(n: float) -> str:
     """Convert a number of bytes to a human readable string.
 
-    >>> bytes(4096)
+    >>> bytes_to_human(4096)
     '4 KiB'
 
-    >>> bytes(4000)
+    >>> bytes_to_human(4000)
     '3.9 KiB'
 
     Parameters
     ----------
     n : float
-        the number of bytes
+        The number of bytes
 
     Returns
     -------
     str
-        a human readable string
+        A human readable string
     """
-
-    """
-
-
-
-    """
-
     if n < 0:
         sign = "-"
         n -= 0
@@ -67,6 +60,18 @@ def bytes_to_human(n: float) -> str:
 
 
 def bytes(n: float) -> str:
+    """Deprecated function to convert bytes to a human readable string.
+
+    Parameters
+    ----------
+    n : float
+        The number of bytes
+
+    Returns
+    -------
+    str
+        A human readable string
+    """
     warnings.warn(
         "Function bytes is deprecated and will be removed in a future version. Use bytes_to_human instead.",
         category=DeprecationWarning,
@@ -76,7 +81,18 @@ def bytes(n: float) -> str:
 
 
 def base2_to_human(n: float) -> str:
+    """Convert a number to a human readable string using base 2 units.
 
+    Parameters
+    ----------
+    n : float
+        The number to convert
+
+    Returns
+    -------
+    str
+        A human readable string
+    """
     u = ["", "K", "M", "G", "T", " P", "E", "Z", "Y"]
     i = 0
     while n >= 1024:
@@ -86,7 +102,18 @@ def base2_to_human(n: float) -> str:
 
 
 def base2(n: float) -> str:
+    """Deprecated function to convert a number to a human readable string using base 2 units.
 
+    Parameters
+    ----------
+    n : float
+        The number to convert
+
+    Returns
+    -------
+    str
+        A human readable string
+    """
     warnings.warn(
         "Function base2 is deprecated and will be removed in a future version. Use base2_to_human instead.",
         category=DeprecationWarning,
@@ -105,6 +132,18 @@ PERIODS = (
 
 
 def _plural(count: int) -> str:
+    """Return 's' if count is not 1, otherwise return an empty string.
+
+    Parameters
+    ----------
+    count : int
+        The count
+
+    Returns
+    -------
+    str
+        's' if count is not 1, otherwise an empty string
+    """
     if count != 1:
         return "s"
     else:
@@ -170,6 +209,18 @@ def seconds_to_human(seconds: Union[float, datetime.timedelta]) -> str:
 
 
 def seconds(seconds: float) -> str:
+    """Deprecated function to convert seconds to a human readable string.
+
+    Parameters
+    ----------
+    seconds : float
+        The number of seconds
+
+    Returns
+    -------
+    str
+        A human readable string
+    """
     warnings.warn(
         "Function seconds is deprecated and will be removed in a future version. Use seconds_to_human instead.",
         category=DeprecationWarning,
@@ -179,6 +230,20 @@ def seconds(seconds: float) -> str:
 
 
 def plural(value: int, what: str) -> str:
+    """Return a string with the value and the pluralized form of what.
+
+    Parameters
+    ----------
+    value : int
+        The value
+    what : str
+        The string to pluralize
+
+    Returns
+    -------
+    str
+        The value and the pluralized form of what
+    """
     return f"{value:,} {what}{_plural(value)}"
 
 
@@ -209,6 +274,18 @@ MONTH = [
 
 
 def __(n: int) -> str:
+    """Return the ordinal suffix for a number.
+
+    Parameters
+    ----------
+    n : int
+        The number
+
+    Returns
+    -------
+    str
+        The ordinal suffix
+    """
     if n in (11, 12, 13):
         return "th"
 
@@ -251,7 +328,7 @@ def when(
     now : datetime.datetime, optional
         The reference date, by default NOW
     short : bool, optional
-        Genererate shorter strings, by default True
+        Generate shorter strings, by default True
     use_utc : bool, optional
         Use UTC time, by default False
 
@@ -352,6 +429,20 @@ def when(
 
 
 def string_distance(s: str, t: str) -> int:
+    """Calculate the Levenshtein distance between two strings.
+
+    Parameters
+    ----------
+    s : str
+        The first string
+    t : str
+        The second string
+
+    Returns
+    -------
+    int
+        The Levenshtein distance
+    """
     import numpy as np
 
     m = len(s)
@@ -386,7 +477,7 @@ def did_you_mean(word: str, vocabulary: List[str]) -> str:
     ----------
     word : str
         The word to look for
-    vocabulary : list of strings
+    vocabulary : list of str
         The list of known words
 
     Returns
@@ -400,6 +491,18 @@ def did_you_mean(word: str, vocabulary: List[str]) -> str:
 
 
 def dict_to_human(query: Dict[str, Any]) -> str:
+    """Convert a dictionary to a human readable string.
+
+    Parameters
+    ----------
+    query : dict
+        The dictionary to convert
+
+    Returns
+    -------
+    str
+        A human readable string
+    """
     lst = [f"{k}={v}" for k, v in sorted(query.items())]
 
     return list_to_human(lst)
@@ -433,6 +536,24 @@ def list_to_human(lst: List[str], conjunction: str = "and") -> str:
 
 
 def human_to_number(value: Union[str, int], name: str, units: Dict[str, int], none_ok: bool) -> Optional[int]:
+    """Convert a human readable string to a number.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str
+        The name of the value
+    units : dict
+        The units to use for conversion
+    none_ok : bool
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value
+    """
     if value is None and none_ok:
         return None
 
@@ -454,6 +575,24 @@ def human_to_number(value: Union[str, int], name: str, units: Dict[str, int], no
 def as_number(
     value: Union[str, int], name: Optional[str] = None, units: Optional[Dict[str, int]] = None, none_ok: bool = False
 ) -> Optional[int]:
+    """Deprecated function to convert a human readable string to a number.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str, optional
+        The name of the value
+    units : dict, optional
+        The units to use for conversion
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value
+    """
     warnings.warn(
         "Function as_number is deprecated and will be removed in a future version. Use human_to_number instead.",
         category=DeprecationWarning,
@@ -463,11 +602,43 @@ def as_number(
 
 
 def human_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+    """Convert a human readable string to seconds.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value in seconds
+    """
     units = dict(s=1, m=60, h=3600, d=86400, w=86400 * 7)
     return human_to_number(value, name, units, none_ok)
 
 
 def as_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+    """Deprecated function to convert a human readable string to seconds.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value in seconds
+    """
     warnings.warn(
         "Function as_seconds is deprecated and will be removed in a future version. Use human_seconds instead.",
         category=DeprecationWarning,
@@ -477,11 +648,43 @@ def as_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool
 
 
 def human_to_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+    """Convert a human readable string to a percentage.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value in percentage
+    """
     units = {"%": 1}
     return human_to_number(value, name, units, none_ok)
 
 
 def as_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+    """Deprecated function to convert a human readable string to a percentage.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value in percentage
+    """
     warnings.warn(
         "Function as_percent is deprecated and will be removed in a future version. Use human_to_percent instead.",
         category=DeprecationWarning,
@@ -491,6 +694,22 @@ def as_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool
 
 
 def human_to_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+    """Convert a human readable string to bytes.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value in bytes
+    """
     units = {}
     n = 1
     for u in "KMGTP":
@@ -502,6 +721,22 @@ def human_to_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: 
 
 
 def as_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+    """Deprecated function to convert a human readable string to bytes.
+
+    Parameters
+    ----------
+    value : str or int
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    int or None
+        The converted value in bytes
+    """
     warnings.warn(
         "Function as_bytes is deprecated and will be removed in a future version. Use human_to_bytes instead.",
         category=DeprecationWarning,
@@ -511,6 +746,22 @@ def as_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool =
 
 
 def human_to_timedelta(value: str, name: Optional[str] = None, none_ok: bool = False) -> datetime.timedelta:
+    """Convert a human readable string to a timedelta.
+
+    Parameters
+    ----------
+    value : str
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    datetime.timedelta
+        The converted value as a timedelta
+    """
     if value is None and none_ok:
         return None
 
@@ -547,6 +798,22 @@ def human_to_timedelta(value: str, name: Optional[str] = None, none_ok: bool = F
 
 
 def as_timedelta(value: str, name: Optional[str] = None, none_ok: bool = False) -> datetime.timedelta:
+    """Deprecated function to convert a human readable string to a timedelta.
+
+    Parameters
+    ----------
+    value : str
+        The value to convert
+    name : str, optional
+        The name of the value
+    none_ok : bool, optional
+        Whether None is an acceptable value
+
+    Returns
+    -------
+    datetime.timedelta
+        The converted value as a timedelta
+    """
     warnings.warn(
         "Function as_timedelta is deprecated and will be removed in a future version. Use human_to_timedelta instead.",
         category=DeprecationWarning,
@@ -556,6 +823,18 @@ def as_timedelta(value: str, name: Optional[str] = None, none_ok: bool = False) 
 
 
 def rounded_datetime(d: datetime.datetime) -> datetime.datetime:
+    """Round a datetime to the nearest second.
+
+    Parameters
+    ----------
+    d : datetime.datetime
+        The datetime to round
+
+    Returns
+    -------
+    datetime.datetime
+        The rounded datetime
+    """
     if float(d.microsecond) / 1000.0 / 1000.0 >= 0.5:
         d = d + datetime.timedelta(seconds=1)
     d = d.replace(microsecond=0)
@@ -623,14 +902,14 @@ def shorten_list(lst: Union[List[Any], Tuple[Any]], max_length: int = 5) -> Unio
 
     Parameters
     ----------
-    lst : list
+    lst : list or tuple
         The list to be shortened.
     max_length : int, optional
         Maximum length of the shortened list. Default is 5.
 
     Returns
     -------
-    list
+    list or tuple
         Shortened list.
     """
     if len(lst) <= max_length:
@@ -646,6 +925,18 @@ def shorten_list(lst: Union[List[Any], Tuple[Any]], max_length: int = 5) -> Unio
 def _compress_dates(
     dates: List[datetime.datetime],
 ) -> Union[List[datetime.datetime], Tuple[datetime.datetime, datetime.datetime, datetime.timedelta]]:
+    """Compress a list of dates into a more compact representation.
+
+    Parameters
+    ----------
+    dates : list of datetime.datetime
+        The list of dates to compress
+
+    Returns
+    -------
+    list or tuple
+        The compressed dates
+    """
     dates = sorted(dates)
     if len(dates) < 3:
         yield dates

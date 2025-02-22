@@ -26,6 +26,22 @@ GRIDS_URL_PATTERN = "https://get.ecmwf.int/repository/anemoi/grids/grid-{name}.n
 
 
 def xyz_to_latlon(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Convert Cartesian coordinates to latitude and longitude.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        The x coordinates
+    y : np.ndarray
+        The y coordinates
+    z : np.ndarray
+        The z coordinates
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        The latitude and longitude
+    """
     return (
         np.rad2deg(np.arcsin(np.minimum(1.0, np.maximum(-1.0, z)))),
         np.rad2deg(np.arctan2(y, x)),
@@ -33,6 +49,22 @@ def xyz_to_latlon(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> tuple[np.ndarr
 
 
 def latlon_to_xyz(lat: np.ndarray, lon: np.ndarray, radius: float = 1.0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Convert latitude and longitude to Cartesian coordinates.
+
+    Parameters
+    ----------
+    lat : np.ndarray
+        The latitudes
+    lon : np.ndarray
+        The longitudes
+    radius : float, optional
+        The radius of the sphere, by default 1.0
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray, np.ndarray]
+        The x, y, and z coordinates
+    """
     # https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_geodetic_to_ECEF_coordinates
     # We assume that the Earth is a sphere of radius 1 so N(phi) = 1
     # We assume h = 0
@@ -58,6 +90,24 @@ def nearest_grid_points(
     target_latitudes: np.ndarray,
     target_longitudes: np.ndarray,
 ) -> np.ndarray:
+    """Find the nearest grid points.
+
+    Parameters
+    ----------
+    source_latitudes : np.ndarray
+        The source latitudes
+    source_longitudes : np.ndarray
+        The source longitudes
+    target_latitudes : np.ndarray
+        The target latitudes
+    target_longitudes : np.ndarray
+        The target longitudes
+
+    Returns
+    -------
+    np.ndarray
+        The indices of the nearest grid points
+    """
     from scipy.spatial import cKDTree
 
     source_xyz = latlon_to_xyz(source_latitudes, source_longitudes)
@@ -72,6 +122,18 @@ def nearest_grid_points(
 
 @cached(collection="grids", encoding="npz")
 def _grids(name: str) -> bytes:
+    """Get grid data by name.
+
+    Parameters
+    ----------
+    name : str
+        The name of the grid
+
+    Returns
+    -------
+    bytes
+        The grid data
+    """
     from anemoi.utils.config import load_config
 
     user_path = load_config().get("utils", {}).get("grids_path")
@@ -92,6 +154,18 @@ def _grids(name: str) -> bytes:
 
 
 def grids(name: str) -> dict:
+    """Load grid data by name.
+
+    Parameters
+    ----------
+    name : str
+        The name of the grid
+
+    Returns
+    -------
+    dict
+        The grid data
+    """
     if name.endswith(".npz"):
         return dict(np.load(name))
 

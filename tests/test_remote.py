@@ -47,6 +47,15 @@ LOCAL_TEST_DATA = os.path.dirname(__file__) + "/test-transfer-data"
 @pytest.mark.parametrize("source", LOCAL)
 @pytest.mark.parametrize("target", S3)
 def test_transfer_find_s3_upload(source: str, target: str) -> None:
+    """Test finding the S3 upload transfer class.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
     from anemoi.utils.remote.s3 import S3Upload
 
     assert _find_transfer_class(source, target) == S3Upload
@@ -55,6 +64,15 @@ def test_transfer_find_s3_upload(source: str, target: str) -> None:
 @pytest.mark.parametrize("source", S3)
 @pytest.mark.parametrize("target", LOCAL)
 def test_transfer_find_s3_download(source: str, target: str) -> None:
+    """Test finding the S3 download transfer class.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
     from anemoi.utils.remote.s3 import S3Download
 
     assert _find_transfer_class(source, target) == S3Download
@@ -63,6 +81,15 @@ def test_transfer_find_s3_download(source: str, target: str) -> None:
 @pytest.mark.parametrize("source", LOCAL)
 @pytest.mark.parametrize("target", SSH)
 def test_transfer_find_ssh_upload(source: str, target: str) -> None:
+    """Test finding the SSH upload transfer class.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
     from anemoi.utils.remote.ssh import RsyncUpload
 
     assert _find_transfer_class(source, target) == RsyncUpload
@@ -71,12 +98,28 @@ def test_transfer_find_ssh_upload(source: str, target: str) -> None:
 @pytest.mark.parametrize("source", S3 + SSH)
 @pytest.mark.parametrize("target", S3 + SSH)
 def test_transfer_find_none(source: str, target: str) -> None:
+    """Test that no transfer class is found for unsupported transfers.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
     with pytest.raises(TransferMethodNotImplementedError):
         assert _find_transfer_class(source, target)
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
 def test_transfer_zarr_s3_to_local(tmpdir: pytest.TempPathFactory) -> None:
+    """Test transferring a Zarr file from S3 to local.
+
+    Parameters
+    ----------
+    tmpdir : pytest.TempPathFactory
+        Temporary directory factory
+    """
     source = "s3://ml-datasets/aifs-ea-an-oper-0001-mars-20p0-2000-2000-12h-v0-TESTING2.zarr/"
     tmp = tmpdir.strpath + "/test"
 
@@ -90,6 +133,13 @@ def test_transfer_zarr_s3_to_local(tmpdir: pytest.TempPathFactory) -> None:
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
 def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
+    """Test transferring a Zarr file from local to S3.
+
+    Parameters
+    ----------
+    tmpdir : pytest.TempPathFactory
+        Temporary directory factory
+    """
     fixture = "s3://ml-datasets/aifs-ea-an-oper-0001-mars-20p0-2000-2000-12h-v0-TESTING2.zarr/"
     source = tmpdir.strpath + "/test"
     target = ROOT_S3_WRITE + "/test.zarr"
@@ -105,6 +155,13 @@ def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
 
 
 def _delete_file_or_directory(path: str) -> None:
+    """Delete a file or directory.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file or directory
+    """
     if os.path.isdir(path):
         shutil.rmtree(path, ignore_errors=True)
     else:
@@ -113,6 +170,15 @@ def _delete_file_or_directory(path: str) -> None:
 
 
 def compare(local1: str, local2: str) -> None:
+    """Compare two local files or directories.
+
+    Parameters
+    ----------
+    local1 : str
+        The path to the first file or directory
+    local2 : str
+        The path to the second file or directory
+    """
     if os.path.isdir(local1):
         for root, dirs, files in os.walk(local1):
             for file in files:
@@ -129,6 +195,13 @@ def compare(local1: str, local2: str) -> None:
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
 @pytest.mark.parametrize("path", ["directory/", "file"])
 def test_transfer_local_to_s3_to_local(path: str) -> None:
+    """Test transferring a file or directory from local to S3 and back to local.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file or directory
+    """
     local = LOCAL_TEST_DATA + "/" + path
     remote = ROOT_S3_WRITE + "/" + path
     local2 = LOCAL_TEST_DATA + "-copy-" + path
@@ -154,6 +227,15 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
 @pytest.mark.parametrize("path", ["directory", "file"])
 @pytest.mark.parametrize("temporary_target", [True, False])
 def test_transfer_local_to_ssh(path: str, temporary_target: bool) -> None:
+    """Test transferring a file or directory from local to SSH.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file or directory
+    temporary_target : bool
+        Whether to use a temporary target
+    """
     local = LOCAL_TEST_DATA + "/" + path
     remote_path = LOCAL_TEST_DATA + "-as-ssh-" + path
     assert os.path.isabs(remote_path), remote_path

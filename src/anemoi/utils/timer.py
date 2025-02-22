@@ -32,11 +32,27 @@ class Timer:
     """
 
     def __init__(self, title: str, logger: logging.Logger = LOGGER):
+        """Initialize the Timer.
+
+        Parameters
+        ----------
+        title : str
+            The title of the timer.
+        logger : logging.Logger, optional
+            The logger to use for logging the elapsed time, by default LOGGER.
+        """
         self.title = title
         self.start = time.time()
         self.logger = logger
 
     def __enter__(self) -> "Timer":
+        """Enter the runtime context related to this object.
+
+        Returns
+        -------
+        Timer
+            The Timer object itself.
+        """
         return self
 
     @property
@@ -44,7 +60,14 @@ class Timer:
         """Float: The elapsed time in seconds."""
         return time.time() - self.start
 
-    def __exit__(self, *args: Any):
+    def __exit__(self, *args: Any) -> None:
+        """Exit the runtime context related to this object.
+
+        Parameters
+        ----------
+        *args : Any
+            Exception information.
+        """
         self.logger.info("%s: %s.", self.title, seconds_to_human(self.elapsed))
 
 
@@ -52,13 +75,28 @@ class _Timer:
     """Internal timer class."""
 
     def __init__(self):
+        """Initialize the _Timer."""
         self.elapsed = 0.0
 
     def __enter__(self) -> "_Timer":
+        """Enter the runtime context related to this object.
+
+        Returns
+        -------
+        _Timer
+            The _Timer object itself.
+        """
         self.start()
         return self
 
-    def __exit__(self, *args: Any):
+    def __exit__(self, *args: Any) -> None:
+        """Exit the runtime context related to this object.
+
+        Parameters
+        ----------
+        *args : Any
+            Exception information.
+        """
         self.stop()
 
     def start(self) -> None:
@@ -80,6 +118,13 @@ class Timers:
     """
 
     def __init__(self, logger: logging.Logger = LOGGER):
+        """Initialize the Timers collection.
+
+        Parameters
+        ----------
+        logger : logging.Logger, optional
+            The logger to use for logging the elapsed time, by default LOGGER.
+        """
         self.logger = logger
         self.timers = defaultdict(_Timer)
 

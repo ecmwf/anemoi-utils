@@ -467,6 +467,7 @@ class Transfer:
 
     def __init__(
         self,
+        *,
         source: str,
         target: str,
         overwrite: bool = False,
@@ -618,7 +619,7 @@ def _find_transfer_class(source: str, target: str) -> type:
 
 
 # this is the public API
-def transfer(*args, **kwargs) -> Loader:
+def transfer(*, source, target, overwrite, resume, verbosity, progress, threads, temporary_target) -> Loader:
     """Transfer files or folders from the source to the target location.
 
     Parameters
@@ -654,6 +655,15 @@ def transfer(*args, **kwargs) -> Loader:
     Loader
         The Loader instance.
     """
-    copier = Transfer(*args, **kwargs)
+    copier = Transfer(
+        source=source,
+        target=target,
+        overwrite=overwrite,
+        resume=resume,
+        verbosity=verbosity,
+        progress=progress,
+        threads=threads,
+        temporary_target=temporary_target,
+    )
     copier.run()
     return copier
