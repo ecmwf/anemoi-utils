@@ -8,16 +8,21 @@
 # nor does it submit to any jurisdiction.
 
 
-"""Text utilities"""
+"""Text utilities."""
 
 import re
 from collections import defaultdict
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 # https://en.wikipedia.org/wiki/Box-drawing_character
 
 
 def dotted_line(width=84) -> str:
-    """Return a dotted line using '┈'
+    """Return a dotted line using '┈'.
 
     >>> dotted_line(40)
     ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -40,12 +45,35 @@ def dotted_line(width=84) -> str:
 _ansi_escape = re.compile(r"\x1b\[([0-9;]*[mGKH])")
 
 
-def _has_ansi_escape(s):
+def _has_ansi_escape(s: str) -> bool:
+    """Check if a string contains ANSI escape codes.
+
+    Parameters
+    ----------
+    s : str
+        The string to check.
+
+    Returns
+    -------
+    bool
+        True if the string contains ANSI escape codes, False otherwise.
+    """
     return _ansi_escape.search(s) is not None
 
 
-def _split_tokens(s):
-    """Split a string into a list of visual characters with their lenghts."""
+def _split_tokens(s: str) -> List[Tuple[str, int]]:
+    """Split a string into a list of visual characters with their lengths.
+
+    Parameters
+    ----------
+    s : str
+        The string to split.
+
+    Returns
+    -------
+    list of tuple
+        A list of tuples where each tuple contains a visual character and its length.
+    """
     from wcwidth import wcswidth
 
     initial = s
@@ -76,8 +104,19 @@ def _split_tokens(s):
     return out
 
 
-def visual_len(s):
-    """Compute the length of a string as it appears on the terminal."""
+def visual_len(s: Union[str, List[Tuple[str, int]]]) -> int:
+    """Compute the length of a string as it appears on the terminal.
+
+    Parameters
+    ----------
+    s : str or list of tuple
+        The string or list of visual characters with their lengths.
+
+    Returns
+    -------
+    int
+        The visual length of the string.
+    """
     if isinstance(s, str):
         s = _split_tokens(s)
     assert isinstance(s, (tuple, list)), (type(s), s)
@@ -92,8 +131,8 @@ def visual_len(s):
     return n
 
 
-def boxed(text, min_width=80, max_width=80) -> str:
-    """Put a box around a text
+def boxed(text: str, min_width: int = 80, max_width: int = 80) -> str:
+    """Put a box around a text.
 
     >>> boxed("Hello,\\nWorld!", max_width=40)
     ┌──────────────────────────────────────────┐
@@ -114,7 +153,6 @@ def boxed(text, min_width=80, max_width=80) -> str:
     -------
     str
         A boxed version of the input text
-
     """
 
     lines = []
@@ -158,68 +196,157 @@ def boxed(text, min_width=80, max_width=80) -> str:
     return "\n".join(box)
 
 
-def bold(text):
+def bold(text: str) -> str:
+    """Make the text bold.
+
+    Parameters
+    ----------
+    text : str
+        The text to make bold.
+
+    Returns
+    -------
+    str
+        The bold text.
+    """
     from termcolor import colored
 
     return colored(text, attrs=["bold"])
 
 
-def red(text):
+def red(text: str) -> str:
+    """Make the text red.
+
+    Parameters
+    ----------
+    text : str
+        The text to make red.
+
+    Returns
+    -------
+    str
+        The red text.
+    """
     from termcolor import colored
 
     return colored(text, "red")
 
 
-def green(text):
+def green(text: str) -> str:
+    """Make the text green.
+
+    Parameters
+    ----------
+    text : str
+        The text to make green.
+
+    Returns
+    -------
+    str
+        The green text.
+    """
     from termcolor import colored
 
     return colored(text, "green")
 
 
-def blue(text):
+def blue(text: str) -> str:
+    """Make the text blue.
+
+    Parameters
+    ----------
+    text : str
+        The text to make blue.
+
+    Returns
+    -------
+    str
+        The blue text.
+    """
     from termcolor import colored
 
     return colored(text, "blue")
 
 
 class Tree:
-    """Tree data structure."""
+    """Tree data structure.
 
-    def __init__(self, actor, parent=None):
+    Parameters
+    ----------
+    actor : Any
+        The actor associated with the tree node.
+    parent : Tree, optional
+        The parent tree node, by default None.
+    """
+
+    def __init__(self, actor: Any, parent: Optional["Tree"] = None):
         self._actor = actor
         self._kids = []
         self._parent = parent
 
-    def adopt(self, kid):
+    def adopt(self, kid: "Tree") -> None:
+        """Adopt a child tree node.
+
+        Parameters
+        ----------
+        kid : Tree
+            The child tree node to adopt.
+        """
         kid._parent._kids.remove(kid)
         self._kids.append(kid)
         kid._parent = self
         # assert False
 
-    def forget(self):
+    def forget(self) -> None:
+        """Forget the current tree node."""
         self._parent._kids.remove(self)
         self._parent = None
 
     @property
-    def is_leaf(self):
+    def is_leaf(self) -> bool:
+        """Bool: True if the tree node is a leaf, False otherwise."""
         return len(self._kids) == 0
 
     @property
-    def key(self):
+    def key(self) -> Tuple:
+        """Tuple: The key of the tree node."""
         return tuple(sorted(self._actor.as_dict().items()))
 
     @property
-    def _text(self):
+    def _text(self) -> str:
+        """Str: The text representation of the tree node."""
         return self._actor.summary
 
     @property
-    def summary(self):
+    def summary(self) -> str:
+        """Str: The summary of the tree node."""
         return self._actor.summary
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
+        """Convert the tree node to a dictionary.
+
+        Returns
+        -------
+        dict
+            The dictionary representation of the tree node.
+        """
         return self._actor.as_dict()
 
-    def node(self, actor, insert=False):
+    def node(self, actor: Any, insert: bool = False) -> "Tree":
+        """Create a new tree node.
+
+        Parameters
+        ----------
+        actor : Any
+            The actor associated with the new tree node.
+        insert : bool, optional
+            Whether to insert the new tree node at the beginning, by default False.
+
+        Returns
+        -------
+        Tree
+            The new tree node.
+        """
         node = Tree(actor, self)
         if insert:
             self._kids.insert(0, node)
@@ -227,7 +354,8 @@ class Tree:
             self._kids.append(node)
         return node
 
-    def print(self):
+    def print(self) -> None:
+        """Print the tree."""
         padding = []
 
         while self._factorise():
@@ -235,14 +363,28 @@ class Tree:
 
         self._print(padding)
 
-    def _leaves(self, result):
+    def _leaves(self, result: List["Tree"]) -> None:
+        """Collect all leaf nodes.
+
+        Parameters
+        ----------
+        result : list of Tree
+            The list to collect the leaf nodes.
+        """
         if self.is_leaf:
             result.append(self)
         else:
             for kid in self._kids:
                 kid._leaves(result)
 
-    def _factorise(self):
+    def _factorise(self) -> bool:
+        """Factorise the tree.
+
+        Returns
+        -------
+        bool
+            True if the tree was factorised, False otherwise.
+        """
         if len(self._kids) == 0:
             return False
 
@@ -290,7 +432,14 @@ class Tree:
 
         return result
 
-    def _print(self, padding):
+    def _print(self, padding: List[str]) -> None:
+        """Print the tree with padding.
+
+        Parameters
+        ----------
+        padding : list of str
+            The padding for each level of the tree.
+        """
         for i, p in enumerate(padding[:-1]):
             if p == " └":
                 padding[i] = "  "
@@ -308,7 +457,19 @@ class Tree:
 
         padding.pop()
 
-    def to_json(self, depth=0):
+    def to_json(self, depth: int = 0) -> dict:
+        """Convert the tree to a JSON serializable dictionary.
+
+        Parameters
+        ----------
+        depth : int, optional
+            The depth of the tree, by default 0.
+
+        Returns
+        -------
+        dict
+            The JSON serializable dictionary representation of the tree.
+        """
         while self._factorise():
             pass
 
@@ -319,8 +480,8 @@ class Tree:
         }
 
 
-def table(rows, header, align, margin=0) -> str:
-    """Format a table
+def table(rows: List[List[Any]], header: List[str], align: List[str], margin: int = 0) -> str:
+    """Format a table.
 
     >>> table([['Aa', 12, 5],
                ['B', 120, 1],
@@ -397,26 +558,12 @@ def table(rows, header, align, margin=0) -> str:
     return "\n".join(result)
 
 
-def progress(done, todo, width=80) -> str:
-    """_summary_
+def progress(done: int, todo: int, width: int = 80) -> str:
+    """Example
+    ----------
 
     >>> print(progress(10, 100,width=50))
     █████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-
-    Parameters
-    ----------
-    done : function
-        _description_
-    todo : _type_
-        _description_
-    width : int, optional
-        _description_, by default 80
-
-    Returns
-    -------
-    str
-        _description_
-
     """
     done = min(int(done / todo * width + 0.5), width)
     return green("█" * done) + red("█" * (width - done))

@@ -11,11 +11,24 @@
 import calendar
 import datetime
 import re
+from typing import Any
 
 import aniso8601
 
 
-def normalise_frequency(frequency):
+def normalise_frequency(frequency: int | str) -> int:
+    """Normalise frequency to hours.
+
+    Parameters
+    ----------
+    frequency : int or str
+        The frequency to normalise.
+
+    Returns
+    -------
+    int
+        The normalised frequency in hours.
+    """
     if isinstance(frequency, int):
         return frequency
     assert isinstance(frequency, str), (type(frequency), frequency)
@@ -25,7 +38,7 @@ def normalise_frequency(frequency):
     return {"h": v, "d": v * 24}[unit]
 
 
-def _no_time_zone(date) -> datetime.datetime:
+def _no_time_zone(date: datetime.datetime) -> datetime.datetime:
     """Remove time zone information from a date.
 
     Parameters
@@ -43,7 +56,7 @@ def _no_time_zone(date) -> datetime.datetime:
 
 
 # this function is use in anemoi-datasets
-def as_datetime(date, keep_time_zone=False) -> datetime.datetime:
+def as_datetime(date: datetime.date | datetime.datetime | str, keep_time_zone: bool = False) -> datetime.datetime:
     """Convert a date to a datetime object, removing any time zone information.
 
     Parameters
@@ -73,7 +86,21 @@ def as_datetime(date, keep_time_zone=False) -> datetime.datetime:
     raise ValueError(f"Invalid date type: {type(date)}")
 
 
-def _as_datetime_list(date, default_increment):
+def _as_datetime_list(date: datetime.date | datetime.datetime | str, default_increment: datetime.timedelta) -> iter:
+    """Convert a date to a list of datetime objects.
+
+    Parameters
+    ----------
+    date : datetime.date or datetime.datetime or str
+        The date to convert.
+    default_increment : datetime.timedelta
+        The default increment for the list.
+
+    Returns
+    -------
+    iter
+        An iterator of datetime objects.
+    """
     if isinstance(date, (list, tuple)):
         for d in date:
             yield from _as_datetime_list(d, default_increment)
@@ -102,12 +129,28 @@ def _as_datetime_list(date, default_increment):
     yield as_datetime(date)
 
 
-def as_datetime_list(date, default_increment=1):
+def as_datetime_list(
+    date: datetime.date | datetime.datetime | str, default_increment: int = 1
+) -> list[datetime.datetime]:
+    """Convert a date to a list of datetime objects.
+
+    Parameters
+    ----------
+    date : datetime.date or datetime.datetime or str
+        The date to convert.
+    default_increment : int, optional
+        The default increment in hours, by default 1.
+
+    Returns
+    -------
+    list of datetime.datetime
+        A list of datetime objects.
+    """
     default_increment = frequency_to_timedelta(default_increment)
     return list(_as_datetime_list(date, default_increment))
 
 
-def as_timedelta(frequency) -> datetime.timedelta:
+def as_timedelta(frequency: int | str | datetime.timedelta) -> datetime.timedelta:
     """Convert anything to a timedelta object.
 
     Parameters
@@ -178,12 +221,23 @@ def as_timedelta(frequency) -> datetime.timedelta:
     raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
 
 
-def frequency_to_timedelta(frequency) -> datetime.timedelta:
-    """Convert a frequency to a timedelta object."""
+def frequency_to_timedelta(frequency: int | str | datetime.timedelta) -> datetime.timedelta:
+    """Convert a frequency to a timedelta object.
+
+    Parameters
+    ----------
+    frequency : int or str or datetime.timedelta
+        The frequency to convert.
+
+    Returns
+    -------
+    datetime.timedelta
+        The timedelta object.
+    """
     return as_timedelta(frequency)
 
 
-def frequency_to_string(frequency) -> str:
+def frequency_to_string(frequency: datetime.timedelta) -> str:
     """Convert a frequency (i.e. a datetime.timedelta) to a string.
 
     Parameters
@@ -230,20 +284,19 @@ def frequency_to_string(frequency) -> str:
     return str(frequency)
 
 
-def frequency_to_seconds(frequency) -> int:
+def frequency_to_seconds(frequency: int | str | datetime.timedelta) -> int:
     """Convert a frequency to seconds.
 
     Parameters
     ----------
-    frequency : _type_
-        _description_
+    frequency : int or str or datetime.timedelta
+        The frequency to convert.
 
     Returns
     -------
     int
         Number of seconds.
     """
-
     result = frequency_to_timedelta(frequency).total_seconds()
     assert int(result) == result, result
     return int(result)
@@ -276,7 +329,19 @@ MONTH = {
 }
 
 
-def _make_day(day):
+def _make_day(day: int | list[int] | None) -> set[int]:
+    """Create a set of days.
+
+    Parameters
+    ----------
+    day : int or list of int or None
+        The day(s) to include in the set.
+
+    Returns
+    -------
+    set of int
+        A set of days.
+    """
     if day is None:
         return set(range(1, 32))
     if not isinstance(day, list):
@@ -284,7 +349,19 @@ def _make_day(day):
     return {int(d) for d in day}
 
 
-def _make_week(week):
+def _make_week(week: str | list[str] | None) -> set[int]:
+    """Create a set of weekdays.
+
+    Parameters
+    ----------
+    week : str or list of str or None
+        The weekday(s) to include in the set.
+
+    Returns
+    -------
+    set of int
+        A set of weekdays.
+    """
     if week is None:
         return set(range(7))
     if not isinstance(week, list):
@@ -292,7 +369,19 @@ def _make_week(week):
     return {DOW[w.lower()] for w in week}
 
 
-def _make_months(months):
+def _make_months(months: int | str | list[int | str] | None) -> set[int]:
+    """Create a set of months.
+
+    Parameters
+    ----------
+    months : int or str or list of int or str or None
+        The month(s) to include in the set.
+
+    Returns
+    -------
+    set of int
+        A set of months.
+    """
     if months is None:
         return set(range(1, 13))
 
@@ -305,23 +394,32 @@ def _make_months(months):
 class DateTimes:
     """The DateTimes class is an iterator that generates datetime objects within a given range."""
 
-    def __init__(self, start, end, increment=24, *, day_of_month=None, day_of_week=None, calendar_months=None):
-        """_summary_
+    def __init__(
+        self,
+        start: datetime.date | datetime.datetime | str,
+        end: datetime.date | datetime.datetime | str,
+        increment: int = 24,
+        *,
+        day_of_month: int | list[int] | None = None,
+        day_of_week: str | list[str] | None = None,
+        calendar_months: int | str | list[int | str] | None = None,
+    ):
+        """Initialize the DateTimes iterator.
 
         Parameters
         ----------
-        start : _type_
-            _description_
-        end : _type_
-            _description_
+        start : datetime.date or datetime.datetime or str
+            The start date.
+        end : datetime.date or datetime.datetime or str
+            The end date.
         increment : int, optional
-            _description_, by default 24
-        day_of_month : _type_, optional
-            _description_, by default None
-        day_of_week : _type_, optional
-            _description_, by default None
-        calendar_months : _type_, optional
-            _description_, by default None
+            The increment in hours, by default 24.
+        day_of_month : int or list of int or None, optional
+            The day(s) of the month to include, by default None.
+        day_of_week : str or list of str or None, optional
+            The day(s) of the week to include, by default None.
+        calendar_months : int or str or list of int or str or None, optional
+            The month(s) to include, by default None.
         """
         self.start = as_datetime(start)
         self.end = as_datetime(end)
@@ -330,7 +428,14 @@ class DateTimes:
         self.day_of_week = _make_week(day_of_week)
         self.calendar_months = _make_months(calendar_months)
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
+        """Iterate over the datetime objects.
+
+        Returns
+        -------
+        iter
+            An iterator of datetime objects.
+        """
         date = self.start
         while date <= self.end:
             if (
@@ -346,13 +451,13 @@ class DateTimes:
 class Year(DateTimes):
     """Year is defined as the months of January to December."""
 
-    def __init__(self, year, **kwargs):
-        """_summary_
+    def __init__(self, year: int, **kwargs):
+        """Initialize the Year iterator.
 
         Parameters
         ----------
         year : int
-            _description_
+            The year.
         """
         super().__init__(datetime.datetime(year, 1, 1), datetime.datetime(year, 12, 31), **kwargs)
 
@@ -360,13 +465,13 @@ class Year(DateTimes):
 class Winter(DateTimes):
     """Winter is defined as the months of December, January and February."""
 
-    def __init__(self, year, **kwargs):
-        """_summary_
+    def __init__(self, year: int, **kwargs):
+        """Initialize the Winter iterator.
 
         Parameters
         ----------
         year : int
-            _description_
+            The year.
         """
         super().__init__(
             datetime.datetime(year, 12, 1),
@@ -378,13 +483,13 @@ class Winter(DateTimes):
 class Spring(DateTimes):
     """Spring is defined as the months of March, April and May."""
 
-    def __init__(self, year, **kwargs):
-        """_summary_
+    def __init__(self, year: int, **kwargs):
+        """Initialize the Spring iterator.
 
         Parameters
         ----------
         year : int
-            _description_
+            The year.
         """
         super().__init__(datetime.datetime(year, 3, 1), datetime.datetime(year, 5, 31), **kwargs)
 
@@ -392,13 +497,13 @@ class Spring(DateTimes):
 class Summer(DateTimes):
     """Summer is defined as the months of June, July and August."""
 
-    def __init__(self, year, **kwargs):
-        """_summary_
+    def __init__(self, year: int, **kwargs):
+        """Initialize the Summer iterator.
 
         Parameters
         ----------
         year : int
-            _description_
+            The year.
         """
         super().__init__(datetime.datetime(year, 6, 1), datetime.datetime(year, 8, 31), **kwargs)
 
@@ -406,13 +511,13 @@ class Summer(DateTimes):
 class Autumn(DateTimes):
     """Autumn is defined as the months of September, October and November."""
 
-    def __init__(self, year, **kwargs):
-        """_summary_
+    def __init__(self, year: int, **kwargs):
+        """Initialize the Autumn iterator.
 
         Parameters
         ----------
         year : int
-            _description_
+            The year.
         """
         super().__init__(datetime.datetime(year, 9, 1), datetime.datetime(year, 11, 30), **kwargs)
 
@@ -420,13 +525,27 @@ class Autumn(DateTimes):
 class ConcatDateTimes:
     """ConcatDateTimes is an iterator that generates datetime objects from a list of dates."""
 
-    def __init__(self, *dates):
+    def __init__(self, *dates: DateTimes):
+        """Initialize the ConcatDateTimes iterator.
+
+        Parameters
+        ----------
+        dates : DateTimes
+            The list of DateTimes objects.
+        """
         if len(dates) == 1 and isinstance(dates[0], list):
             dates = dates[0]
 
         self.dates = dates
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
+        """Iterate over the datetime objects.
+
+        Returns
+        -------
+        iter
+            An iterator of datetime objects.
+        """
         for date in self.dates:
             yield from date
 
@@ -434,15 +553,43 @@ class ConcatDateTimes:
 class EnumDateTimes:
     """EnumDateTimes is an iterator that generates datetime objects from a list of dates."""
 
-    def __init__(self, dates):
+    def __init__(self, dates: list[datetime.date | datetime.datetime | str]):
+        """Initialize the EnumDateTimes iterator.
+
+        Parameters
+        ----------
+        dates : list of datetime.date or datetime.datetime or str
+            The list of dates.
+        """
         self.dates = dates
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
+        """Iterate over the datetime objects.
+
+        Returns
+        -------
+        iter
+            An iterator of datetime objects.
+        """
         for date in self.dates:
             yield as_datetime(date)
 
 
-def datetimes_factory(*args, **kwargs):
+def datetimes_factory(*args: Any, **kwargs: Any) -> DateTimes | ConcatDateTimes | EnumDateTimes:
+    """Create a DateTimes, ConcatDateTimes, or EnumDateTimes object.
+
+    Parameters
+    ----------
+    *args : Any
+        Positional arguments.
+    **kwargs : Any
+        Keyword arguments.
+
+    Returns
+    -------
+    DateTimes or ConcatDateTimes or EnumDateTimes
+        The created object.
+    """
     if args and kwargs:
         raise ValueError("Cannot provide both args and kwargs for a list of dates")
 

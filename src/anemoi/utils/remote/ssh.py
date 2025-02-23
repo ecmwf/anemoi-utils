@@ -17,7 +17,24 @@ from . import BaseUpload
 LOGGER = logging.getLogger(__name__)
 
 
-def call_process(*args):
+def call_process(*args: str) -> str:
+    """Execute a subprocess with the given arguments and return its output.
+
+    Parameters
+    ----------
+    args : str
+        The command and its arguments to execute.
+
+    Returns
+    -------
+    str
+        The standard output of the command.
+
+    Raises
+    ------
+    RuntimeError
+        If the command returns a non-zero exit code.
+    """
     proc = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
@@ -34,7 +51,24 @@ def call_process(*args):
 
 class SshBaseUpload(BaseUpload):
 
-    def _parse_target(self, target):
+    def _parse_target(self, target: str) -> tuple[str, str]:
+        """Parse the SSH target string into hostname and path.
+
+        Parameters
+        ----------
+        target : str
+            The SSH target string in the format 'ssh://hostname:path'.
+
+        Returns
+        -------
+        tuple[str, str]
+            A tuple containing the hostname and the path.
+
+        Raises
+        ------
+        Exception
+            If the path contains suspicious '..'.
+        """
         assert target.startswith("ssh://"), target
 
         target = target[6:]
@@ -49,20 +83,50 @@ class SshBaseUpload(BaseUpload):
 
         return hostname, path
 
-    def get_temporary_target(self, target, pattern):
+    def get_temporary_target(self, target: str, pattern: str) -> str:
+        """Get a temporary target path based on the given pattern.
+
+        Parameters
+        ----------
+        target : str
+            The original target path.
+        pattern : str
+            The pattern to format the temporary path.
+
+        Returns
+        -------
+        str
+            The temporary target path.
+        """
         hostname, path = self._parse_target(target)
         if pattern is not None:
             dirname, basename = os.path.split(path)
             path = pattern.format(dirname=dirname, basename=basename)
         return f"ssh://{hostname}:{path}"
 
-    def rename_target(self, target, new_target):
+    def rename_target(self, target: str, new_target: str) -> None:
+        """Rename the target to a new target path.
+
+        Parameters
+        ----------
+        target : str
+            The original target path.
+        new_target : str
+            The new target path.
+        """
         hostname, path = self._parse_target(target)
         hostname, new_path = self._parse_target(new_target)
         call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(new_path)))
         call_process("ssh", hostname, "mv", shlex.quote(path), shlex.quote(new_path))
 
-    def delete_target(self, target):
+    def delete_target(self, target: str) -> None:
+        """Delete the target path.
+
+        Parameters
+        ----------
+        target : str
+            The target path to delete.
+        """
         pass
         # hostname, path = self._parse_target(target)
         # LOGGER.info(f"Deleting {target}")
@@ -71,7 +135,33 @@ class SshBaseUpload(BaseUpload):
 
 class RsyncUpload(SshBaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
+        """Transfer a file using rsync.
+
+        Parameters
+        ----------
+        source : str
+            The source file path.
+        target : str
+            The target file path.
+        overwrite : bool
+            Whether to overwrite the target if it exists.
+        resume : bool
+            Whether to resume the transfer if possible.
+        verbosity : int
+            The verbosity level.
+        threads : int
+            The number of threads to use.
+        config : dict, optional
+            Additional configuration options.
+
+        Returns
+        -------
+        int
+            The size of the transferred file.
+        """
         hostname, path = self._parse_target(target)
 
         size = os.path.getsize(source)
@@ -95,7 +185,38 @@ class RsyncUpload(SshBaseUpload):
 
 class ScpUpload(SshBaseUpload):
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
+        """Transfer a file using scp.
+
+        Parameters
+        ----------
+        source : str
+            The source file path.
+        target : str
+            The target file path.
+        overwrite : bool
+            Whether to overwrite the target if it exists.
+        resume : bool
+            Whether to resume the transfer if possible.
+        verbosity : int
+            The verbosity level.
+        threads : int
+            The number of threads to use.
+        config : dict, optional
+            Additional configuration options.
+
+        Returns
+        -------
+        int
+            The size of the transferred file.
+
+        Raises
+        ------
+        ValueError
+            If the target already exists and overwrite or resume is not specified.
+        """
         hostname, path = self._parse_target(target)
 
         size = os.path.getsize(source)
@@ -128,7 +249,18 @@ class ScpUpload(SshBaseUpload):
         return size
 
 
-def upload(source, target, **kwargs) -> None:
+def upload(source: str, target: str, **kwargs) -> None:
+    """Upload a file or folder to the target location using rsync.
+
+    Parameters
+    ----------
+    source : str
+        The source file or folder path.
+    target : str
+        The target path.
+    kwargs : dict
+        Additional arguments for the transfer.
+    """
     uploader = RsyncUpload()
 
     if os.path.isdir(source):
