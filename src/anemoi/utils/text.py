@@ -562,6 +562,8 @@ def progress(done: int, todo: int, width: int = 80) -> str:
     """Generates a progress bar string.
 
     Parameters
+    ----------
+
     done : int
         The number of tasks completed.
     todo : int

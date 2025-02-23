@@ -13,8 +13,9 @@ import json
 import os
 import time
 from threading import Lock
-from typing import Any, Optional
+from typing import Any
 from typing import Callable
+from typing import Optional
 
 import numpy as np
 

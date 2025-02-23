@@ -12,6 +12,10 @@ import calendar
 import datetime
 import re
 from typing import Any
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
 
 import aniso8601
 
@@ -329,7 +333,7 @@ MONTH = {
 }
 
 
-def _make_day(day: Optional[Tuple[int, List[int]]) -> set[int]:
+def _make_day(day: Optional[Tuple[int, List[int]]]) -> Set[int]:
     """Create a set of days.
 
     Parameters
@@ -349,7 +353,7 @@ def _make_day(day: Optional[Tuple[int, List[int]]) -> set[int]:
     return {int(d) for d in day}
 
 
-def _make_week(week: Optional[Tuple[str, List[str]]) -> set[int]:
+def _make_week(week: Optional[Tuple[str, List[str]]]) -> Set[int]:
     """Create a set of weekdays.
 
     Parameters
@@ -369,7 +373,7 @@ def _make_week(week: Optional[Tuple[str, List[str]]) -> set[int]:
     return {DOW[w.lower()] for w in week}
 
 
-def _make_months(months: int | str | list[int | str] | None) -> set[int]:
+def _make_months(months: Optional[int | str | List[int | str]]) -> Set[int]:
     """Create a set of months.
 
     Parameters
