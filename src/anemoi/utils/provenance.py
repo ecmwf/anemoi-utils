@@ -374,7 +374,6 @@ def git_check(*args: Any) -> Dict[str, Any]:
     dict
         An object with the git information for the given arguments.
 
-
         >>> {
                 "anemoi.utils": {
                     "sha1": "c999d83ae283bcbb99f68d92c42d24315922129f",
@@ -387,7 +386,6 @@ def git_check(*args: Any) -> Dict[str, Any]:
                     "untracked_files": []
                 }
             }
-
     """
     paths = _paths(args if len(args) > 0 else None)
 
