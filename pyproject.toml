@@ -57,7 +57,7 @@ optional-dependencies.docs = [
   "pandoc",
   "requests",
   "sphinx",
-  "sphinx-argparse<0.5",
+  "sphinx-argparse",
   "sphinx-rtd-theme",
   "termcolor",
 ]

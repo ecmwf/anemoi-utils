@@ -483,17 +483,17 @@ class Tree:
 def table(rows: List[List[Any]], header: List[str], align: List[str], margin: int = 0) -> str:
     """Format a table.
 
-    >>> table([['Aa', 12, 5],
-               ['B', 120, 1],
-               ['C', 9, 123]],
-               ['C1', 'C2', 'C3'],
-               ['<', '>', '>'])
-        C1 │  C2 │  C3
-        ───┼─────┼────
-        Aa │  12 │   5
-        B  │ 120 │   1
-        C  │   9 │ 123
-        ───┴─────┴────
+        >>> table([['Aa', 12, 5],
+                ['B', 120, 1],
+                ['C', 9, 123]],
+                ['C1', 'C2', 'C3'],
+                ['<', '>', '>'])
+            C1 │  C2 │  C3
+            ───┼─────┼────
+            Aa │  12 │   5
+            B  │ 120 │   1
+            C  │   9 │ 123
+            ───┴─────┴────
 
     Parameters
     ----------
@@ -559,8 +559,23 @@ def table(rows: List[List[Any]], header: List[str], align: List[str], margin: in
 
 
 def progress(done: int, todo: int, width: int = 80) -> str:
-    """Example
-    ----------
+    """Generates a progress bar string.
+
+    Parameters
+    done : int
+        The number of tasks completed.
+    todo : int
+        The total number of tasks.
+    width : int, optional
+        The width of the progress bar, by default 80.
+
+    Returns
+    -------
+    str
+        A string representing the progress bar.
+
+    Example
+    -------
 
     >>> print(progress(10, 100,width=50))
     █████▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒

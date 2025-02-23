@@ -374,18 +374,20 @@ def git_check(*args: Any) -> Dict[str, Any]:
     dict
         An object with the git information for the given arguments.
 
-    >>> {
-            "anemoi.utils": {
-                "sha1": "c999d83ae283bcbb99f68d92c42d24315922129f",
-                "remotes": [
-                    "git@github.com:ecmwf/anemoi-utils.git"
-                ],
-                "modified_files": [
-                    "anemoi/utils/checkpoints.py"
-                ],
-                "untracked_files": []
+
+        >>> {
+                "anemoi.utils": {
+                    "sha1": "c999d83ae283bcbb99f68d92c42d24315922129f",
+                    "remotes": [
+                        "git@github.com:ecmwf/anemoi-utils.git"
+                    ],
+                    "modified_files": [
+                        "anemoi/utils/checkpoints.py"
+                    ],
+                    "untracked_files": []
+                }
             }
-        }
+
     """
     paths = _paths(args if len(args) > 0 else None)
 
