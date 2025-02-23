@@ -13,7 +13,7 @@ import json
 import os
 import time
 from threading import Lock
-from typing import Any
+from typing import Any, Optional
 from typing import Callable
 
 import numpy as np
@@ -60,7 +60,7 @@ class Cacher:
     Private class, do not use directly.
     """
 
-    def __init__(self, collection: str, expires: int | None):
+    def __init__(self, collection: str, expires: Optional[int]):
         """Initialize the Cacher.
 
         Parameters
@@ -225,7 +225,7 @@ class NpzCacher(Cacher):
 
 
 # PUBLIC API
-def cached(collection: str = "default", expires: int | None = None, encoding: str = "json") -> Callable:
+def cached(collection: str = "default", expires: Optional[int] = None, encoding: str = "json") -> Callable:
     """Decorator to cache the result of a function.
 
     Default is to use a json file to store the cache, but you can also use npz files

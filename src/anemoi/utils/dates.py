@@ -329,7 +329,7 @@ MONTH = {
 }
 
 
-def _make_day(day: int | list[int] | None) -> set[int]:
+def _make_day(day: Optional[Tuple[int, List[int]]) -> set[int]:
     """Create a set of days.
 
     Parameters
@@ -349,7 +349,7 @@ def _make_day(day: int | list[int] | None) -> set[int]:
     return {int(d) for d in day}
 
 
-def _make_week(week: str | list[str] | None) -> set[int]:
+def _make_week(week: Optional[Tuple[str, List[str]]) -> set[int]:
     """Create a set of weekdays.
 
     Parameters
@@ -400,9 +400,9 @@ class DateTimes:
         end: datetime.date | datetime.datetime | str,
         increment: int = 24,
         *,
-        day_of_month: int | list[int] | None = None,
-        day_of_week: str | list[str] | None = None,
-        calendar_months: int | str | list[int | str] | None = None,
+        day_of_month: Optional[Tuple[int, List[int]]] = None,
+        day_of_week: Optional[Tuple[str, List[str]]] = None,
+        calendar_months: Optional[int | str | List[int | str]] = None,
     ):
         """Initialize the DateTimes iterator.
 
