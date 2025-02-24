@@ -12,10 +12,12 @@ from __future__ import annotations
 import functools
 from typing import Any
 from typing import Callable
+from typing import Optional
+from typing import Union
 
 
 def aliases(
-    aliases: dict[str, str | list[str]] | None = None, **kwargs: str | list[str]
+    aliases: Optional[dict[str, Union[str, list[str]]]] = None, **kwargs: Any
 ) -> Callable[[Callable], Callable]:
     """Alias keyword arguments in a function call.
 
@@ -23,10 +25,10 @@ def aliases(
 
     Parameters
     ----------
-    aliases : dict[str, str  |  list[str]] | None, optional
+    aliases : dict[str, Union[str, list[str]]], optional
         Key, value pair of aliases, with keys being the true name, and value being a str or list of aliases,
         by default None
-    **kwargs : str | list[str]
+    **kwargs : Any
         Kwargs form of aliases
 
     Returns

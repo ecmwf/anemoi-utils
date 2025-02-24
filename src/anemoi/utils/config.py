@@ -15,6 +15,8 @@ import logging
 import os
 import threading
 from typing import Any
+from typing import Optional
+from typing import Union
 
 import yaml
 
@@ -239,7 +241,7 @@ CONFIG_LOCK = threading.RLock()
 QUIET = False
 
 
-def _find(config: dict | list, what: str, result: list = None) -> list:
+def _find(config: Union[dict, list], what: str, result: list = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list.
 
     Parameters
@@ -402,7 +404,11 @@ def load_any_dict_format(path: str) -> dict:
     return open(path).read()
 
 
-def _load_config(name: str = "settings.toml", secrets: str | list[str] = None, defaults: str | dict = None) -> DotDict:
+def _load_config(
+    name: str = "settings.toml",
+    secrets: Optional[Union[str, list[str]]] = None,
+    defaults: Optional[Union[str, dict]] = None,
+) -> DotDict:
     """Load a configuration file.
 
     Parameters
@@ -504,7 +510,9 @@ def save_config(name: str, data: Any) -> None:
 
 
 def load_config(
-    name: str = "settings.toml", secrets: str | list[str] = None, defaults: str | dict = None
+    name: str = "settings.toml",
+    secrets: Optional[Union[str, list[str]]] = None,
+    defaults: Optional[Union[str, dict]] = None,
 ) -> DotDict | str:
     """Read a configuration file.
 
@@ -527,7 +535,7 @@ def load_config(
         return _load_config(name, secrets, defaults)
 
 
-def load_raw_config(name: str, default: Any = None) -> DotDict | str:
+def load_raw_config(name: str, default: Any = None) -> Union[DotDict, str]:
     """Load a raw configuration file.
 
     Parameters
@@ -586,7 +594,7 @@ def check_config_mode(name: str = "settings.toml", secrets_name: str = None, sec
         CHECKED[name] = True
 
 
-def find(metadata: dict | list, what: str, result: list = None, *, select: callable = None) -> list:
+def find(metadata: Union[dict, list], what: str, result: list = None, *, select: callable = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list with an optional selector.
 
     Parameters

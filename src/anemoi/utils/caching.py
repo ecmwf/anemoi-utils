@@ -68,7 +68,7 @@ class Cacher:
         ----------
         collection : str
             The name of the collection
-        expires : int | None
+        expires : int, optional
             The expiration time in seconds, or None for no expiration
         """
         self.collection = collection
@@ -236,7 +236,7 @@ def cached(collection: str = "default", expires: Optional[int] = None, encoding:
     ----------
     collection : str, optional
         The name of the collection, by default "default"
-    expires : int | None, optional
+    expires : int, optional
         The expiration time in seconds, or None for no expiration, by default None
     encoding : str, optional
         The encoding type, either "json" or "npz", by default "json"
