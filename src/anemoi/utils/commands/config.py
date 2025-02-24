@@ -9,6 +9,8 @@
 
 
 import json
+from argparse import ArgumentParser
+from argparse import Namespace
 
 from ..config import config_path
 from ..config import load_config
@@ -16,11 +18,26 @@ from . import Command
 
 
 class Config(Command):
+    """Handle configuration related commands."""
 
-    def add_arguments(self, command_parser):
+    def add_arguments(self, command_parser: ArgumentParser) -> None:
+        """Add arguments to the command parser.
+
+        Parameters
+        ----------
+        command_parser : ArgumentParser
+            The argument parser to which the arguments will be added.
+        """
         command_parser.add_argument("--path", help="Print path to config file")
 
-    def run(self, args):
+    def run(self, args: Namespace) -> None:
+        """Execute the command with the provided arguments.
+
+        Parameters
+        ----------
+        args : Namespace
+            The arguments passed to the command.
+        """
         if args.path:
             print(config_path())
         else:

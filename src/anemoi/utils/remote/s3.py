@@ -19,13 +19,13 @@ to use a different S3 compatible service::
 Alternatively, the `endpoint_url`, and keys can be set in one of
 the `~/.config/anemoi/settings.toml`
 or `~/.config/anemoi/settings-secrets.toml` files.
-
 """
 
 import logging
 import os
 import threading
 from copy import deepcopy
+from typing import Any
 from typing import Iterable
 
 import tqdm
@@ -43,7 +43,21 @@ LOGGER = logging.getLogger(__name__)
 thread_local = threading.local()
 
 
-def s3_client(bucket, region=None):
+def s3_client(bucket: str, region: str = None) -> Any:
+    """Get an S3 client for the specified bucket and region.
+
+    Parameters
+    ----------
+    bucket : str
+        The name of the S3 bucket.
+    region : str, optional
+        The AWS region of the S3 bucket.
+
+    Returns
+    -------
+    Any
+        The S3 client.
+    """
     import boto3
     from botocore import UNSIGNED
     from botocore.client import Config
@@ -107,18 +121,78 @@ def s3_client(bucket, region=None):
 
 class S3Upload(BaseUpload):
 
-    def get_temporary_target(self, target, pattern):
+    def get_temporary_target(self, target: str, pattern: str) -> str:
+        """Get a temporary target path based on the given pattern.
+
+        Parameters
+        ----------
+        target : str
+            The original target path.
+        pattern : str
+            The pattern to format the temporary path.
+
+        Returns
+        -------
+        str
+            The temporary target path.
+        """
         return target
 
-    def rename_target(self, target, temporary_target):
+    def rename_target(self, target: str, temporary_target: str) -> None:
+        """Rename the target to a new target path.
+
+        Parameters
+        ----------
+        target : str
+            The original target path.
+        temporary_target : str
+            The new target path.
+        """
         pass
 
-    def delete_target(self, target):
+    def delete_target(self, target: str) -> None:
+        """Delete the target path.
+
+        Parameters
+        ----------
+        target : str
+            The target path to delete.
+        """
         pass
         # delete(target)
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
+        """Transfer a file to S3.
 
+        Parameters
+        ----------
+        source : str
+            The source file path.
+        target : str
+            The target S3 path.
+        overwrite : bool
+            Whether to overwrite the target if it exists.
+        resume : bool
+            Whether to resume the transfer if possible.
+        verbosity : int
+            The verbosity level.
+        threads : int
+            The number of threads to use.
+        config : dict, optional
+            Additional configuration options.
+
+        Returns
+        -------
+        int
+            The size of the transferred file.
+
+        Raises
+        ------
+        ValueError
+            If the target already exists and overwrite or resume is not specified.
+        """
         from botocore.exceptions import ClientError
 
         assert target.startswith("s3://")
@@ -162,7 +236,18 @@ class S3Upload(BaseUpload):
 
 class S3Download(BaseDownload):
 
-    def copy(self, source, target, **kwargs):
+    def copy(self, source: str, target: str, **kwargs) -> None:
+        """Copy a file or folder from S3 to the local filesystem.
+
+        Parameters
+        ----------
+        source : str
+            The source S3 path.
+        target : str
+            The target local path.
+        kwargs : dict
+            Additional arguments for the transfer.
+        """
         assert source.startswith("s3://")
 
         if source.endswith("/"):
@@ -170,23 +255,108 @@ class S3Download(BaseDownload):
         else:
             self.transfer_file(source=source, target=target, **kwargs)
 
-    def list_source(self, source):
+    def list_source(self, source: str) -> Iterable:
+        """List the objects in the source S3 path.
+
+        Parameters
+        ----------
+        source : str
+            The source S3 path.
+
+        Returns
+        -------
+        Iterable
+            An iterable of S3 objects.
+        """
         yield from _list_objects(source)
 
-    def source_path(self, s3_object, source):
+    def source_path(self, s3_object: dict, source: str) -> str:
+        """Get the S3 path of the object.
+
+        Parameters
+        ----------
+        s3_object : dict
+            The S3 object.
+        source : str
+            The source S3 path.
+
+        Returns
+        -------
+        str
+            The S3 path of the object.
+        """
         _, _, bucket, _ = source.split("/", 3)
         return f"s3://{bucket}/{s3_object['Key']}"
 
-    def target_path(self, s3_object, source, target):
+    def target_path(self, s3_object: dict, source: str, target: str) -> str:
+        """Get the local path for the S3 object.
+
+        Parameters
+        ----------
+        s3_object : dict
+            The S3 object.
+        source : str
+            The source S3 path.
+        target : str
+            The target local path.
+
+        Returns
+        -------
+        str
+            The local path for the S3 object.
+        """
         _, _, _, folder = source.split("/", 3)
         local_path = os.path.join(target, os.path.relpath(s3_object["Key"], folder))
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         return local_path
 
-    def source_size(self, s3_object):
+    def source_size(self, s3_object: dict) -> int:
+        """Get the size of the S3 object.
+
+        Parameters
+        ----------
+        s3_object : dict
+            The S3 object.
+
+        Returns
+        -------
+        int
+            The size of the S3 object.
+        """
         return s3_object["Size"]
 
-    def _transfer_file(self, source, target, overwrite, resume, verbosity, threads, config=None):
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
+        """Transfer a file from S3 to the local filesystem.
+
+        Parameters
+        ----------
+        source : str
+            The source S3 path.
+        target : str
+            The target local path.
+        overwrite : bool
+            Whether to overwrite the target if it exists.
+        resume : bool
+            Whether to resume the transfer if possible.
+        verbosity : int
+            The verbosity level.
+        threads : int
+            The number of threads to use.
+        config : dict, optional
+            Additional configuration options.
+
+        Returns
+        -------
+        int
+            The size of the transferred file.
+
+        Raises
+        ------
+        ValueError
+            If the target does not exist on S3.
+        """
         # from boto3.s3.transfer import TransferConfig
 
         _, _, bucket, key = source.split("/", 3)
@@ -234,7 +404,21 @@ class S3Download(BaseDownload):
         return size
 
 
-def _list_objects(target, batch=False):
+def _list_objects(target: str, batch: bool = False) -> Iterable:
+    """List the objects in the target S3 path.
+
+    Parameters
+    ----------
+    target : str
+        The target S3 path.
+    batch : bool, optional
+        Whether to return objects in batches, by default False.
+
+    Returns
+    -------
+    Iterable
+        An iterable of S3 objects.
+    """
     _, _, bucket, prefix = target.split("/", 3)
     s3 = s3_client(bucket)
 
@@ -249,7 +433,14 @@ def _list_objects(target, batch=False):
                 yield from objects
 
 
-def _delete_folder(target) -> None:
+def _delete_folder(target: str) -> None:
+    """Delete a folder from S3.
+
+    Parameters
+    ----------
+    target : str
+        The target S3 folder path.
+    """
     _, _, bucket, _ = target.split("/", 3)
     s3 = s3_client(bucket)
 
@@ -261,7 +452,14 @@ def _delete_folder(target) -> None:
         LOGGER.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
-def _delete_file(target) -> None:
+def _delete_file(target: str) -> None:
+    """Delete a file from S3.
+
+    Parameters
+    ----------
+    target : str
+        The target S3 file path.
+    """
     from botocore.exceptions import ClientError
 
     _, _, bucket, key = target.split("/", 3)
@@ -284,14 +482,13 @@ def _delete_file(target) -> None:
     LOGGER.info(f"{target} is deleted")
 
 
-def delete(target) -> None:
+def delete(target: str) -> None:
     """Delete a file or a folder from S3.
 
     Parameters
     ----------
     target : str
-        The URL of a file or a folder on S3. The url should start with 's3://'. If the URL ends with a '/' it is
-        assumed to be a folder, otherwise it is assumed to be a file.
+        The URL of a file or a folder on S3. The URL should start with 's3://'.
     """
 
     assert target.startswith("s3://")
@@ -302,18 +499,18 @@ def delete(target) -> None:
         _delete_file(target)
 
 
-def list_folder(folder) -> Iterable:
-    """List the sub folders in a folder on S3.
+def list_folder(folder: str) -> Iterable:
+    """List the subfolders in a folder on S3.
 
     Parameters
     ----------
     folder : str
-        The URL of a folder on S3. The url should start with 's3://'.
+        The URL of a folder on S3. The URL should start with 's3://'.
 
     Returns
     -------
     list
-        A list of the subfolders names in the folder.
+        A list of the subfolder names in the folder.
     """
 
     assert folder.startswith("s3://")
@@ -330,13 +527,13 @@ def list_folder(folder) -> Iterable:
             yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes")]
 
 
-def object_info(target) -> dict:
+def object_info(target: str) -> dict:
     """Get information about an object on S3.
 
     Parameters
     ----------
     target : str
-        The URL of a file or a folder on S3. The url should start with 's3://'.
+        The URL of a file or a folder on S3. The URL should start with 's3://'.
 
     Returns
     -------
@@ -355,13 +552,13 @@ def object_info(target) -> dict:
         raise
 
 
-def object_acl(target) -> dict:
+def object_acl(target: str) -> dict:
     """Get information about an object's ACL on S3.
 
     Parameters
     ----------
     target : str
-        The URL of a file or a folder on S3. The url should start with 's3://'.
+        The URL of a file or a folder on S3. The URL should start with 's3://'.
 
     Returns
     -------
@@ -375,14 +572,40 @@ def object_acl(target) -> dict:
     return s3.get_object_acl(Bucket=bucket, Key=key)
 
 
-def download(source, target, *args, **kwargs):
+def download(source: str, target: str, *args, **kwargs) -> None:
+    """Download a file or folder from S3 to the local filesystem.
+
+    Parameters
+    ----------
+    source : str
+        The source S3 path.
+    target : str
+        The target local path.
+    args : tuple
+        Additional positional arguments.
+    kwargs : dict
+        Additional keyword arguments.
+    """
     from . import transfer
 
     assert source.startswith("s3://"), f"source {source} should start with 's3://'"
     return transfer(source, target, *args, **kwargs)
 
 
-def upload(source, target, *args, **kwargs):
+def upload(source: str, target: str, *args, **kwargs) -> None:
+    """Upload a file or folder to S3.
+
+    Parameters
+    ----------
+    source : str
+        The source file or folder path.
+    target : str
+        The target S3 path.
+    args : tuple
+        Additional positional arguments.
+    kwargs : dict
+        Additional keyword arguments.
+    """
     from . import transfer
 
     assert target.startswith("s3://"), f"target {target} should start with 's3://'"

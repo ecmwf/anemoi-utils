@@ -10,13 +10,16 @@
 
 """Utilities for working with Mars requests.
 
-Has some konwledge of how certain streams are organised in Mars.
-
+Has some knowledge of how certain streams are organised in Mars.
 """
 
 import datetime
 import logging
 import os
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import Tuple
 
 import yaml
 
@@ -30,16 +33,18 @@ DEFAULT_MARS_LABELLING = {
 }
 
 
-def _expand_mars_labelling(request):
+def _expand_mars_labelling(request: Dict[str, Any]) -> Dict[str, Any]:
     """Expand the request with the default Mars labelling.
 
-    The default Mars labelling is:
+    Parameters
+    ----------
+    request : dict
+        The original Mars request.
 
-    {'class': 'od',
-     'type': 'an',
-     'stream': 'oper',
-     'expver': '0001'}
-
+    Returns
+    -------
+    dict
+        The Mars request expanded with default labelling.
     """
     result = DEFAULT_MARS_LABELLING.copy()
     result.update(request)
@@ -49,7 +54,19 @@ def _expand_mars_labelling(request):
 STREAMS = None
 
 
-def _lookup_mars_stream(request):
+def _lookup_mars_stream(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Look up the Mars stream information for a given request.
+
+    Parameters
+    ----------
+    request : dict
+        The Mars request.
+
+    Returns
+    -------
+    dict or None
+        The stream information if a match is found, otherwise None.
+    """
     global STREAMS
 
     if STREAMS is None:
@@ -64,8 +81,25 @@ def _lookup_mars_stream(request):
             return s["info"]
 
 
-def recenter(date, center, members):
+def recenter(
+    date: datetime.datetime, center: Dict[str, Any], members: Dict[str, Any]
+) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """Recenter the given date with the specified center and members.
 
+    Parameters
+    ----------
+    date : datetime.datetime
+        The date to recenter.
+    center : dict
+        The center request information.
+    members : dict
+        The members request information.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the recentered center and members information.
+    """
     center = _lookup_mars_stream(center)
     members = _lookup_mars_stream(members)
 

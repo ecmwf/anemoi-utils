@@ -14,7 +14,8 @@ from anemoi.utils.dates import frequency_to_string
 from anemoi.utils.dates import frequency_to_timedelta
 
 
-def test_frequency_to_string():
+def test_frequency_to_string() -> None:
+    """Test the frequency_to_string function for converting timedelta to string."""
     assert frequency_to_string(datetime.timedelta(hours=1)) == "1h"
     assert frequency_to_string(datetime.timedelta(hours=1, minutes=30)) == "1:30:00"
     assert frequency_to_string(datetime.timedelta(days=10)) == "10d"
@@ -22,7 +23,8 @@ def test_frequency_to_string():
     assert frequency_to_string(datetime.timedelta(minutes=90)) == "1:30:00"
 
 
-def test_frequency_to_timedelta():
+def test_frequency_to_timedelta() -> None:
+    """Test the frequency_to_timedelta function for converting string to timedelta."""
     assert frequency_to_timedelta("1s") == datetime.timedelta(seconds=1)
     assert frequency_to_timedelta("3m") == datetime.timedelta(minutes=3)
     assert frequency_to_timedelta("1h") == datetime.timedelta(hours=1)

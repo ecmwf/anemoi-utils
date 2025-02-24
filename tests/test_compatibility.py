@@ -13,6 +13,7 @@ from anemoi.utils.compatibility import aliases
 
 
 def test_aliases() -> None:
+    """Test the aliases decorator for function argument aliases."""
 
     @aliases(a="b", c=["d", "e"])
     def func(a, c):
@@ -24,6 +25,8 @@ def test_aliases() -> None:
 
 
 def test_duplicate_values() -> None:
+    """Test the aliases decorator for handling duplicate values."""
+
     @aliases(a="b", c=["d", "e"])
     def func(a, c):
         return a, c

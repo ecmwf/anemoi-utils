@@ -12,6 +12,11 @@ import importlib
 import logging
 import os
 import sys
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Optional
+from typing import Union
 
 import entrypoints
 
@@ -19,13 +24,33 @@ LOG = logging.getLogger(__name__)
 
 
 class Wrapper:
-    """A wrapper for the registry"""
+    """A wrapper for the registry.
 
-    def __init__(self, name, registry):
+    Parameters
+    ----------
+    name : str
+        The name of the wrapper.
+    registry : Registry
+        The registry to wrap.
+    """
+
+    def __init__(self, name: str, registry: "Registry"):
         self.name = name
         self.registry = registry
 
-    def __call__(self, factory):
+    def __call__(self, factory: Callable) -> Callable:
+        """Register a factory with the registry.
+
+        Parameters
+        ----------
+        factory : Callable
+            The factory to register.
+
+        Returns
+        -------
+        Callable
+            The registered factory.
+        """
         self.registry.register(self.name, factory)
         return factory
 
@@ -34,10 +59,17 @@ _BY_KIND = {}
 
 
 class Registry:
-    """A registry of factories"""
+    """A registry of factories.
 
-    def __init__(self, package, key="_type"):
+    Parameters
+    ----------
+    package : str
+        The package name.
+    key : str, optional
+        The key to use for the registry, by default "_type".
+    """
 
+    def __init__(self, package: str, key: str = "_type"):
         self.package = package
         self.registered = {}
         self.kind = package.split(".")[-1]
@@ -45,11 +77,36 @@ class Registry:
         _BY_KIND[self.kind] = self
 
     @classmethod
-    def lookup_kind(cls, kind: str):
+    def lookup_kind(cls, kind: str) -> Optional["Registry"]:
+        """Lookup a registry by kind.
+
+        Parameters
+        ----------
+        kind : str
+            The kind of the registry.
+
+        Returns
+        -------
+        Registry, optional
+            The registry if found, otherwise None.
+        """
         return _BY_KIND.get(kind)
 
-    def register(self, name: str, factory: callable = None):
+    def register(self, name: str, factory: Optional[Callable] = None) -> Optional[Wrapper]:
+        """Register a factory with the registry.
 
+        Parameters
+        ----------
+        name : str
+            The name of the factory.
+        factory : Callable, optional
+            The factory to register, by default None.
+
+        Returns
+        -------
+        Wrapper, optional
+            A wrapper if the factory is None, otherwise None.
+        """
         if factory is None:
             return Wrapper(name, self)
 
@@ -58,15 +115,35 @@ class Registry:
     # def registered(self, name: str):
     #     return name in self.registered
 
-    def _load(self, file):
+    def _load(self, file: str) -> None:
+        """Load a module from a file.
+
+        Parameters
+        ----------
+        file : str
+            The file to load.
+        """
         name, _ = os.path.splitext(file)
         try:
             importlib.import_module(f".{name}", package=self.package)
         except Exception:
             LOG.warning(f"Error loading filter '{self.package}.{name}'", exc_info=True)
 
-    def lookup(self, name: str, *, return_none=False) -> callable:
+    def lookup(self, name: str, *, return_none: bool = False) -> Optional[Callable]:
+        """Lookup a factory by name.
 
+        Parameters
+        ----------
+        name : str
+            The name of the factory.
+        return_none : bool, optional
+            Whether to return None if the factory is not found, by default False.
+
+        Returns
+        -------
+        Callable, optional
+            The factory if found, otherwise None.
+        """
         # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', name, self.registered)
         if name in self.registered:
             return self.registered[name]
@@ -110,14 +187,46 @@ class Registry:
 
         return self.registered[name]
 
-    def create(self, name: str, *args, **kwargs):
+    def create(self, name: str, *args: Any, **kwargs: Any) -> Any:
+        """Create an instance using a factory.
+
+        Parameters
+        ----------
+        name : str
+            The name of the factory.
+        *args : Any
+            Positional arguments for the factory.
+        **kwargs : Any
+            Keyword arguments for the factory.
+
+        Returns
+        -------
+        Any
+            The created instance.
+        """
         factory = self.lookup(name)
         return factory(*args, **kwargs)
 
     # def __call__(self, name: str, *args, **kwargs):
     #     return self.create(name, *args, **kwargs)
 
-    def from_config(self, config, *args, **kwargs):
+    def from_config(self, config: Union[str, Dict[str, Any]], *args: Any, **kwargs: Any) -> Any:
+        """Create an instance from a configuration.
+
+        Parameters
+        ----------
+        config : str or dict
+            The configuration.
+        *args : Any
+            Positional arguments for the factory.
+        **kwargs : Any
+            Keyword arguments for the factory.
+
+        Returns
+        -------
+        Any
+            The created instance.
+        """
         if isinstance(config, str):
             config = {config: {}}
 

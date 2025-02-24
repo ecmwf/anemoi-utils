@@ -16,13 +16,26 @@ import yaml
 from anemoi.utils.dates import datetimes_factory
 
 
-def _(txt):
+def _(txt: str) -> datetimes_factory:
+    """Helper function to create a datetimes_factory from a YAML string.
+
+    Parameters
+    ----------
+    txt : str
+        The YAML string.
+
+    Returns
+    -------
+    datetimes_factory
+        The datetimes_factory object.
+    """
     txt = dedent(txt)
     config = yaml.safe_load(txt)
     return datetimes_factory(config)
 
 
-def test_date_1():
+def test_date_1() -> None:
+    """Test datetimes_factory with a list of dates."""
     d = _(
         """
           - 2023-01-01
@@ -33,7 +46,8 @@ def test_date_1():
     assert len(list(d)) == 3
 
 
-def test_date_2():
+def test_date_2() -> None:
+    """Test datetimes_factory with a date range and frequency."""
     d = _(
         """
         start: 2023-01-01
@@ -45,7 +59,8 @@ def test_date_2():
     assert len(list(d)) == 4
 
 
-def test_date_3():
+def test_date_3() -> None:
+    """Test datetimes_factory with multiple date ranges and frequencies."""
     d = _(
         """
         - start: 2023-01-01
@@ -69,7 +84,8 @@ def test_date_3():
     assert len(list(d)) == 10
 
 
-def test_date_hindcast_1():
+def test_date_hindcast_1() -> None:
+    """Test datetimes_factory with hindcast configuration."""
     d = _(
         """
         - name: hindcast

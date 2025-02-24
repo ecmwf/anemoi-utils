@@ -14,6 +14,7 @@ import logging
 import os
 import sys
 import traceback
+from typing import Callable
 
 try:
     import argcomplete
@@ -24,13 +25,36 @@ LOG = logging.getLogger(__name__)
 
 
 class Command:
+    """Base class for commands."""
+
     accept_unknown_args = False
 
-    def run(self, args):
+    def run(self, args: argparse.Namespace) -> None:
+        """Run the command.
+
+        Parameters
+        ----------
+        args : argparse.Namespace
+            The arguments for the command
+        """
         raise NotImplementedError(f"Command not implemented: {args.command}")
 
 
-def make_parser(description, commands):
+def make_parser(description: str, commands: dict[str, Command]) -> argparse.ArgumentParser:
+    """Create an argument parser for the CLI.
+
+    Parameters
+    ----------
+    description : str
+        The description of the CLI
+    commands : dict[str, Command]
+        A dictionary of command names to Command instances
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        The argument parser
+    """
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -60,20 +84,61 @@ def make_parser(description, commands):
 class Failed(Command):
     """Command not available."""
 
-    def __init__(self, name, error):
+    def __init__(self, name: str, error: ImportError):
+        """Initialize the Failed command.
+
+        Parameters
+        ----------
+        name : str
+            The name of the command
+        error : ImportError
+            The error that occurred
+        """
         self.name = name
         self.error = error
         traceback.print_tb(error.__traceback__)
 
-    def add_arguments(self, command_parser):
+    def add_arguments(self, command_parser: argparse.ArgumentParser) -> None:
+        """Add arguments to the command parser.
+
+        Parameters
+        ----------
+        command_parser : argparse.ArgumentParser
+            The command parser
+        """
         command_parser.add_argument("x", nargs=argparse.REMAINDER)
 
-    def run(self, args):
+    def run(self, args: argparse.Namespace) -> None:
+        """Run the command.
+
+        Parameters
+        ----------
+        args : argparse.Namespace
+            The arguments for the command
+        """
         print(f"Command '{self.name}' not available: {self.error}")
         sys.exit(1)
 
 
-def register_commands(here, package, select, fail=None):
+def register_commands(here: str, package: str, select: Callable, fail: Callable = None) -> dict[str, Command]:
+    """Register commands from a package.
+
+    Parameters
+    ----------
+    here : str
+        The directory containing the commands
+    package : str
+        The package name
+    select : Callable
+        A function to select the command object from the module
+    fail : Callable, optional
+        A function to create a Failed command if a command cannot be imported
+
+    Returns
+    -------
+    dict[str, Command]
+        A dictionary of command names to Command instances
+    """
     result = {}
     not_available = {}
 
@@ -120,7 +185,18 @@ def register_commands(here, package, select, fail=None):
     return result
 
 
-def cli_main(version, description, commands):
+def cli_main(version: str, description: str, commands: dict[str, Command]) -> None:
+    """Main entry point for the CLI.
+
+    Parameters
+    ----------
+    version : str
+        The version of the CLI
+    description : str
+        The description of the CLI
+    commands : dict[str, Command]
+        A dictionary of command names to Command instances
+    """
     parser = make_parser(description, commands)
     args, unknown = parser.parse_known_args()
     if argcomplete:

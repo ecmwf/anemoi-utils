@@ -11,7 +11,8 @@
 from anemoi.utils.grids import grids
 
 
-def test_o96():
+def test_o96() -> None:
+    """Test the grids function for the 'o96' grid."""
     x = grids("o96")
     assert x["latitudes"].mean() == 0.0
     assert x["longitudes"].mean() == 179.14285714285714
