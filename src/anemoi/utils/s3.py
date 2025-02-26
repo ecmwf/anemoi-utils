@@ -8,6 +8,9 @@
 # nor does it submit to any jurisdiction.
 
 import warnings
+from typing import Any
+from typing import Callable
+from typing import Optional
 
 from .remote import transfer
 from .remote.s3 import delete as delete_
@@ -21,7 +24,21 @@ warnings.warn(
 )
 
 
-def s3_client(*args, **kwargs):
+def s3_client(*args: Any, **kwargs: Any) -> Any:
+    """Create an S3 client.
+
+    Parameters
+    ----------
+    *args : Any
+        Positional arguments for the S3 client.
+    **kwargs : Any
+        Keyword arguments for the S3 client.
+
+    Returns
+    -------
+    Any
+        The S3 client.
+    """
     warnings.warn(
         "The 's3_client' function (from anemoi.utils.s3 import s3_client) function is deprecated and will be removed in a future release. "
         "Please use the 's3_client' function (from anemoi.utils.remote.s3 import s3_client) instead.",
@@ -31,7 +48,35 @@ def s3_client(*args, **kwargs):
     return s3_client_(*args, **kwargs)
 
 
-def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1) -> None:
+def upload(
+    source: str,
+    target: str,
+    *,
+    overwrite: bool = False,
+    resume: bool = False,
+    verbosity: int = 1,
+    progress: Optional[Callable] = None,
+    threads: int = 1,
+) -> None:
+    """Upload a file to S3.
+
+    Parameters
+    ----------
+    source : str
+        The source file path.
+    target : str
+        The target S3 path.
+    overwrite : bool, optional
+        Whether to overwrite the target file, by default False.
+    resume : bool, optional
+        Whether to resume a previous upload, by default False.
+    verbosity : int, optional
+        The verbosity level, by default 1.
+    progress : Callable, optional
+        A callback function for progress updates, by default None.
+    threads : int, optional
+        The number of threads to use, by default 1.
+    """
     warnings.warn(
         "The 'upload' function (from anemoi.utils.s3 import upload) function is deprecated and will be removed in a future release. "
         "Please use the 'transfer' function (from anemoi.utils.remote import transfer) instead.",
@@ -43,7 +88,21 @@ def upload(source, target, *, overwrite=False, resume=False, verbosity=1, progre
     )
 
 
-def download(*args, **kwargs):
+def download(*args: Any, **kwargs: Any) -> Any:
+    """Download a file from S3.
+
+    Parameters
+    ----------
+    *args : Any
+        Positional arguments for the download.
+    **kwargs : Any
+        Keyword arguments for the download.
+
+    Returns
+    -------
+    Any
+        The result of the download.
+    """
     warnings.warn(
         "The 'download' function (from anemoi.utils.s3 import download) function is deprecated and will be removed in a future release. "
         "Please use the 'transfer' function (from anemoi.utils.remote import transfer) instead.",
@@ -53,7 +112,21 @@ def download(*args, **kwargs):
     return transfer(*args, **kwargs)
 
 
-def delete(*args, **kwargs):
+def delete(*args: Any, **kwargs: Any) -> Any:
+    """Delete a file from S3.
+
+    Parameters
+    ----------
+    *args : Any
+        Positional arguments for the delete.
+    **kwargs : Any
+        Keyword arguments for the delete.
+
+    Returns
+    -------
+    Any
+        The result of the delete.
+    """
     warnings.warn(
         "The 'delete' function (from anemoi.utils.s3 import delete) function is deprecated and will be removed in a future release. "
         "Please use the 'transfer' function (from anemoi.utils.remote.s3 import delete) instead.",

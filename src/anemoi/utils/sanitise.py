@@ -11,6 +11,7 @@
 import os
 import re
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -22,10 +23,18 @@ RE1 = re.compile(r"{([^}]*)}")
 RE2 = re.compile(r"\(([^}]*)\)")
 
 
-def sanitise(obj):
-    """sanitise an object:
-    - by replacing all full paths with shortened versions.
-    - by replacing URL passwords with '***'.
+def sanitise(obj: Any) -> Any:
+    """Sanitise an object by replacing all full paths with shortened versions and URL passwords with '***'.
+
+    Parameters
+    ----------
+    obj : Any
+        The object to sanitise.
+
+    Returns
+    -------
+    Any
+        The sanitised object.
     """
 
     if isinstance(obj, dict):
@@ -43,7 +52,19 @@ def sanitise(obj):
     return obj
 
 
-def _sanitise_string(obj):
+def _sanitise_string(obj: str) -> str:
+    """Sanitise a string by replacing full paths and URL passwords.
+
+    Parameters
+    ----------
+    obj : str
+        The string to sanitise.
+
+    Returns
+    -------
+    str
+        The sanitised string.
+    """
 
     parsed = urlparse(obj, allow_fragments=True)
 
@@ -56,7 +77,19 @@ def _sanitise_string(obj):
     return obj
 
 
-def _sanitise_url(parsed):
+def _sanitise_url(parsed: Any) -> str:
+    """Sanitise a URL by replacing passwords with '***'.
+
+    Parameters
+    ----------
+    parsed : Any
+        The parsed URL.
+
+    Returns
+    -------
+    str
+        The sanitised URL.
+    """
 
     LIST = [
         "pass",
@@ -100,7 +133,19 @@ def _sanitise_url(parsed):
     return urlunparse([scheme, netloc, path, params, query, fragment])
 
 
-def _sanitise_path(path):
+def _sanitise_path(path: str) -> str:
+    """Sanitise a file path by shortening it.
+
+    Parameters
+    ----------
+    path : str
+        The file path to sanitise.
+
+    Returns
+    -------
+    str
+        The sanitised file path.
+    """
     bits = list(reversed(Path(path).parts))
     result = [bits.pop(0)]
     for bit in bits:
