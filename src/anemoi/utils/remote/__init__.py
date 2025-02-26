@@ -619,7 +619,7 @@ def _find_transfer_class(source: str, target: str) -> type:
 
 
 # this is the public API
-def transfer(*, source, target, overwrite, resume, verbosity, progress, threads, temporary_target) -> Loader:
+def transfer(source, target, *, overwrite, resume, verbosity, progress, threads, temporary_target) -> Loader:
     """Transfer files or folders from the source to the target location.
 
     Parameters
