@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.13](https://github.com/ecmwf/anemoi-utils/compare/0.4.12...0.4.13) (2025-03-04)
+
+
+### Features
+
+* bugfix ([#100](https://github.com/ecmwf/anemoi-utils/issues/100)) ([c016cb4](https://github.com/ecmwf/anemoi-utils/commit/c016cb46c23b6a0575d9d843b06fd6b9f71b9f27))
+* re-add default values in transfer function ([#101](https://github.com/ecmwf/anemoi-utils/issues/101)) ([6462205](https://github.com/ecmwf/anemoi-utils/commit/6462205ee25fa35a71af047b1fbb04bd3c4ca2c4))
+
+
+### Documentation
+
+* update logo ([#96](https://github.com/ecmwf/anemoi-utils/issues/96)) ([c297127](https://github.com/ecmwf/anemoi-utils/commit/c297127e066c92023ca065b3e7d36ac4ab62527e))
+
 ## 0.4.12 (2025-01-30)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
