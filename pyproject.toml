@@ -49,8 +49,12 @@ dependencies = [
   "tqdm",
 ]
 
-optional-dependencies.all = [ "anemoi-utils[grib,provenance,text]" ]
+optional-dependencies.all = [ "anemoi-utils[grib,provenance,text,s3]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
+
+optional-dependencies.s3 = [
+  "boto3<1.36",
+]
 
 optional-dependencies.docs = [
   "nbsphinx",
