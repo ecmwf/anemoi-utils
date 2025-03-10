@@ -157,7 +157,7 @@ def boxed(text: str, min_width: int = 80, max_width: int = 80) -> str:
 
     lines = []
     for line in text.split("\n"):
-        line = line.strip()
+        line = line.rstrip()
         line = _split_tokens(line)
         lines.append(line)
 
