@@ -167,14 +167,17 @@ class Registry:
             if file.endswith(".py"):
                 self._load(file)
 
-        entrypoint_group = f"anemoi.{self.kind}"
-        for entry_point in entrypoints.get_group_all(entrypoint_group):
-            if entry_point.name == name:
-                if name in self.registered:
-                    LOG.warning(
-                        f"Overwriting builtin '{name}' from {self.package} with plugin '{entry_point.module_name}'"
-                    )
-                self.registered[name] = entry_point.load()
+        what = "builtin"
+        where = self.package
+        for entrypoint_group in (f"anemoi.{self.kind}", self.package):
+            for entry_point in entrypoints.get_group_all(entrypoint_group):
+                if entry_point.name == name:
+                    if name in self.registered:
+                        LOG.warning(f"Overwriting {what} '{name}' from {where} with plugin '{entry_point.module_name}'")
+                    # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', entry_point)
+                    self.registered[name] = entry_point.load()
+                    what = "plugin"
+                    where = entry_point.module_name
 
         if name not in self.registered:
             if return_none:
