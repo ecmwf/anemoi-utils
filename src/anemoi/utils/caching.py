@@ -225,7 +225,7 @@ class NpzCacher(Cacher):
         return np.load(path, allow_pickle=True)
 
 
-# PUBLIC API
+# This function is the main entry point for the caching mechanism for the other anemoi packages
 def cached(collection: str = "default", expires: Optional[int] = None, encoding: str = "json") -> Callable:
     """Decorator to cache the result of a function.
 
