@@ -21,6 +21,15 @@ from ..humanize import bytes_to_human
 LOGGER = logging.getLogger(__name__)
 
 
+def robust(call: callable, *args, maximum_tries: int = 60, retry_after: int = 60, **kwargs) -> callable:
+    """Forwards the arguments to the multiurl robust function.
+    with default retry_after=60 and maximum_tries=60.
+    """
+    from multiurl import robust as robust_
+
+    return robust_(call, *args, retry_after=retry_after, maximum_tries=maximum_tries, **kwargs)
+
+
 def _ignore(number_of_files: int, total_size: int, total_transferred: int, transfering: bool) -> None:
     """A placeholder function for progress reporting.
 
