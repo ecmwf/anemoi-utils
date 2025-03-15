@@ -12,9 +12,11 @@ import importlib
 import logging
 import os
 import sys
+import warnings
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -55,6 +57,22 @@ class Wrapper:
         return factory
 
 
+class Error:
+    """An error class.
+
+    Parameters
+    ----------
+    error : Exception
+        The error.
+    """
+
+    def __init__(self, error: Exception):
+        self.error = error
+
+    def __call__(self, *args, **kwargs):
+        raise self.error
+
+
 _BY_KIND = {}
 
 
@@ -71,7 +89,7 @@ class Registry:
 
     def __init__(self, package: str, key: str = "_type"):
         self.package = package
-        self.registered = {}
+        self._registered = {}
         self.kind = package.split(".")[-1]
         self.key = key
         _BY_KIND[self.kind] = self
@@ -110,10 +128,7 @@ class Registry:
         if factory is None:
             return Wrapper(name, self)
 
-        self.registered[name] = factory
-
-    # def registered(self, name: str):
-    #     return name in self.registered
+        self._registered[name] = factory
 
     def _load(self, file: str) -> None:
         """Load a module from a file.
@@ -126,8 +141,24 @@ class Registry:
         name, _ = os.path.splitext(file)
         try:
             importlib.import_module(f".{name}", package=self.package)
-        except Exception:
-            LOG.warning(f"Error loading filter '{self.package}.{name}'", exc_info=True)
+        except Exception as e:
+            warnings.warn(f"Error loading filter '{self.package}.{name}'")
+            self._registered[name] = Error(e)
+
+    def is_registered(self, name: str) -> bool:
+        """Check if a factory is registered.
+
+        Parameters
+        ----------
+        name : str
+            The name of the factory.
+
+        Returns
+        -------
+        bool
+            Whether the factory is registered.
+        """
+        return self.lookup(name, return_none=True) is not None
 
     def lookup(self, name: str, *, return_none: bool = False) -> Optional[Callable]:
         """Lookup a factory by name.
@@ -144,9 +175,9 @@ class Registry:
         Callable, optional
             The factory if found, otherwise None.
         """
-        # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', name, self.registered)
-        if name in self.registered:
-            return self.registered[name]
+
+        if name in self._registered:
+            return self._registered[name]
 
         directory = sys.modules[self.package].__path__[0]
 
@@ -172,23 +203,31 @@ class Registry:
         for entrypoint_group in (f"anemoi.{self.kind}", self.package):
             for entry_point in entrypoints.get_group_all(entrypoint_group):
                 if entry_point.name == name:
-                    if name in self.registered:
+                    if name in self._registered:
                         LOG.warning(f"Overwriting {what} '{name}' from {where} with plugin '{entry_point.module_name}'")
                     # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', entry_point)
-                    self.registered[name] = entry_point.load()
+                    self._registered[name] = entry_point.load()
                     what = "plugin"
                     where = entry_point.module_name
 
-        if name not in self.registered:
+        if name not in self._registered:
             if return_none:
                 return None
 
-            for e in self.registered:
+            for e in self._registered:
                 LOG.info(f"Registered: {e}")
 
             raise ValueError(f"Cannot load '{name}' from {self.package}")
 
-        return self.registered[name]
+        return self._registered[name]
+
+    @property
+    def registered(self) -> List[str]:
+        """Get the registered factories."""
+        if not self._registered:
+            self.lookup("", return_none=True)
+
+        return sorted(self._registered.keys())
 
     def create(self, name: str, *args: Any, **kwargs: Any) -> Any:
         """Create an instance using a factory.
@@ -209,9 +248,6 @@ class Registry:
         """
         factory = self.lookup(name)
         return factory(*args, **kwargs)
-
-    # def __call__(self, name: str, *args, **kwargs):
-    #     return self.create(name, *args, **kwargs)
 
     def from_config(self, config: Union[str, Dict[str, Any]], *args: Any, **kwargs: Any) -> Any:
         """Create an instance from a configuration.
