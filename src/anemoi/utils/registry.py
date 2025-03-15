@@ -13,6 +13,7 @@ import logging
 import os
 import sys
 import warnings
+from functools import cached_property
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -23,6 +24,8 @@ from typing import Union
 import entrypoints
 
 LOG = logging.getLogger(__name__)
+
+DEBUG_ANEMOI_REGISTRY = int(os.environ.get("DEBUG_ANEMOI_REGISTRY", "0"))
 
 
 class Wrapper:
@@ -58,7 +61,7 @@ class Wrapper:
 
 
 class Error:
-    """An error class.
+    """An error class. Used in place of a plugin that failed to load.
 
     Parameters
     ----------
@@ -89,7 +92,8 @@ class Registry:
 
     def __init__(self, package: str, key: str = "_type"):
         self.package = package
-        self._registered = {}
+        self.__registered = {}
+        self._sources = {}
         self.kind = package.split(".")[-1]
         self.key = key
         _BY_KIND[self.kind] = self
@@ -110,7 +114,9 @@ class Registry:
         """
         return _BY_KIND.get(kind)
 
-    def register(self, name: str, factory: Optional[Callable] = None) -> Optional[Wrapper]:
+    def register(
+        self, name: str, factory: Optional[Callable] = None, source: Optional[Any] = None
+    ) -> Optional[Wrapper]:
         """Register a factory with the registry.
 
         Parameters
@@ -119,6 +125,8 @@ class Registry:
             The name of the factory.
         factory : Callable, optional
             The factory to register, by default None.
+        source : Any, optional
+            The source of the factory, by default None.
 
         Returns
         -------
@@ -126,9 +134,19 @@ class Registry:
             A wrapper if the factory is None, otherwise None.
         """
         if factory is None:
+            # This happens when the @register decorator is used
             return Wrapper(name, self)
 
-        self._registered[name] = factory
+        if source is None:
+            source = getattr(factory, "_source") if hasattr(factory, "_source") else factory
+
+        if name in self.__registered:
+            warnings.warn(f"Factory '{name}' is already registered in {self.package}")
+            warnings.warn(f"Existing: {self._sources[name]}")
+            warnings.warn(f"New: {source}")
+
+        self.__registered[name] = factory
+        self._sources[name] = source
 
     def _load(self, file: str) -> None:
         """Load a module from a file.
@@ -142,7 +160,8 @@ class Registry:
         try:
             importlib.import_module(f".{name}", package=self.package)
         except Exception as e:
-            warnings.warn(f"Error loading filter '{self.package}.{name}'")
+            if DEBUG_ANEMOI_REGISTRY:
+                raise
             self._registered[name] = Error(e)
 
     def is_registered(self, name: str) -> bool:
@@ -158,7 +177,12 @@ class Registry:
         bool
             Whether the factory is registered.
         """
-        return self.lookup(name, return_none=True) is not None
+        ok = name in self.factories
+        if not ok:
+            LOG.error(f"Cannot find '{name}' in {self.package}")
+            for e in self.factories:
+                LOG.info(f"Registered: {e} ({self._sources.get(e)})")
+        return ok
 
     def lookup(self, name: str, *, return_none: bool = False) -> Optional[Callable]:
         """Lookup a factory by name.
@@ -175,9 +199,22 @@ class Registry:
         Callable, optional
             The factory if found, otherwise None.
         """
+        if return_none:
+            return self.factories.get(name)
 
-        if name in self._registered:
-            return self._registered[name]
+        factory = self.factories.get(name)
+        if factory is None:
+
+            LOG.error(f"Cannot find '{name}' in {self.package}")
+            for e in self.factories:
+                LOG.info(f"Registered: {e} ({self._sources.get(e)})")
+
+            raise ValueError(f"Cannot find '{name}' in {self.package}")
+
+        return factory
+
+    @cached_property
+    def factories(self) -> Dict[str, Callable]:
 
         directory = sys.modules[self.package].__path__[0]
 
@@ -198,36 +235,42 @@ class Registry:
             if file.endswith(".py"):
                 self._load(file)
 
-        what = "builtin"
-        where = self.package
-        for entrypoint_group in (f"anemoi.{self.kind}", self.package):
+        bits = self.package.split(".")
+        # We assume a name like anemoi.datasets.create.sources, with kind = sources
+        assert bits[-1] == self.kind, (self.package, self.kind)
+        assert len(bits) > 1, self.package
+
+        groups = []
+        middle = bits[1:-1]
+        while True:
+            group = ".".join([bits[0], *middle, bits[-1]])
+            groups.append(group)
+            if len(middle) == 0:
+                break
+            middle.pop()
+
+        groups.reverse()
+
+        LOG.debug("Loading plugins from %s", groups)
+
+        for entrypoint_group in groups:
             for entry_point in entrypoints.get_group_all(entrypoint_group):
-                if entry_point.name == name:
-                    if name in self._registered:
-                        LOG.warning(f"Overwriting {what} '{name}' from {where} with plugin '{entry_point.module_name}'")
-                    # print('✅✅✅✅✅✅✅✅✅✅✅✅✅', entry_point)
-                    self._registered[name] = entry_point.load()
-                    what = "plugin"
-                    where = entry_point.module_name
+                source = entry_point.distro
+                try:
+                    self.register(entry_point.name, entry_point.load(), source=source)
+                except Exception as e:
+                    if DEBUG_ANEMOI_REGISTRY:
+                        raise
+                    print(dir(entry_point))
+                    self.register(entry_point.name, Error(e), source=source)
 
-        if name not in self._registered:
-            if return_none:
-                return None
-
-            for e in self._registered:
-                LOG.info(f"Registered: {e}")
-
-            raise ValueError(f"Cannot load '{name}' from {self.package}")
-
-        return self._registered[name]
+        return self.__registered
 
     @property
     def registered(self) -> List[str]:
         """Get the registered factories."""
-        if not self._registered:
-            self.lookup("", return_none=True)
 
-        return sorted(self._registered.keys())
+        return sorted(self.factories.keys())
 
     def create(self, name: str, *args: Any, **kwargs: Any) -> Any:
         """Create an instance using a factory.
