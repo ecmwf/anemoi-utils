@@ -94,7 +94,7 @@ markers = [
 ]
 
 [tool.mypy]
-strict = false
+strict = true
 exclude = [
   "docs/**",
 ]
