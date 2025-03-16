@@ -261,7 +261,6 @@ class Registry:
                 except Exception as e:
                     if DEBUG_ANEMOI_REGISTRY:
                         raise
-                    print(dir(entry_point))
                     self.register(entry_point.name, Error(e), source=source)
 
         return self.__registered
