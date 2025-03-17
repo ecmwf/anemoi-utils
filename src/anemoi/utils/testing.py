@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 TEST_DATA_URL = "https://object-store.os-api.cci1.ecmwf.int/ml-tests/test-data/samples/"
 
-lock = threading.Lock()
+lock = threading.RLock()
 TEMPORARY_DIRECTORY = None
 
 
@@ -81,13 +81,15 @@ def url_for_test_data(path: str) -> str:
     return f"{TEST_DATA_URL}{path}"
 
 
-def get_test_data(path: str) -> str:
+def get_test_data(path: str, gzipped=False) -> str:
     """Download the test data to a temporary directory and return the local path.
 
     Parameters
     ----------
     path : str
         The relative path to the test data.
+    gzipped : bool, optional
+        Flag indicating if the remote file is gzipped, by default False. The local file will be gunzipped.
 
     Returns
     -------
@@ -103,7 +105,78 @@ def get_test_data(path: str) -> str:
 
         os.makedirs(os.path.dirname(target), exist_ok=True)
         url = url_for_test_data(path)
+
+        if gzipped:
+            url += ".gz"
+            target += ".gz"
+
         LOG.info(f"Downloading test data from {url} to {target}")
 
         download(url, target)
+
+        if gzipped:
+            import gzip
+
+            with gzip.open(target, "rb") as f_in:
+                with open(target[:-3], "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            os.remove(target)
+            target = target[:-3]
+
         return target
+
+
+def get_test_archive(path: str, extension=".extracted") -> str:
+    """Download an archive file (.zip, .tar, .tar.gz, .tar.bz2, .tar.xz) to a temporary directory
+    unpack it, and return the local path to the directory containing the extracted files.
+
+    Parameters
+    ----------
+    path : str
+        The relative path to the test data.
+    extension : str, optional
+        The extension to add to the extracted directory, by default '.extracted'
+
+    Returns
+    -------
+    str
+        The local path to the downloaded test data.
+    """
+
+    with lock:
+
+        archive = get_test_data(path)
+        target = archive + extension
+
+        shutil.unpack_archive(archive, os.path.dirname(target) + ".tmp")
+        os.rename(os.path.dirname(target) + ".tmp", target)
+
+        return target
+
+
+def packages_installed(*names) -> bool:
+    """Check if all the given packages are installed.
+
+    Use this function to check if the required packages are installed before running tests.
+
+    >>> @pytest.mark.skipif(not packages_installed("foo", "bar"), reason="Packages 'foo' and 'bar' are not installed")
+    >>> def test_foo_bar() -> None:
+    >>>    ...
+
+    Parameters
+    ----------
+    names : str
+        The names of the packages to check.
+
+    Returns
+    -------
+    bool:
+        Flag indicating if all the packages are installed."
+    """
+
+    for name in names:
+        try:
+            __import__(name)
+        except ImportError:
+            return False
+    return True
