@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.13](https://github.com/ecmwf/anemoi-utils/compare/0.4.12...0.4.13) (2025-03-14)
+
+
+### Features
+
+* add robust requests ([#112](https://github.com/ecmwf/anemoi-utils/issues/112)) ([5d87227](https://github.com/ecmwf/anemoi-utils/commit/5d87227e6f0b39f087f8a34f238806a2f73480f1))
+* bugfix ([#100](https://github.com/ecmwf/anemoi-utils/issues/100)) ([c016cb4](https://github.com/ecmwf/anemoi-utils/commit/c016cb46c23b6a0575d9d843b06fd6b9f71b9f27))
+* keep yaml formating in error messages ([#108](https://github.com/ecmwf/anemoi-utils/issues/108)) ([3bd6682](https://github.com/ecmwf/anemoi-utils/commit/3bd66828cf19d8e3d7d3fbed27533161b6285828))
+* re-add default values in transfer function ([#101](https://github.com/ecmwf/anemoi-utils/issues/101)) ([6462205](https://github.com/ecmwf/anemoi-utils/commit/6462205ee25fa35a71af047b1fbb04bd3c4ca2c4))
+
+
+### Bug Fixes
+
+* add optional dependency. boto3 &lt;= 1.36 ([#105](https://github.com/ecmwf/anemoi-utils/issues/105)) ([c8c8393](https://github.com/ecmwf/anemoi-utils/commit/c8c8393ab1e886289541d3aa47a614afe5cd379b))
+
+
+### Documentation
+
+* update logo ([#96](https://github.com/ecmwf/anemoi-utils/issues/96)) ([c297127](https://github.com/ecmwf/anemoi-utils/commit/c297127e066c92023ca065b3e7d36ac4ab62527e))
+
 ## 0.4.12 (2025-01-30)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
