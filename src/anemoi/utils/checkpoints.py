@@ -18,6 +18,7 @@ import os
 import time
 import zipfile
 from tempfile import TemporaryDirectory
+from typing import Callable
 
 import tqdm
 
@@ -28,7 +29,7 @@ DEFAULT_FOLDER = "anemoi-metadata"
 
 
 def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
-    """Check if a checkpoint file has a metadata file
+    """Check if a checkpoint file has a metadata file.
 
     Parameters
     ----------
@@ -49,8 +50,26 @@ def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
     return False
 
 
-def metadata_root(path: str, *, name: str = DEFAULT_NAME) -> bool:
+def metadata_root(path: str, *, name: str = DEFAULT_NAME) -> str:
+    """Get the root directory of the metadata file.
 
+    Parameters
+    ----------
+    path : str
+        The path to the checkpoint file
+    name : str, optional
+        The name of the metadata file in the zip archive
+
+    Returns
+    -------
+    str
+        The root directory of the metadata file
+
+    Raises
+    ------
+    ValueError
+        If the metadata file is not found
+    """
     with zipfile.ZipFile(path, "r") as f:
         for b in f.namelist():
             if os.path.basename(b) == name:
@@ -58,15 +77,15 @@ def metadata_root(path: str, *, name: str = DEFAULT_NAME) -> bool:
     raise ValueError(f"Could not find '{name}' in {path}.")
 
 
-def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAME) -> dict:
-    """Load metadata from a checkpoint file
+def load_metadata(path: str, *, supporting_arrays: bool = False, name: str = DEFAULT_NAME) -> dict:
+    """Load metadata from a checkpoint file.
 
     Parameters
     ----------
     path : str
         The path to the checkpoint file
 
-    supporting_arrays: bool, optional
+    supporting_arrays : bool, optional
         If True, the function will return a dictionary with the supporting arrays
 
     name : str, optional
@@ -102,7 +121,21 @@ def load_metadata(path: str, *, supporting_arrays=False, name: str = DEFAULT_NAM
         raise ValueError(f"Could not find '{name}' in {path}.")
 
 
-def load_supporting_arrays(zipf, entries) -> dict:
+def load_supporting_arrays(zipf: zipfile.ZipFile, entries: dict) -> dict:
+    """Load supporting arrays from a zip file.
+
+    Parameters
+    ----------
+    zipf : zipfile.ZipFile
+        The zip file
+    entries : dict
+        A dictionary of entries with paths, shapes, and dtypes
+
+    Returns
+    -------
+    dict
+        A dictionary of supporting arrays
+    """
     import numpy as np
 
     supporting_arrays = {}
@@ -114,16 +147,18 @@ def load_supporting_arrays(zipf, entries) -> dict:
     return supporting_arrays
 
 
-def save_metadata(path, metadata, *, supporting_arrays=None, name=DEFAULT_NAME, folder=DEFAULT_FOLDER) -> None:
-    """Save metadata to a checkpoint file
+def save_metadata(
+    path: str, metadata: dict, *, supporting_arrays: dict = None, name: str = DEFAULT_NAME, folder: str = DEFAULT_FOLDER
+) -> None:
+    """Save metadata to a checkpoint file.
 
     Parameters
     ----------
     path : str
         The path to the checkpoint file
-    metadata : JSON
+    metadata : dict
         A JSON serializable object
-    supporting_arrays: dict, optional
+    supporting_arrays : dict, optional
         A dictionary of supporting NumPy arrays
     name : str, optional
         The name of the metadata file in the zip archive
@@ -179,7 +214,20 @@ def save_metadata(path, metadata, *, supporting_arrays=None, name=DEFAULT_NAME, 
             zipf.writestr(entry["path"], value.tobytes())
 
 
-def _edit_metadata(path, name, callback, supporting_arrays=None):
+def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict = None) -> None:
+    """Edit metadata in a checkpoint file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the checkpoint file
+    name : str
+        The name of the metadata file in the zip archive
+    callback : Callable
+        A callback function to edit the metadata
+    supporting_arrays : dict, optional
+        A dictionary of supporting NumPy arrays
+    """
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
     found = False
@@ -223,8 +271,20 @@ def _edit_metadata(path, name, callback, supporting_arrays=None):
     LOG.info("Updated metadata in %s", path)
 
 
-def replace_metadata(path, metadata, supporting_arrays=None, *, name=DEFAULT_NAME):
+def replace_metadata(path: str, metadata: dict, supporting_arrays: dict = None, *, name: str = DEFAULT_NAME) -> None:
+    """Replace metadata in a checkpoint file.
 
+    Parameters
+    ----------
+    path : str
+        The path to the checkpoint file
+    metadata : dict
+        A JSON serializable object
+    supporting_arrays : dict, optional
+        A dictionary of supporting NumPy arrays
+    name : str, optional
+        The name of the metadata file in the zip archive
+    """
     if not isinstance(metadata, dict):
         raise ValueError(f"metadata must be a dict, got {type(metadata)}")
 
@@ -238,8 +298,16 @@ def replace_metadata(path, metadata, supporting_arrays=None, *, name=DEFAULT_NAM
     return _edit_metadata(path, name, callback, supporting_arrays)
 
 
-def remove_metadata(path, *, name=DEFAULT_NAME):
+def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
+    """Remove metadata from a checkpoint file.
 
+    Parameters
+    ----------
+    path : str
+        The path to the checkpoint file
+    name : str, optional
+        The name of the metadata file in the zip archive
+    """
     LOG.info("Removing metadata '%s' from %s", name, path)
 
     def callback(full):

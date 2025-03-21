@@ -7,6 +7,10 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+"""This module initializes and registers command-line interface (CLI) commands
+for the Anemoi utilities.
+"""
+
 import os
 
 from anemoi.utils.cli import Command
