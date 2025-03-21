@@ -48,7 +48,7 @@ def bytes_to_human(n: float) -> str:
     """
     if n < 0:
         sign = "-"
-        n -= 0
+        n = -n
     else:
         sign = ""
 
@@ -411,15 +411,9 @@ def when(
         if years > 1:
             return _("%d years" % (years,))
 
-        month = then.month
-        if now.year != then.year:
-            month -= 12
-
-        d = abs(now.month - month)
-        if d >= 12:
-            return _("a year")
-        else:
-            return _("%d month%s" % (d, _plural(d)))
+        delta = abs(now - then)
+        if delta.days > 1 and delta.days < 30:
+            return _("%d days" % (delta.days,))
 
     return "on %s %d %s %d" % (
         DOW[then.weekday()],
