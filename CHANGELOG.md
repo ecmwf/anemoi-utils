@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.15](https://github.com/ecmwf/anemoi-utils/compare/0.4.14...0.4.15) (2025-03-21)
+
+
+### Features
+
+* accept hyphens in factory names ([#116](https://github.com/ecmwf/anemoi-utils/issues/116)) ([ada96e9](https://github.com/ecmwf/anemoi-utils/commit/ada96e911b592ff9d95d3a93fff5a6aa21cdebbe))
+
 ## [0.4.14](https://github.com/ecmwf/anemoi-utils/compare/0.4.13...0.4.14) (2025-03-21)
 
 
