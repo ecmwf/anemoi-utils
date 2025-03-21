@@ -88,14 +88,17 @@ class Registry:
         The package name.
     key : str, optional
         The key to use for the registry, by default "_type".
+    api_version : str, optional
+        The API version, by default '1.0.0'.
     """
 
-    def __init__(self, package: str, key: str = "_type"):
+    def __init__(self, package: str, key: str = "_type", api_version: str = "1.0.0"):
         self.package = package
         self.__registered = {}
         self._sources = {}
         self.kind = package.split(".")[-1]
         self.key = key
+        self.api_version = api_version
         _BY_KIND[self.kind] = self
 
     @classmethod
@@ -133,6 +136,9 @@ class Registry:
         Wrapper, optional
             A wrapper if the factory is None, otherwise None.
         """
+
+        name = name.replace("_", "-")
+
         if factory is None:
             # This happens when the @register decorator is used
             return Wrapper(name, self)
@@ -177,6 +183,9 @@ class Registry:
         bool
             Whether the factory is registered.
         """
+
+        name = name.replace("_", "-")
+
         ok = name in self.factories
         if not ok:
             LOG.error(f"Cannot find '{name}' in {self.package}")
@@ -199,6 +208,9 @@ class Registry:
         Callable, optional
             The factory if found, otherwise None.
         """
+
+        name = name.replace("_", "-")
+
         if return_none:
             return self.factories.get(name)
 
@@ -288,6 +300,9 @@ class Registry:
         Any
             The created instance.
         """
+
+        name = name.replace("_", "-")
+
         factory = self.lookup(name)
         return factory(*args, **kwargs)
 
