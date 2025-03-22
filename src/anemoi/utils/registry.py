@@ -168,7 +168,7 @@ class Registry:
         except Exception as e:
             if DEBUG_ANEMOI_REGISTRY:
                 raise
-            self._registered[name] = Error(e)
+            self.__registered[name] = Error(e)
 
     def is_registered(self, name: str) -> bool:
         """Check if a factory is registered.
