@@ -162,12 +162,16 @@ class Registry:
         file : str
             The file to load.
         """
+
         name, _ = os.path.splitext(file)
+
         try:
             importlib.import_module(f".{name}", package=self.package)
         except Exception as e:
             if DEBUG_ANEMOI_REGISTRY:
                 raise
+
+            name = name.replace("_", "-")
             self.__registered[name] = Error(e)
 
     def is_registered(self, name: str) -> bool:
