@@ -627,7 +627,7 @@ def _find_transfer_class(source: str, target: str) -> type:
     raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
 
-# this is the public API
+# This function is the main entry point for the transfer mechanism for the other anemoi packages
 def transfer(
     source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1, temporary_target=False
 ) -> Loader:
