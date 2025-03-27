@@ -459,6 +459,24 @@ def _load_config(
         secret_config = _load_config(secret_name)
         _merge_dicts(config, secret_config)
 
+    for env, value in os.environ.items():
+
+        if not env.startswith("ANEMOI_CONFIG_"):
+            continue
+        rest = env[len("ANEMOI_CONFIG_") :]
+
+        package = rest.split("_")[0]
+        sub = rest[len(package) + 1 :]
+
+        package = package.lower()
+        sub = sub.lower()
+
+        LOG.info(f"Using environment variable {env} to override the anemoi config key '{package}.{sub}'")
+
+        if package not in config:
+            config[package] = {}
+        config[package][sub] = value
+
     CONFIG[key] = DotDict(config)
     return CONFIG[key]
 
