@@ -17,8 +17,10 @@ from functools import cached_property
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import Generic
 from typing import List
 from typing import Optional
+from typing import TypeVar
 from typing import Union
 
 import entrypoints
@@ -78,8 +80,10 @@ class Error:
 
 _BY_KIND = {}
 
+T = TypeVar("T")
 
-class Registry:
+
+class Registry(Generic[T]):
     """A registry of factories.
 
     Parameters
@@ -287,7 +291,7 @@ class Registry:
 
         return sorted(self.factories.keys())
 
-    def create(self, name: str, *args: Any, **kwargs: Any) -> Any:
+    def create(self, name: str, *args: Any, **kwargs: Any) -> T:
         """Create an instance using a factory.
 
         Parameters
@@ -310,7 +314,7 @@ class Registry:
         factory = self.lookup(name)
         return factory(*args, **kwargs)
 
-    def from_config(self, config: Union[str, Dict[str, Any]], *args: Any, **kwargs: Any) -> Any:
+    def from_config(self, config: Union[str, Dict[str, Any]], *args: Any, **kwargs: Any) -> T:
         """Create an instance from a configuration.
 
         Parameters
