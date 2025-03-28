@@ -199,12 +199,12 @@ def _module_versions(full: bool) -> Tuple[Dict[str, Any], set]:
 
     versions = {}
     namespaces = set()
-    for k, v in sorted(sys.modules.items()):
+    for k, v in sorted(sys.modules.copy().items()):
         if "." not in k:
             version(versions, k, v, roots, namespaces, paths, full)
 
     # Catter for modules like "earthkit.meteo"
-    for k, v in sorted(sys.modules.items()):
+    for k, v in sorted(sys.modules.copy().items()):
         bits = k.split(".")
         if len(bits) == 2 and bits[0] in namespaces:
             version(versions, k, v, roots, namespaces, paths, full)

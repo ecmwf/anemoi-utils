@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.17](https://github.com/ecmwf/anemoi-utils/compare/0.4.16...0.4.17) (2025-03-27)
+
+
+### Features
+
+* add generic env variables to override anemoi user config ([#128](https://github.com/ecmwf/anemoi-utils/issues/128)) ([fdc7248](https://github.com/ecmwf/anemoi-utils/commit/fdc72485616a0c092356a9ffa4cdca838a0c1a9d))
+
+
+### Bug Fixes
+
+* Iterate over copy of sys.modules. ([#127](https://github.com/ecmwf/anemoi-utils/issues/127)) ([7b0e7d0](https://github.com/ecmwf/anemoi-utils/commit/7b0e7d08264f7eb4c92fdcd744ff8c46eac82fb7))
+* plugin name on error ([#120](https://github.com/ecmwf/anemoi-utils/issues/120)) ([a747f63](https://github.com/ecmwf/anemoi-utils/commit/a747f63d74bf1b108d913694915df59ffc4640c1))
+
+
+### Documentation
+
+* add links to GitHub  ([#123](https://github.com/ecmwf/anemoi-utils/issues/123)) ([cfe1ea2](https://github.com/ecmwf/anemoi-utils/commit/cfe1ea281e03a56b9a02108b6787c6c05b9518b0))
+* Docathon ([#121](https://github.com/ecmwf/anemoi-utils/issues/121)) ([e1c9292](https://github.com/ecmwf/anemoi-utils/commit/e1c9292d65b1ffc8c9ce8eed41c7ffbe81f865a3))
+* fix comment ([#125](https://github.com/ecmwf/anemoi-utils/issues/125)) ([ad3ed12](https://github.com/ecmwf/anemoi-utils/commit/ad3ed126f9a507dde7ce19064f1d32dae2cee6a3))
+
 ## [0.4.16](https://github.com/ecmwf/anemoi-utils/compare/0.4.15...0.4.16) (2025-03-22)
 
 
