@@ -17,11 +17,11 @@ from functools import cached_property
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import Generic
 from typing import List
 from typing import Optional
-from typing import Union
 from typing import TypeVar
-from typing import Generic
+from typing import Union
 
 import entrypoints
 
@@ -81,6 +81,7 @@ class Error:
 _BY_KIND = {}
 
 T = TypeVar("T")
+
 
 class Registry(Generic[T]):
     """A registry of factories.
