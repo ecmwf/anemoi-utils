@@ -30,9 +30,9 @@ of the *Anemoi* packages.
 
    installing
 
-*********
+*****
  API
-*********
+*****
 
 .. toctree::
    :maxdepth: 1
