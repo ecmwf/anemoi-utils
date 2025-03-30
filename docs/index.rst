@@ -31,14 +31,14 @@ of the *Anemoi* packages.
    installing
 
 *********
- Modules
+ API
 *********
 
 .. toctree::
    :maxdepth: 1
    :glob:
 
-   modules/*
+   _api/*
 
 ***********************
  Other Anemoi packages
