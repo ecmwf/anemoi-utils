@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.18](https://github.com/ecmwf/anemoi-utils/compare/0.4.17...0.4.18) (2025-03-31)
+
+
+### Features
+
+* add matching rules ([#132](https://github.com/ecmwf/anemoi-utils/issues/132)) ([2382980](https://github.com/ecmwf/anemoi-utils/commit/2382980f4f53909a73fa0a5c8cfab108625f3c55))
+
 ## [0.4.17](https://github.com/ecmwf/anemoi-utils/compare/0.4.16...0.4.17) (2025-03-27)
 
 
