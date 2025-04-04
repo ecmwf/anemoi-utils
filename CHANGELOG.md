@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.19](https://github.com/ecmwf/anemoi-utils/compare/0.4.18...0.4.19) (2025-04-04)
+
+
+### Features
+
+* more testing support functions ([#136](https://github.com/ecmwf/anemoi-utils/issues/136)) ([5687b87](https://github.com/ecmwf/anemoi-utils/commit/5687b87ed17748412340d00f0724249f59b4e3f2))
+
+
+### Documentation
+
+* add api ([#133](https://github.com/ecmwf/anemoi-utils/issues/133)) ([16af518](https://github.com/ecmwf/anemoi-utils/commit/16af5184eafbfc29cc3f0217a35675f2aa32847e))
+
 ## [0.4.18](https://github.com/ecmwf/anemoi-utils/compare/0.4.17...0.4.18) (2025-03-31)
 
 

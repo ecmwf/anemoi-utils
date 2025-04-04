@@ -256,6 +256,7 @@ skip_slow_tests = pytest.mark.skipif(not _run_slow_tests(), reason="Skipping slo
 
 def skip_missing_packages(*names):
     missing = [f"'{p}'" for p in _missing_packages(*names)]
+
     if len(missing) == 0:
         return lambda f: f
 
@@ -263,3 +264,4 @@ def skip_missing_packages(*names):
         return pytest.mark.skipif(True, reason=f"Package {missing[0]} is not installed")
 
     return pytest.mark.skipif(True, reason=f"Packages {list_to_human(missing)} are not installed")
+
