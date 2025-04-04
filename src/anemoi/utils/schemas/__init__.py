@@ -5,15 +5,8 @@
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
-#
-
-
-from collections.abc import Iterator
-from typing import Any
 
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ValidationError
-from pydantic_core import ErrorDetails
 
 
 class BaseModel(PydanticBaseModel):
