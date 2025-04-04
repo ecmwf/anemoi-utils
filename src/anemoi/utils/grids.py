@@ -13,6 +13,9 @@
 import logging
 import os
 from io import BytesIO
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import numpy as np
 import requests
@@ -121,7 +124,7 @@ def nearest_grid_points(
 
 
 @cached(collection="grids", encoding="npz")
-def _grids(name: str) -> bytes:
+def _grids(name: Union[str, List[float], Tuple[float, ...]]) -> bytes:
     """Get grid data by name.
 
     Parameters
@@ -136,6 +139,15 @@ def _grids(name: str) -> bytes:
     """
     from anemoi.utils.config import load_config
 
+    if isinstance(name, (tuple, list)):
+        assert len(name) == 2, "Grid name must be a list or a tuple of length 2"
+        assert all(isinstance(i, (int, float)) for i in name), "Grid name must be a list or a tuple of numbers"
+        if name[0] == name[1]:
+            name = str(float(name[0]))
+        else:
+            name = str(float(name[0])) + "x" + str(float(name[1]))
+        name = name.replace(".", "p")
+
     user_path = load_config().get("utils", {}).get("grids_path")
     if user_path:
         path = os.path.expanduser(os.path.join(user_path, f"grid-{name}.npz"))
@@ -146,6 +158,10 @@ def _grids(name: str) -> bytes:
         else:
             LOG.warning("Custom user path %s does not exist", path)
 
+    # To add a grid
+    # anemoi-transform get-grid --source mars grid=o400,levtype=sfc,param=2t grid-o400.npz
+    # nexus-cli -u xxxx -p yyyy -s GET_INSTANCE --repository anemoi upload --remote-path grids --local-path grid-o400.npz
+
     url = GRIDS_URL_PATTERN.format(name=name.lower())
     LOG.warning("Downloading grids from %s", url)
     response = requests.get(url)
@@ -153,7 +169,7 @@ def _grids(name: str) -> bytes:
     return response.content
 
 
-def grids(name: str) -> dict:
+def grids(name: Union[str, List[float], Tuple[float, ...]]) -> dict:
     """Load grid data by name.
 
     Parameters
@@ -166,7 +182,7 @@ def grids(name: str) -> dict:
     dict
         The grid data
     """
-    if name.endswith(".npz"):
+    if isinstance(name, str) and name.endswith(".npz"):
         return dict(np.load(name))
 
     data = _grids(name)
