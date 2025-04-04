@@ -54,6 +54,7 @@ optional-dependencies.all = [ "anemoi-utils[grib,provenance,text,s3]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 
 optional-dependencies.docs = [
+  "anemoi-utils[all]",
   "nbsphinx",
   "pandoc",
   "requests",
