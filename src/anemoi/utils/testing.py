@@ -13,6 +13,7 @@ import os
 import shutil
 import tempfile
 import threading
+from functools import lru_cache
 
 from multiurl import download
 
@@ -98,6 +99,9 @@ def get_test_data(path: str, gzipped=False) -> str:
     """
     _check_path(path)
 
+    if offline():
+        raise RuntimeError("Offline mode: cannot download test data, add @pytest.mark.skipif(not offline(),...)")
+
     target = os.path.normpath(os.path.join(_temporary_directory(), path))
     with lock:
         if os.path.exists(target):
@@ -143,6 +147,9 @@ def get_test_archive(path: str, extension=".extracted") -> str:
         The local path to the downloaded test data.
     """
 
+    if offline():
+        raise RuntimeError("Offline mode: cannot download test data")
+
     with lock:
 
         archive = get_test_data(path)
@@ -180,3 +187,28 @@ def packages_installed(*names) -> bool:
         except ImportError:
             return False
     return True
+
+
+def slow_test() -> bool:
+    """Check if the SLOW_TESTS environment variable is set.
+
+    Returns
+    -------
+    bool
+        True if the SLOW_TESTS environment variable is set, False otherwise.
+    """
+    return int(os.environ.get("SLOW_TESTS", 0))
+
+
+@lru_cache(maxsize=None)
+def offline() -> bool:
+    """Check if we are offline."""
+
+    import socket
+
+    try:
+        socket.create_connection(("anemoi.ecmwf.int", 443), timeout=5)
+    except OSError:
+        return True
+
+    return False
