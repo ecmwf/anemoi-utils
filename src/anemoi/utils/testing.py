@@ -13,7 +13,10 @@ import os
 import shutil
 import tempfile
 import threading
+import warnings
+from functools import lru_cache
 
+import pytest
 from multiurl import download
 
 LOG = logging.getLogger(__name__)
@@ -98,6 +101,9 @@ def get_test_data(path: str, gzipped=False) -> str:
     """
     _check_path(path)
 
+    if _offline():
+        raise RuntimeError("Offline mode: cannot download test data, add @pytest.mark.skipif(not offline(),...)")
+
     target = os.path.normpath(os.path.join(_temporary_directory(), path))
     with lock:
         if os.path.exists(target):
@@ -174,9 +180,84 @@ def packages_installed(*names) -> bool:
         Flag indicating if all the packages are installed."
     """
 
+    warnings.warn(
+        "The 'packages_installed' function is deprecated. Use '@skip_if_missing' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     for name in names:
         try:
             __import__(name)
         except ImportError:
             return False
     return True
+
+
+def _missing_packages(*names) -> list[str]:
+    """Check if the given packages are missing.
+
+    Use this function to check if the required packages are missing before running tests.
+
+    >>> @pytest.mark.skipif(missing_packages("foo", "bar"), reason="Packages 'foo' and 'bar' are not installed")
+    >>> def test_foo_bar() -> None:
+    >>>    ...
+
+    Parameters
+    ----------
+    names : str
+        The names of the packages to check.
+
+    Returns
+    -------
+    list[str]:
+        List of missing packages.
+    """
+
+    missing = []
+    for name in names:
+        try:
+            __import__(name)
+        except ImportError:
+            missing.append(name)
+    return missing
+
+
+def _run_slow_tests() -> bool:
+    """Check if the SLOW_TESTS environment variable is set.
+
+    Returns
+    -------
+    bool
+        True if the SLOW_TESTS environment variable is set, False otherwise.
+    """
+    return int(os.environ.get("SLOW_TESTS", 0))
+
+
+@lru_cache(maxsize=None)
+def _offline() -> bool:
+    """Check if we are offline."""
+
+    import socket
+
+    try:
+        socket.create_connection(("anemoi.ecmwf.int", 443), timeout=5)
+    except OSError:
+        return True
+
+    return False
+
+
+skip_if_offline = pytest.mark.skipif(_offline(), reason="No internet connection")
+skip_slow_tests = pytest.mark.skipif(not _run_slow_tests(), reason="Skipping slow tests")
+
+
+def skip_missing_packages(*names):
+    missing = _missing_packages(*names)
+    if len(missing) == 0:
+        return lambda f: f
+
+    if len(missing) == 1:
+        return pytest.mark.skipif(True, reason=f"Package {missing[0]} is not installed")
+
+    return pytest.mark.skipif(True, reason=f"Packages {', '.join(missing)} are not installed")
