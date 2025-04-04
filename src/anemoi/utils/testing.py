@@ -264,4 +264,3 @@ def skip_missing_packages(*names):
         return pytest.mark.skipif(True, reason=f"Package {missing[0]} is not installed")
 
     return pytest.mark.skipif(True, reason=f"Packages {list_to_human(missing)} are not installed")
-
