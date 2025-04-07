@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -239,6 +240,7 @@ CONFIG = {}
 CHECKED = {}
 CONFIG_LOCK = threading.RLock()
 QUIET = False
+CONFIG_PATCH = None
 
 
 def _find(config: Union[dict, list], what: str, result: list = None) -> list:
@@ -550,7 +552,10 @@ def load_config(
     """
 
     with CONFIG_LOCK:
-        return _load_config(name, secrets, defaults)
+        config = _load_config(name, secrets, defaults)
+        if CONFIG_PATCH is not None:
+            config = CONFIG_PATCH(config)
+        return config
 
 
 def load_raw_config(name: str, default: Any = None) -> Union[DotDict, str]:
@@ -668,3 +673,21 @@ def merge_configs(*configs: dict) -> dict:
         _merge_dicts(result, config)
 
     return result
+
+
+@contextlib.contextmanager
+def temporary_config(tmp: dict) -> None:
+
+    global CONFIG_PATCH
+
+    def patch_config(config: dict) -> dict:
+        return merge_configs(config, tmp)
+
+    with CONFIG_LOCK:
+
+        CONFIG_PATCH = patch_config
+
+        try:
+            yield
+        finally:
+            CONFIG_PATCH = None
