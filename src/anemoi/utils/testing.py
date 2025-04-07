@@ -162,7 +162,7 @@ def get_test_archive(path: str, extension=".extracted") -> str:
         return target
 
 
-def packages_installed(*names) -> bool:
+def packages_installed(*names: str) -> bool:
     """Check if all the given packages are installed.
 
     Use this function to check if the required packages are installed before running tests.
@@ -196,7 +196,7 @@ def packages_installed(*names) -> bool:
     return True
 
 
-def _missing_packages(*names) -> list[str]:
+def _missing_packages(*names: str) -> list[str]:
     """Check if the given packages are missing.
 
     Use this function to check if the required packages are missing before running tests.
@@ -254,7 +254,20 @@ skip_if_offline = pytest.mark.skipif(_offline(), reason="No internet connection"
 skip_slow_tests = pytest.mark.skipif(not _run_slow_tests(), reason="Skipping slow tests")
 
 
-def skip_missing_packages(*names):
+def skip_missing_packages(*names: str) -> callable:
+    """Skip a test if any of the specified packages are missing.
+
+    Parameters
+    ----------
+    names : str
+        The names of the packages to check.
+
+    Returns
+    -------
+    Callable
+        A decorator that skips the test if any of the specified packages are missing.
+    """
+
     missing = [f"'{p}'" for p in _missing_packages(*names)]
 
     if len(missing) == 0:

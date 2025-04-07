@@ -51,10 +51,12 @@ class Rule:
 
     @property
     def result(self) -> Any:
+        """The result associated with the rule."""
         return self._result
 
     @property
     def condition(self) -> Dict[str, Any]:
+        """The conditions that define the rule."""
         return self._match
 
 
@@ -216,3 +218,28 @@ class RuleSet:
             An iterator over the Rule objects in the RuleSet.
         """
         return iter(self.rules)
+
+    def __len__(self) -> int:
+        """Return the number of rules in the RuleSet.
+
+        Returns
+        -------
+        int
+            The number of rules in the RuleSet.
+        """
+        return len(self.rules)
+
+    def __getitem__(self, index: int) -> Rule:
+        """Retrieve a rule by its index.
+
+        Parameters
+        ----------
+        index : int
+            The index of the rule to retrieve.
+
+        Returns
+        -------
+        Rule
+            The rule at the specified index.
+        """
+        return self.rules[index]
