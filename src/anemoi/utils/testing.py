@@ -19,6 +19,8 @@ from functools import lru_cache
 import pytest
 from multiurl import download
 
+from anemoi.utils.humanize import list_to_human
+
 LOG = logging.getLogger(__name__)
 
 TEST_DATA_URL = "https://object-store.os-api.cci1.ecmwf.int/ml-tests/test-data/samples/"
@@ -265,11 +267,13 @@ def skip_missing_packages(*names: str) -> callable:
     Callable
         A decorator that skips the test if any of the specified packages are missing.
     """
-    missing = _missing_packages(*names)
+
+    missing = [f"'{p}'" for p in _missing_packages(*names)]
+
     if len(missing) == 0:
         return lambda f: f
 
     if len(missing) == 1:
         return pytest.mark.skipif(True, reason=f"Package {missing[0]} is not installed")
 
-    return pytest.mark.skipif(True, reason=f"Packages {', '.join(missing)} are not installed")
+    return pytest.mark.skipif(True, reason=f"Packages {list_to_human(missing)} are not installed")
