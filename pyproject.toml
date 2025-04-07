@@ -43,6 +43,7 @@ dependencies = [
   "aniso8601",
   "importlib-metadata; python_version<'3.10'",
   "multiurl",
+  "pydantic>=2.9",
   "numpy",
   "python-dateutil",
   "pyyaml",
