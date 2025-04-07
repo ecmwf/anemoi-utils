@@ -9,10 +9,9 @@
 from collections.abc import Iterator
 from typing import Any
 
+from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ValidationError
 from pydantic_core import ErrorDetails
-from pydantic import BaseModel as PydanticBaseModel
-
 
 CUSTOM_MESSAGES = {
     "missing": "A config entry seems to be missing. If not please check for any typos.",
