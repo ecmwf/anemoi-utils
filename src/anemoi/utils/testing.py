@@ -159,6 +159,8 @@ def get_test_archive(path: str, extension=".extracted") -> str:
         shutil.unpack_archive(archive, os.path.dirname(target) + ".tmp")
         os.rename(os.path.dirname(target) + ".tmp", target)
 
+        os.remove(archive)
+
         return target
 
 
