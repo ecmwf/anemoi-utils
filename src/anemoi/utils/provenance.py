@@ -47,8 +47,11 @@ def lookup_git_repo(path: str) -> Optional[Any]:
     Repo, optional
         The git repository if found, otherwise None.
     """
-    from git import InvalidGitRepositoryError
-    from git import Repo
+    try:
+        from git import InvalidGitRepositoryError
+        from git import Repo
+    except ImportError:
+        return None
 
     while path != "/":
         try:
