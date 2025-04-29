@@ -241,12 +241,12 @@ def _run_slow_tests() -> bool:
 @lru_cache(maxsize=None)
 def _offline() -> bool:
     """Check if we are offline."""
-
-    import socket
+    from urllib import request
 
     try:
-        socket.create_connection(("anemoi.ecmwf.int", 443), timeout=5)
-    except OSError:
+        request.urlopen("https://anemoi.ecmwf.int", timeout=1)
+        return False
+    except request.URLError:
         return True
 
     return False
