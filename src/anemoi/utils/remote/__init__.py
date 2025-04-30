@@ -597,18 +597,20 @@ def _find_transfer_class(source: str, target: str) -> type:
         If the transfer method is not implemented.
     """
 
-    def rsync_upload(f,t):
+    def rsync_upload(f, t):
         from .ssh import RsyncUpload
+
         return RsyncUpload
 
-    def s3_download(f,t):
-        from .s3 import  S3Download
+    def s3_download(f, t):
+        from .s3 import S3Download
+
         return S3Download
 
-    def s3_upload(f,t):
+    def s3_upload(f, t):
         from .s3 import S3Upload
-        return S3Upload
 
+        return S3Upload
 
     def unsupported(f, t):
         raise TransferMethodNotImplementedError(f"Transfer from '{f}' to '{t}' is not implemented")
@@ -616,7 +618,7 @@ def _find_transfer_class(source: str, target: str) -> type:
     def scheme(url: str) -> str:
         result = url.split("://")
         if len(result) == 1:
-            return 'file'
+            return "file"
         return result[0]
 
     source_scheme = scheme(source)
@@ -624,8 +626,8 @@ def _find_transfer_class(source: str, target: str) -> type:
 
     TRANSFERS = {
         ("file", "ssh"): rsync_upload,
-        ('s3', 'file'): s3_download,
-        ('file', 's3'): s3_upload,
+        ("s3", "file"): s3_download,
+        ("file", "s3"): s3_upload,
     }
 
     transfer = TRANSFERS.get((source_scheme, target_scheme), unsupported)
