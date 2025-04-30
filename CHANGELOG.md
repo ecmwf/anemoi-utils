@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.22](https://github.com/ecmwf/anemoi-utils/compare/0.4.21...0.4.22) (2025-04-10)
+
+
+### Bug Fixes
+
+* do not write to existing dir ([#148](https://github.com/ecmwf/anemoi-utils/issues/148)) ([38c6db6](https://github.com/ecmwf/anemoi-utils/commit/38c6db62c113e093d11c49b0fc398587ee89946c))
+* remove archive file after unpacking ([#145](https://github.com/ecmwf/anemoi-utils/issues/145)) ([790e2a3](https://github.com/ecmwf/anemoi-utils/commit/790e2a3370db3d5c275f95b920926d5a01f894a7))
+
 ## [0.4.21](https://github.com/ecmwf/anemoi-utils/compare/0.4.20...0.4.21) (2025-04-07)
 
 

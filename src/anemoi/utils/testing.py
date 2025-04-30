@@ -68,6 +68,23 @@ def _check_path(path: str) -> None:
     assert not path.startswith("."), f"Path '{path}' should not start with '.'"
 
 
+def _temporary_directory_for_test_data(path: str) -> str:
+    """Get the temporary directory for a test dataset.
+
+    Parameters
+    ----------
+    path : str
+        The relative path to the test data in the object store.
+
+    Returns
+    -------
+    str
+        The path to the temporary directory.
+    """
+    _check_path(path)
+    return os.path.normpath(os.path.join(_temporary_directory(), path))
+
+
 def url_for_test_data(path: str) -> str:
     """Generate the URL for the test data based on the given path.
 
@@ -101,12 +118,11 @@ def get_test_data(path: str, gzipped=False) -> str:
     str
         The local path to the downloaded test data.
     """
-    _check_path(path)
 
     if _offline():
         raise RuntimeError("Offline mode: cannot download test data, add @pytest.mark.skipif(not offline(),...)")
 
-    target = os.path.normpath(os.path.join(_temporary_directory(), path))
+    target = _temporary_directory_for_test_data(path)
     with lock:
         if os.path.exists(target):
             return target
@@ -153,8 +169,12 @@ def get_test_archive(path: str, extension=".extracted") -> str:
 
     with lock:
 
+        target = _temporary_directory_for_test_data(path) + extension
+
+        if os.path.exists(target):
+            return target
+
         archive = get_test_data(path)
-        target = archive + extension
 
         shutil.unpack_archive(archive, os.path.dirname(target) + ".tmp")
         os.rename(os.path.dirname(target) + ".tmp", target)
