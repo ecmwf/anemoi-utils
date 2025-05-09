@@ -40,6 +40,12 @@ def fix(lons: np.ndarray) -> np.ndarray:
     return np.where(lons > 180, lons - 360, lons)
 
 
+def plot_ekd_field(field: Any, **kwargs: Any):
+    values = field.to_numpy(flatten=True)
+    latitudes, longitudes = field.grid_points()
+    return plot_values(values, latitudes, longitudes, **kwargs)
+
+
 def plot_values(
     values: np.ndarray,
     latitudes: np.ndarray,
@@ -48,6 +54,7 @@ def plot_values(
     missing_value: float = None,
     min_value: float = None,
     max_value: float = None,
+    path: str = None,
     **kwargs: dict,
 ) -> plt.Axes:
     """Plot values on a map.
@@ -68,6 +75,8 @@ def plot_values(
         Minimum value for the plot, by default None.
     max_value : float, optional
         Maximum value for the plot, by default None.
+    path : str, optional
+        Path to save the plot, by default None.
     **kwargs : dict
         Additional keyword arguments for the plot.
 
@@ -116,6 +125,10 @@ def plot_values(
 
     if title is not None:
         ax.set_title(title)
+
+    if path is not None:
+        plt.savefig(path, bbox_inches="tight", dpi=300)
+        # plt.close()
 
     return ax
 
