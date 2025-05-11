@@ -193,6 +193,16 @@ class DotDict(dict):
         """
         return f"DotDict({super().__repr__()})"
 
+    def as_dict(self) -> dict:
+        """Convert the DotDict to a regular dictionary.
+
+        Returns
+        -------
+        dict
+            The converted dictionary.
+        """
+        return {k: v.as_dict() if isinstance(v, DotDict) else v for k, v in self.items()}
+
 
 def is_omegaconf_dict(value: Any) -> bool:
     """Check if a value is an OmegaConf DictConfig.
