@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.23](https://github.com/ecmwf/anemoi-utils/compare/0.4.22...0.4.23) (2025-05-15)
+
+
+### Bug Fixes
+
+* Use urllib to make _offline() aware of HTTP(s) proxies. ([#150](https://github.com/ecmwf/anemoi-utils/issues/150)) ([5c4d06f](https://github.com/ecmwf/anemoi-utils/commit/5c4d06f931590cc360eb4ffeeb8753a5d3d72bcb))
+
 ## [0.4.22](https://github.com/ecmwf/anemoi-utils/compare/0.4.21...0.4.22) (2025-04-10)
 
 
