@@ -167,7 +167,14 @@ class S3Upload(BaseUpload):
         # delete(target)
 
     def _transfer_file(
-        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+        self,
+        source: str,
+        target: str,
+        overwrite: bool,
+        resume: bool,
+        verbosity: int,
+        threads: int,
+        config: dict = None,
     ) -> int:
         """Transfer a file to S3.
 
@@ -232,7 +239,13 @@ class S3Upload(BaseUpload):
 
         if verbosity > 0:
             with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3.upload_file(source, bucket, key, Callback=lambda x: pbar.update(x), Config=config)
+                s3.upload_file(
+                    source,
+                    bucket,
+                    key,
+                    Callback=lambda x: pbar.update(x),
+                    Config=config,
+                )
         else:
             s3.upload_file(source, bucket, key, Config=config)
 
@@ -331,7 +344,14 @@ class S3Download(BaseDownload):
         return s3_object["Size"]
 
     def _transfer_file(
-        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+        self,
+        source: str,
+        target: str,
+        overwrite: bool,
+        resume: bool,
+        verbosity: int,
+        threads: int,
+        config: dict = None,
     ) -> int:
         """Transfer a file from S3 to the local filesystem.
 
@@ -402,7 +422,13 @@ class S3Download(BaseDownload):
 
         if verbosity > 0:
             with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3.download_file(bucket, key, target, Callback=lambda x: pbar.update(x), Config=config)
+                s3.download_file(
+                    bucket,
+                    key,
+                    target,
+                    Callback=lambda x: pbar.update(x),
+                    Config=config,
+                )
         else:
             s3.download_file(bucket, key, target, Config=config)
 
