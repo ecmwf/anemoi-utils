@@ -1,9 +1,12 @@
-# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024-2025 Anemoi contributors.
+#
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
 
 """This module provides functions to upload, download, list and delete files and folders on S3.
 The functions of this package expect that the AWS credentials are set up in the environment
@@ -524,7 +527,9 @@ def list_folder(folder: str) -> Iterable:
 
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter="/"):
         if "CommonPrefixes" in page:
-            yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes")]
+            yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes") if _["Prefix"] != "/"]
+        if "Contents" in page:
+            yield from [folder + _["Key"] for _ in page.get("Contents")]
 
 
 def object_info(target: str) -> dict:
