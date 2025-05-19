@@ -70,12 +70,14 @@ def s3_client(bucket: str, region: str = None) -> Any:
 
     key = f"{bucket}-{region}"
 
-    boto3_config = dict(max_pool_connections=25)
-
     if key in thread_local.s3_clients:
         return thread_local.s3_clients[key]
 
-    boto3_config = dict(max_pool_connections=25)
+    boto3_config = dict(
+        max_pool_connections=25,
+        request_checksum_calculation="when_required",
+        response_checksum_validation="when_required",
+    )
 
     if region:
         # This is using AWS
