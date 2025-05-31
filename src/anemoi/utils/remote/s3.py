@@ -24,6 +24,7 @@ the `~/.config/anemoi/settings.toml`
 or `~/.config/anemoi/settings-secrets.toml` files.
 """
 
+import fnmatch
 import logging
 import os
 import threading
@@ -38,7 +39,7 @@ from ..humanize import bytes_to_human
 from . import BaseDownload
 from . import BaseUpload
 
-LOGGER = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 # s3_clients are not thread-safe, so we need to create a new client for each thread
@@ -96,17 +97,27 @@ def s3_client(bucket: str, region: str = None) -> Any:
         # We may be accessing a different S3 compatible service
         # Use anemoi.config to get the configuration
 
+        SECRETS = ["aws_access_key_id", "aws_secret_access_key"]
+
         options = {}
-        config = load_config(secrets=["aws_access_key_id", "aws_secret_access_key"])
+        config = load_config(secrets=SECRETS)
 
         cfg = config.get("object-storage", {})
+        candidate = None
         for k, v in cfg.items():
             if isinstance(v, (str, int, float, bool)):
                 options[k] = v
 
-        for k, v in cfg.get(bucket, {}).items():
-            if isinstance(v, (str, int, float, bool)):
-                options[k] = v
+            if isinstance(v, dict):
+                if fnmatch.fnmatch(bucket, k):
+                    if candidate is not None:
+                        raise ValueError(f"Multiple object storage configurations match {bucket}: {candidate} and {k}")
+                    candidate = k
+
+        if candidate is not None:
+            for k, v in cfg.get(candidate, {}).items():
+                if isinstance(v, (str, int, float, bool)):
+                    options[k] = v
 
         type = options.pop("type", "s3")
         if type != "s3":
@@ -115,9 +126,25 @@ def s3_client(bucket: str, region: str = None) -> Any:
         if "config" in options:
             boto3_config.update(options["config"])
             del options["config"]
-            from botocore.client import Config
 
     options["config"] = Config(**boto3_config)
+
+    def _(options):
+
+        def __(k, v):
+            if k in SECRETS:
+                return "***"
+            return v
+
+        if isinstance(options, dict):
+            return {k: __(k, v) for k, v in options.items()}
+
+        if isinstance(options, list):
+            return [_(o) for o in options]
+
+        return options
+
+    LOG.info(f"Using S3 options: {_(options)}")
 
     thread_local.s3_clients[key] = boto3.client("s3", **options)
 
@@ -215,7 +242,7 @@ class S3Upload(BaseUpload):
         size = os.path.getsize(source)
 
         if verbosity > 0:
-            LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
+            LOG.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
 
         try:
             results = s3.head_object(Bucket=bucket, Key=key)
@@ -227,7 +254,7 @@ class S3Upload(BaseUpload):
 
         if remote_size is not None:
             if remote_size != size:
-                LOGGER.warning(
+                LOG.warning(
                     f"{target} already exists, but with different size, re-uploading (remote={remote_size}, local={size})"
                 )
             elif resume:
@@ -400,7 +427,7 @@ class S3Download(BaseDownload):
         size = int(response["ContentLength"])
 
         if verbosity > 0:
-            LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
+            LOG.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
 
         if overwrite:
             resume = False
@@ -409,7 +436,7 @@ class S3Download(BaseDownload):
             if os.path.exists(target):
                 local_size = os.path.getsize(target)
                 if local_size != size:
-                    LOGGER.warning(
+                    LOG.warning(
                         f"{target} already with different size, re-downloading (remote={size}, local={local_size})"
                     )
                 else:
@@ -477,10 +504,10 @@ def _delete_folder(target: str) -> None:
 
     total = 0
     for batch in _list_objects(target, batch=True):
-        LOGGER.info(f"Deleting {len(batch):,} objects from {target}")
+        LOG.info(f"Deleting {len(batch):,} objects from {target}")
         s3.delete_objects(Bucket=bucket, Delete={"Objects": [{"Key": o["Key"]} for o in batch]})
         total += len(batch)
-        LOGGER.info(f"Deleted {len(batch):,} objects (total={total:,})")
+        LOG.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
 def _delete_file(target: str) -> None:
@@ -505,12 +532,12 @@ def _delete_file(target: str) -> None:
         exits = False
 
     if not exits:
-        LOGGER.warning(f"{target} does not exist. Did you mean to delete a folder? Then add a trailing '/'")
+        LOG.warning(f"{target} does not exist. Did you mean to delete a folder? Then add a trailing '/'")
         return
 
-    LOGGER.info(f"Deleting {target}")
+    LOG.info(f"Deleting {target}")
     s3.delete_object(Bucket=bucket, Key=key)
-    LOGGER.info(f"{target} is deleted")
+    LOG.info(f"{target} is deleted")
 
 
 def delete(target: str) -> None:
