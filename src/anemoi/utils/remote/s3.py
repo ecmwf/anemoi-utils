@@ -40,14 +40,14 @@ from . import BaseDownload
 from . import BaseUpload
 
 LOG = logging.getLogger(__name__)
-
+SECRETS = ["aws_access_key_id", "aws_secret_access_key"]
 
 # s3_clients are not thread-safe, so we need to create a new client for each thread
 
 thread_local = threading.local()
 
 
-def s3_client(bucket: str, region: str = None) -> Any:
+def s3_client(bucket: str, *, region: str = None, service: str = "s3") -> Any:
     """Get an S3 client for the specified bucket and region.
 
     Parameters
@@ -56,6 +56,8 @@ def s3_client(bucket: str, region: str = None) -> Any:
         The name of the S3 bucket.
     region : str, optional
         The AWS region of the S3 bucket.
+    service : str, optional
+        The AWS service to use, default is "s3".
 
     Returns
     -------
@@ -69,7 +71,7 @@ def s3_client(bucket: str, region: str = None) -> Any:
     if not hasattr(thread_local, "s3_clients"):
         thread_local.s3_clients = {}
 
-    key = f"{bucket}-{region}"
+    key = f"{bucket}-{region}-{service}"
 
     if key in thread_local.s3_clients:
         return thread_local.s3_clients[key]
@@ -97,9 +99,9 @@ def s3_client(bucket: str, region: str = None) -> Any:
         # We may be accessing a different S3 compatible service
         # Use anemoi.config to get the configuration
 
-        SECRETS = ["aws_access_key_id", "aws_secret_access_key"]
+        region = "unknown-region"
 
-        options = {}
+        options = {"region_name": region}
         config = load_config(secrets=SECRETS)
 
         cfg = config.get("object-storage", {})
@@ -146,7 +148,7 @@ def s3_client(bucket: str, region: str = None) -> Any:
 
     LOG.info(f"Using S3 options: {_(options)}")
 
-    thread_local.s3_clients[key] = boto3.client("s3", **options)
+    thread_local.s3_clients[key] = boto3.client(service, **options)
 
     return thread_local.s3_clients[key]
 
@@ -627,7 +629,7 @@ def object_acl(target: str) -> dict:
     """
 
     _, _, bucket, key = target.split("/", 3)
-    s3 = s3_client()
+    s3 = s3_client(bucket)
 
     return s3.get_object_acl(Bucket=bucket, Key=key)
 
@@ -670,3 +672,29 @@ def upload(source: str, target: str, *args, **kwargs) -> None:
 
     assert target.startswith("s3://"), f"target {target} should start with 's3://'"
     return transfer(source, target, *args, **kwargs)
+
+
+def quotas(target: str) -> dict:
+    """Get the quotas for an S3 bucket.
+
+    Parameters
+    ----------
+    target : str
+        The URL of a file or a folder on S3. The URL should start with 's3://'.
+
+    Returns
+    -------
+    dict
+        A dictionary with the quotas for the bucket.
+    """
+    from botocore.exceptions import ClientError
+
+    _, _, bucket, _ = target.split("/", 3)
+    s3 = s3_client(bucket, service="service-quotas")  # Service Quotas is only available in us-east-1
+
+    try:
+        return s3.list_service_quotas(ServiceCode="ec2")
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            raise ValueError(f"{target} does not exist")
+        raise
