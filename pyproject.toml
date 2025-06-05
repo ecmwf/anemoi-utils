@@ -70,7 +70,7 @@ optional-dependencies.grib = [ "requests" ]
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
 
 optional-dependencies.s3 = [
-  "boto3<1.36",
+  "boto3>1.36",
 ]
 
 optional-dependencies.tests = [ "pytest" ]

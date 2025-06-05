@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.23](https://github.com/ecmwf/anemoi-utils/compare/0.4.22...0.4.23) (2025-05-20)
+
+
+### Bug Fixes
+
+* fix list_folder on s3 ([#154](https://github.com/ecmwf/anemoi-utils/issues/154)) ([3ceb42c](https://github.com/ecmwf/anemoi-utils/commit/3ceb42c5185290d4c12e3fe90c3c331e3d8c7a5f))
+* Remove the requirment to have git installed ([#149](https://github.com/ecmwf/anemoi-utils/issues/149)) ([88846e8](https://github.com/ecmwf/anemoi-utils/commit/88846e80be2927050a879ff953a78aecf39c3ac5))
+* Use urllib to make _offline() aware of HTTP(s) proxies. ([#150](https://github.com/ecmwf/anemoi-utils/issues/150)) ([5c4d06f](https://github.com/ecmwf/anemoi-utils/commit/5c4d06f931590cc360eb4ffeeb8753a5d3d72bcb))
+
 ## [0.4.22](https://github.com/ecmwf/anemoi-utils/compare/0.4.21...0.4.22) (2025-04-10)
 
 

@@ -1,9 +1,12 @@
-# (C) Copyright 2024 Anemoi contributors.
+# (C) Copyright 2024-2025 Anemoi contributors.
+#
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
 
 """This module provides functions to upload, download, list and delete files and folders on S3.
 The functions of this package expect that the AWS credentials are set up in the environment
@@ -67,12 +70,14 @@ def s3_client(bucket: str, region: str = None) -> Any:
 
     key = f"{bucket}-{region}"
 
-    boto3_config = dict(max_pool_connections=25)
-
     if key in thread_local.s3_clients:
         return thread_local.s3_clients[key]
 
-    boto3_config = dict(max_pool_connections=25)
+    boto3_config = dict(
+        max_pool_connections=25,
+        request_checksum_calculation="when_required",
+        response_checksum_validation="when_required",
+    )
 
     if region:
         # This is using AWS
@@ -162,7 +167,14 @@ class S3Upload(BaseUpload):
         # delete(target)
 
     def _transfer_file(
-        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+        self,
+        source: str,
+        target: str,
+        overwrite: bool,
+        resume: bool,
+        verbosity: int,
+        threads: int,
+        config: dict = None,
     ) -> int:
         """Transfer a file to S3.
 
@@ -227,7 +239,13 @@ class S3Upload(BaseUpload):
 
         if verbosity > 0:
             with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3.upload_file(source, bucket, key, Callback=lambda x: pbar.update(x), Config=config)
+                s3.upload_file(
+                    source,
+                    bucket,
+                    key,
+                    Callback=lambda x: pbar.update(x),
+                    Config=config,
+                )
         else:
             s3.upload_file(source, bucket, key, Config=config)
 
@@ -326,7 +344,14 @@ class S3Download(BaseDownload):
         return s3_object["Size"]
 
     def _transfer_file(
-        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+        self,
+        source: str,
+        target: str,
+        overwrite: bool,
+        resume: bool,
+        verbosity: int,
+        threads: int,
+        config: dict = None,
     ) -> int:
         """Transfer a file from S3 to the local filesystem.
 
@@ -397,7 +422,13 @@ class S3Download(BaseDownload):
 
         if verbosity > 0:
             with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3.download_file(bucket, key, target, Callback=lambda x: pbar.update(x), Config=config)
+                s3.download_file(
+                    bucket,
+                    key,
+                    target,
+                    Callback=lambda x: pbar.update(x),
+                    Config=config,
+                )
         else:
             s3.download_file(bucket, key, target, Config=config)
 
@@ -524,7 +555,9 @@ def list_folder(folder: str) -> Iterable:
 
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter="/"):
         if "CommonPrefixes" in page:
-            yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes")]
+            yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes") if _["Prefix"] != "/"]
+        if "Contents" in page:
+            yield from [folder + _["Key"] for _ in page.get("Contents")]
 
 
 def object_info(target: str) -> dict:
