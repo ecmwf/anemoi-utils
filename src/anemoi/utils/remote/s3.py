@@ -690,7 +690,7 @@ def quotas(target: str) -> dict:
     from botocore.exceptions import ClientError
 
     _, _, bucket, _ = target.split("/", 3)
-    s3 = s3_client(bucket, service="service-quotas")  
+    s3 = s3_client(bucket, service="service-quotas")
 
     try:
         return s3.list_service_quotas(ServiceCode="ec2")
