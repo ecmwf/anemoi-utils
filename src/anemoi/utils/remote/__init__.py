@@ -1,4 +1,4 @@
-# (C) Copyright 2024 European Centre for Medium-Range Weather Forecasts.
+# (C) Copyright 2024 Anemoi contributors.
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
 # In applying this licence, ECMWF does not waive the privileges and immunities
@@ -9,6 +9,7 @@ import concurrent.futures
 import logging
 import os
 import shutil
+from abc import ABC
 from abc import abstractmethod
 from typing import Any
 from typing import Dict
@@ -47,7 +48,7 @@ def _ignore(number_of_files: int, total_size: int, total_transferred: int, trans
     pass
 
 
-class Loader:
+class Loader(ABC):
     def transfer_folder(
         self,
         *,
@@ -485,6 +486,7 @@ class Transfer:
         threads: int = 1,
         progress: callable = None,
         temporary_target: bool = False,
+        workdir: str = ".",
     ):
         if target == ".":
             target = os.path.basename(source)
@@ -508,6 +510,7 @@ class Transfer:
         self.threads = threads
         self.progress = progress
         self.temporary_target = temporary_target
+        self.workdir = workdir
 
         cls = _find_transfer_class(self.source, self.target)
         self.loader = cls()
@@ -545,6 +548,7 @@ class Transfer:
             verbosity=self.verbosity,
             threads=self.threads,
             progress=self.progress,
+            workdir=self.workdir,
         )
 
         self.rename_target(target, self.target)
@@ -576,7 +580,7 @@ class Transfer:
         return self.loader.delete_target(target)
 
 
-def _find_transfer_class(source: str, target: str) -> type:
+def _find_transfer_class(source: str, target: str, workdir: str = ".") -> type:
     """Find the appropriate transfer class based on the source and target locations.
 
     Parameters
@@ -585,6 +589,8 @@ def _find_transfer_class(source: str, target: str) -> type:
         The source location.
     target : str
         The target location.
+    workdir : str, optional
+        The working directory, by default ".".
 
     Returns
     -------
@@ -596,35 +602,56 @@ def _find_transfer_class(source: str, target: str) -> type:
     TransferMethodNotImplementedError
         If the transfer method is not implemented.
     """
-    from_ssh = source.startswith("ssh://")
-    into_ssh = target.startswith("ssh://")
 
-    from_s3 = source.startswith("s3://")
-    into_s3 = target.startswith("s3://")
-
-    from_local = not from_ssh and not from_s3
-    into_local = not into_ssh and not into_s3
-
-    # check that exactly one source type and one target type is specified
-    assert sum([into_ssh, into_local, into_s3]) == 1, (into_ssh, into_local, into_s3)
-    assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
-
-    if from_local and into_ssh:  # local -> ssh
+    def rsync_upload(f, t):
         from .ssh import RsyncUpload
 
         return RsyncUpload
 
-    if from_s3 and into_local:  # local <- S3
+    def s3_download(f, t):
         from .s3 import S3Download
 
         return S3Download
 
-    if from_local and into_s3:  # local -> S3
+    def s3_upload(f, t):
         from .s3 import S3Upload
 
         return S3Upload
 
-    raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
+    def ecfs_download(f, t):
+        from .ecfs import EcfsDownload
+
+        return EcfsDownload
+
+    def ecfs_upload(f, t):
+        from .ecfs import EcfsUpload
+
+        return EcfsUpload
+
+    def unsupported(f, t):
+        raise TransferMethodNotImplementedError(f"Transfer from '{f}' to '{t}' is not implemented")
+
+    def scheme(url: str) -> str:
+        result = url.split("://")
+        if len(result) == 1:
+            return "file"
+        return result[0]
+
+    source_scheme = scheme(source)
+    target_scheme = scheme(target)
+
+    TRANSFERS = {
+        ("file", "ssh"): rsync_upload,
+        ("s3", "file"): s3_download,
+        ("file", "s3"): s3_upload,
+        ("ec", "file"): ecfs_download,
+        ("file", "ec"): ecfs_upload,
+        ("ectmp", "file"): ecfs_download,
+        ("file", "ectmp"): ecfs_upload,
+    }
+
+    transfer = TRANSFERS.get((source_scheme, target_scheme), unsupported)
+    return transfer(source_scheme, target_scheme)
 
 
 # This function is the main entry point for the transfer mechanism for the other anemoi packages
