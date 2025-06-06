@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.24](https://github.com/ecmwf/anemoi-utils/compare/0.4.23...0.4.24) (2025-06-06)
+
+
+### Features
+
+* Add s3.object_exists() function ([#157](https://github.com/ecmwf/anemoi-utils/issues/157)) ([d898811](https://github.com/ecmwf/anemoi-utils/commit/d8988116320265dc6dfe467c57e0b6f29f76a2c1))
+* Allow wildcard in config for matching s3 buckets to end points ([#160](https://github.com/ecmwf/anemoi-utils/issues/160)) ([ab20da7](https://github.com/ecmwf/anemoi-utils/commit/ab20da7e9497435a7183705b02dcbb7317d2700b))
+
 ## [0.4.23](https://github.com/ecmwf/anemoi-utils/compare/0.4.22...0.4.23) (2025-05-20)
 
 
