@@ -493,7 +493,7 @@ def _list_objects(target: str, batch: bool = False) -> Iterable:
                 yield from objects
 
 
-def _delete_folder(target: str) -> None:
+def delete_folder(target: str) -> None:
     """Delete a folder from S3.
 
     Parameters
@@ -512,7 +512,7 @@ def _delete_folder(target: str) -> None:
         LOG.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
-def _delete_file(target: str) -> None:
+def delete_file(target: str) -> None:
     """Delete a file from S3.
 
     Parameters
@@ -554,9 +554,9 @@ def delete(target: str) -> None:
     assert target.startswith("s3://")
 
     if target.endswith("/"):
-        _delete_folder(target)
+        delete_folder(target)
     else:
-        _delete_file(target)
+        delete_file(target)
 
 
 def list_folder(folder: str) -> Iterable:
@@ -610,7 +610,33 @@ def object_info(target: str) -> dict:
         return s3.head_object(Bucket=bucket, Key=key)
     except s3.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "404":
-            raise ValueError(f"{target} does not exist")
+            raise FileNotFoundError(f"{target} does not exist")
+        raise
+
+
+def object_exists(target: str) -> bool:
+    """Check if an object exists.
+
+    Parameters
+    ----------
+    target : str
+        The URL of a file or a folder on S3. The URL should start with 's3://'.
+
+    Returns
+    -------
+    bool
+        True if the object exists, False otherwise.
+    """
+
+    _, _, bucket, key = target.split("/", 3)
+    s3 = s3_client(bucket)
+
+    try:
+        s3.head_object(Bucket=bucket, Key=key)
+        return True
+    except s3.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return False
         raise
 
 
