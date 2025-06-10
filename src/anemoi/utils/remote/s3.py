@@ -146,7 +146,7 @@ def s3_client(bucket: str, *, region: str = None, service: str = "s3") -> Any:
 
         return options
 
-    LOG.info(f"Using S3 options: {_(options)}")
+    LOG.debug(f"Using S3 options: {_(options)}")
 
     thread_local.s3_clients[key] = boto3.client(service, **options)
 

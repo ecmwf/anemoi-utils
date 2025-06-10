@@ -371,7 +371,12 @@ class BaseDownload(Loader):
             The target path.
         """
         if os.path.exists(target):
-            shutil.rmtree(target)
+            if os.path.isfile(target):
+                LOGGER.info(f"Deleting file {target}")
+                os.remove(target)
+            else:
+                LOGGER.info(f"Deleting directory {target}")
+                shutil.rmtree(target)
 
 
 class BaseUpload(Loader):
@@ -642,10 +647,10 @@ def transfer(
         A path to a local file or folder or a URL to a file or a folder on S3 or a remote folder.
         The url should start with 's3://' or 'ssh://'.
     overwrite : bool, optional
-        If the data is alreay on in the target location it will be overwritten.
+        If the data is already on in the target location it will be overwritten.
         By default False
     resume : bool, optional
-        If the data is alreay on S3 it will not be uploaded, unless the remote file has a different size
+        If the data is already on S3 it will not be uploaded, unless the remote file has a different size
         Ignored if the target is an SSH remote folder (ssh://).
         By default False
     verbosity : int, optional
