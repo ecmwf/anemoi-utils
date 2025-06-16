@@ -7,14 +7,12 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-import atexit
 import logging
 import os
 import shutil
-import tempfile
-import threading
 import warnings
 from functools import lru_cache
+from pathlib import Path
 
 import pytest
 from multiurl import download
@@ -24,30 +22,6 @@ from anemoi.utils.humanize import list_to_human
 LOG = logging.getLogger(__name__)
 
 TEST_DATA_URL = "https://object-store.os-api.cci1.ecmwf.int/ml-tests/test-data/samples/"
-
-lock = threading.RLock()
-TEMPORARY_DIRECTORY = None
-
-
-def _temporary_directory() -> str:
-    """Return a temporary directory in which to download test data.
-
-    Returns
-    -------
-    str
-        The path to the temporary directory.
-    """
-    global TEMPORARY_DIRECTORY
-    with lock:
-        if TEMPORARY_DIRECTORY is not None:
-            return TEMPORARY_DIRECTORY
-
-        TEMPORARY_DIRECTORY = tempfile.mkdtemp()
-
-        # Register a cleanup function to remove the directory at exit
-        atexit.register(shutil.rmtree, TEMPORARY_DIRECTORY)
-
-        return TEMPORARY_DIRECTORY
 
 
 def _check_path(path: str) -> None:
@@ -68,21 +42,15 @@ def _check_path(path: str) -> None:
     assert not path.startswith("."), f"Path '{path}' should not start with '.'"
 
 
-def _temporary_directory_for_test_data(path: str) -> str:
-    """Get the temporary directory for a test dataset.
+@pytest.fixture(scope="session")
+def temporary_directory_for_test_data(tmp_path_factory) -> callable:
+    base_dir = tmp_path_factory.mktemp("test_data_base")
 
-    Parameters
-    ----------
-    path : str
-        The relative path to the test data in the object store.
+    def _temporary_directory_for_test_data(path: str) -> str:
+        _check_path(path)
+        return str(base_dir.joinpath(*Path(path).parts))
 
-    Returns
-    -------
-    str
-        The path to the temporary directory.
-    """
-    _check_path(path)
-    return os.path.normpath(os.path.join(_temporary_directory(), path))
+    return _temporary_directory_for_test_data
 
 
 def url_for_test_data(path: str) -> str:
@@ -103,27 +71,29 @@ def url_for_test_data(path: str) -> str:
     return f"{TEST_DATA_URL}{path}"
 
 
-def get_test_data(path: str, gzipped=False) -> str:
-    """Download the test data to a temporary directory and return the local path.
+@pytest.fixture()
+def get_test_data(temporary_directory_for_test_data):
+    def _get_test_data(path: str, gzipped=False) -> callable:
+        """Download the test data to a temporary directory and return the local path.
 
-    Parameters
-    ----------
-    path : str
-        The relative path to the test data.
-    gzipped : bool, optional
-        Flag indicating if the remote file is gzipped, by default False. The local file will be gunzipped.
+        Parameters
+        ----------
+        path : str
+            The relative path to the test data.
+        gzipped : bool, optional
+            Flag indicating if the remote file is gzipped, by default False. The local file will be gunzipped.
 
-    Returns
-    -------
-    str
-        The local path to the downloaded test data.
-    """
+        Returns
+        -------
+        str
+            The local path to the downloaded test data.
+        """
 
-    if _offline():
-        raise RuntimeError("Offline mode: cannot download test data, add @pytest.mark.skipif(not offline(),...)")
+        if _offline():
+            raise RuntimeError("Offline mode: cannot download test data, add @pytest.mark.skipif(not offline(),...)")
 
-    target = _temporary_directory_for_test_data(path)
-    with lock:
+        target = temporary_directory_for_test_data(path)
+
         if os.path.exists(target):
             return target
 
@@ -149,27 +119,29 @@ def get_test_data(path: str, gzipped=False) -> str:
 
         return target
 
+    return _get_test_data
 
-def get_test_archive(path: str, extension=".extracted") -> str:
-    """Download an archive file (.zip, .tar, .tar.gz, .tar.bz2, .tar.xz) to a temporary directory
-    unpack it, and return the local path to the directory containing the extracted files.
 
-    Parameters
-    ----------
-    path : str
-        The relative path to the test data.
-    extension : str, optional
-        The extension to add to the extracted directory, by default '.extracted'
+@pytest.fixture()
+def get_test_archive(temporary_directory_for_test_data, get_test_data) -> callable:
+    def _get_test_archive(path: str, extension=".extracted") -> str:
+        """Download an archive file (.zip, .tar, .tar.gz, .tar.bz2, .tar.xz) to a temporary directory
+        unpack it, and return the local path to the directory containing the extracted files.
 
-    Returns
-    -------
-    str
-        The local path to the downloaded test data.
-    """
+        Parameters
+        ----------
+        path : str
+            The relative path to the test data.
+        extension : str, optional
+            The extension to add to the extracted directory, by default '.extracted'
 
-    with lock:
+        Returns
+        -------
+        str
+            The local path to the downloaded test data.
+        """
 
-        target = _temporary_directory_for_test_data(path) + extension
+        target = Path(temporary_directory_for_test_data(path) + extension)
 
         if os.path.exists(target):
             return target
@@ -182,6 +154,8 @@ def get_test_archive(path: str, extension=".extracted") -> str:
         os.remove(archive)
 
         return target
+
+    return _get_test_archive
 
 
 def packages_installed(*names: str) -> bool:
