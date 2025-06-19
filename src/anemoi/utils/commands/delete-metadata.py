@@ -10,6 +10,8 @@
 
 from argparse import ArgumentParser
 from argparse import Namespace
+from pathlib import Path
+import shutil
 
 from anemoi.utils.checkpoints import remove_metadata
 
@@ -17,7 +19,7 @@ from . import Command
 
 
 class DeleteMetadata(Command):
-    """Delete the metadata from a checkpoint, this commands updates the file in place."""
+    """Delete the metadata from a checkpoint and create a new checkpoint with the metadata removed."""
 
     def add_arguments(self, command_parser: ArgumentParser) -> None:
         """Add arguments to the command parser.
@@ -28,7 +30,11 @@ class DeleteMetadata(Command):
             The argument parser to which the arguments will be added.
         """
         command_parser.add_argument(
-            "filename", help="A path to the checkpoint file containing the metadata."
+            "--source", help="A path to the checkpoint file containing the metadata."
+        )
+
+        command_parser.add_argument(
+            "--output", help="Path to checkpoint without metadata"
         )
     
     def run(self, args: Namespace) -> None:
@@ -39,7 +45,8 @@ class DeleteMetadata(Command):
         args : Namespace
             The arguments passed to the command.
         """
-        remove_metadata(args.filename)
+        shutil.copy2(args.source, args.output)
+        remove_metadata(args.output)
 
 
 command = DeleteMetadata
