@@ -8,9 +8,9 @@
 # nor does it submit to any jurisdiction.
 
 
+import shutil
 from argparse import ArgumentParser
 from argparse import Namespace
-import shutil
 
 from anemoi.utils.checkpoints import remove_metadata
 
@@ -28,14 +28,10 @@ class RemoveMetadata(Command):
         command_parser : ArgumentParser
             The argument parser to which the arguments will be added.
         """
-        command_parser.add_argument(
-            "--input", help="A path to the checkpoint file containing the metadata."
-        )
+        command_parser.add_argument("--input", help="A path to the checkpoint file containing the metadata.")
 
-        command_parser.add_argument(
-            "--output", help="Path to checkpoint without metadata"
-        )
-    
+        command_parser.add_argument("--output", help="Path to checkpoint without metadata")
+
     def run(self, args: Namespace) -> None:
         """Execute the command with the provided arguments.
 
