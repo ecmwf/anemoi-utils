@@ -30,7 +30,7 @@ class DeleteMetadata(Command):
             The argument parser to which the arguments will be added.
         """
         command_parser.add_argument(
-            "--source", help="A path to the checkpoint file containing the metadata."
+            "--input", help="A path to the checkpoint file containing the metadata."
         )
 
         command_parser.add_argument(
@@ -45,7 +45,7 @@ class DeleteMetadata(Command):
         args : Namespace
             The arguments passed to the command.
         """
-        shutil.copy2(args.source, args.output)
+        shutil.copy2(args.input, args.output)
         remove_metadata(args.output)
 
 
