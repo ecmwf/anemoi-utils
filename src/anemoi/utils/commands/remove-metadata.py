@@ -9,8 +9,10 @@
 
 
 import shutil
+
 from argparse import ArgumentParser
 from argparse import Namespace
+from argparse import BooleanOptionalAction
 
 from anemoi.utils.checkpoints import remove_metadata
 
@@ -28,8 +30,22 @@ class RemoveMetadata(Command):
         command_parser : ArgumentParser
             The argument parser to which the arguments will be added.
         """
-        command_parser.add_argument("--source", help="Path to the checkpoint file containing the metadata.")
-        command_parser.add_argument("--target", help="Path to checkpoint without metadata.")
+        command_parser.add_argument(
+            "--source",
+            type=str,
+            required=True,
+            help="Path to the checkpoint file containing the metadata."
+        )
+        command_parser.add_argument(
+            "--target",
+            type=str,
+            help="Path to checkpoint without metadata. Required unless --inplace is set."
+        )
+        command_parser.add_argument(
+            "--inplace",
+            action=BooleanOptionalAction,
+            help="If set, update the source file in place instead of writing to a separate target."
+        )
 
     def run(self, args: Namespace) -> None:
         """Execute the command with the provided arguments.
@@ -39,8 +55,16 @@ class RemoveMetadata(Command):
         args : Namespace
             The arguments passed to the command.
         """
-        shutil.copy2(args.source, args.target)
-        remove_metadata(args.target)
+        if not args.inplace and not args.target:
+            raise ValueError("Argument --target is required unless --inplace is set")
+            
+        if args.inplace:
+            target = args.source
+        else:    
+            shutil.copy2(args.source, args.target)
+            target = args.target
+
+        remove_metadata(target)
 
 
 command = RemoveMetadata
