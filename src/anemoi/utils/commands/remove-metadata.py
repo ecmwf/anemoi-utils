@@ -28,9 +28,8 @@ class RemoveMetadata(Command):
         command_parser : ArgumentParser
             The argument parser to which the arguments will be added.
         """
-        command_parser.add_argument("--input", help="A path to the checkpoint file containing the metadata.")
-
-        command_parser.add_argument("--output", help="Path to checkpoint without metadata")
+        command_parser.add_argument("--source", help="Path to the checkpoint file containing the metadata.")
+        command_parser.add_argument("--target", help="Path to checkpoint without metadata.")
 
     def run(self, args: Namespace) -> None:
         """Execute the command with the provided arguments.
@@ -40,8 +39,8 @@ class RemoveMetadata(Command):
         args : Namespace
             The arguments passed to the command.
         """
-        shutil.copy2(args.input, args.output)
-        remove_metadata(args.output)
+        shutil.copy2(args.source, args.target)
+        remove_metadata(args.target)
 
 
 command = RemoveMetadata
