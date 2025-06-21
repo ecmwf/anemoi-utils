@@ -311,7 +311,7 @@ def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
         Can be 'anemoi-datasets' or 'anemoi.datasets'.
     cmd : str
         The command to run.
-    *args : str
+    *args : list[str]
         Additional arguments to pass to the command.
     """
 
