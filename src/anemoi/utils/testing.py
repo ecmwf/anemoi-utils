@@ -299,3 +299,31 @@ def skip_missing_packages(*names: str) -> callable:
         return pytest.mark.skipif(True, reason=f"Package {missing[0]} is not installed")
 
     return pytest.mark.skipif(True, reason=f"Packages {list_to_human(missing)} are not installed")
+
+
+def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
+    """Run a CLI command for testing purposes.
+
+    Parameters
+    ----------
+    package : str
+        The name of the package containing the CLI commands.
+        Can be 'anemoi-datasets' or 'anemoi.datasets'.
+    cmd : str
+        The command to run.
+    *args : str
+        Additional arguments to pass to the command.
+    """
+
+    package = package.replace("-", ".")
+    COMMANDS = getattr(__import__(f"{package}.commands", fromlist=["COMMANDS"]), "COMMANDS")
+    version = getattr(__import__(f"{package}._version", fromlist=["__version__"]), "__version__", "0.1.0")
+
+    from anemoi.utils.cli import cli_main
+
+    cli_main(
+        version=version,
+        description=f"Testing the '{cmd}' CLI command from the '{package}' package.",
+        commands=COMMANDS,
+        test_arguments=(cmd,) + args,
+    )

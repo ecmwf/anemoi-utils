@@ -15,6 +15,7 @@ import os
 import sys
 import traceback
 from typing import Callable
+from typing import Optional
 
 try:
     import argcomplete
@@ -185,7 +186,9 @@ def register_commands(here: str, package: str, select: Callable, fail: Callable 
     return result
 
 
-def cli_main(version: str, description: str, commands: dict[str, Command]) -> None:
+def cli_main(
+    version: str, description: str, commands: dict[str, Command], test_arguments: Optional[list[str]] = None
+) -> None:
     """Main entry point for the CLI.
 
     Parameters
@@ -196,9 +199,11 @@ def cli_main(version: str, description: str, commands: dict[str, Command]) -> No
         The description of the CLI
     commands : dict[str, Command]
         A dictionary of command names to Command instances
+    test_arguments : list[str], optional
+        The command line arguments to parse, used for testing purposes, by default None
     """
     parser = make_parser(description, commands)
-    args, unknown = parser.parse_known_args()
+    args, unknown = parser.parse_known_args(test_arguments)
     if argcomplete:
         argcomplete.autocomplete(parser)
 
@@ -220,7 +225,7 @@ def cli_main(version: str, description: str, commands: dict[str, Command]) -> No
 
     if unknown and not cmd.accept_unknown_args:
         # This should trigger an error
-        parser.parse_args()
+        parser.parse_args(test_arguments)
 
     try:
         if unknown:
@@ -228,9 +233,14 @@ def cli_main(version: str, description: str, commands: dict[str, Command]) -> No
         else:
             cmd.run(args)
     except ValueError as e:
+
+        if test_arguments:
+            raise
+
         traceback.print_exc()
         LOG.error("\n💣 %s", str(e).lstrip())
         LOG.error("💣 Exiting")
         sys.exit(1)
 
-    sys.exit(0)
+    if not test_arguments:
+        sys.exit(0)
