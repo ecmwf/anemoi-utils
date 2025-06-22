@@ -378,6 +378,7 @@ def run_tests(globals: dict[str, callable]) -> None:
     import rich
 
     logging.basicConfig(level=logging.INFO)
+
     for name, obj in list(globals.items()):
         if name.startswith("test_") and callable(obj):
 
