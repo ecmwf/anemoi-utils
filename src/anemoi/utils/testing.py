@@ -390,10 +390,12 @@ def run_tests(globals: dict[str, callable]) -> None:
                 for m in pytestmark:
                     if m.name == "skipif" and m.args == (True,):
                         skip = True
-                        rich.print(f"Skipping {name} due to skipif condition {m.name}.")
+                        rich.print(
+                            f"[red]Skipping [bold]{name}[/bold] due to skipif condition [bold]{m.kwargs['reason']}[/bold].[/red]"
+                        )
                         break
                 if skip:
                     continue
 
-            rich.print(f"Running {name}...")
+            rich.print(f"[green]Running [bold]{name}[/bold]...[/green]")
             obj()
