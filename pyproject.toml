@@ -48,6 +48,7 @@ dependencies = [
   "pydantic>=2.9",
   "python-dateutil",
   "pyyaml",
+  "rich",
   "tomli; python_version<'3.11'",
   "tqdm",
 ]

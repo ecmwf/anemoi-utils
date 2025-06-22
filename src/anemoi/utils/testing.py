@@ -301,6 +301,28 @@ def skip_missing_packages(*names: str) -> callable:
     return pytest.mark.skipif(True, reason=f"Packages {list_to_human(missing)} are not installed")
 
 
+def skip_if_missing_command(cmd: str) -> callable:
+    """Skip a test if the specified command is not available.
+
+    Parameters
+    ----------
+    cmd : str
+        The name of the command to check.
+
+    Returns
+    -------
+    Callable
+        A decorator that skips the test if the specified command is not available.
+    """
+
+    import shutil
+
+    if shutil.which(cmd):
+        return lambda f: f
+
+    return pytest.mark.skipif(True, reason=f"Command '{cmd}' is not available")
+
+
 def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
     """Run a CLI command for testing purposes.
 
@@ -327,3 +349,51 @@ def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
         commands=COMMANDS,
         test_arguments=(cmd,) + args,
     )
+
+
+def run_tests(globals: dict[str, callable]) -> None:
+    """Run all test functions that start with 'test_'.
+
+    Parameters
+    ----------
+    globals : dict[str, callable]
+        The global namespace containing the test functions.
+
+    Example
+    -----
+
+    Call from a test file to run all tests in that file:
+
+    ```python
+    if __name__ == "__main__":
+        from anemoi.utils.testing import run_tests
+        run_tests(globals())
+    ```
+
+    Useful for debugging or running tests in an interactive environment.
+
+    """
+    import logging
+
+    import rich
+
+    logging.basicConfig(level=logging.INFO)
+    for name, obj in list(globals.items()):
+        if name.startswith("test_") and callable(obj):
+
+            pytestmark = getattr(obj, "pytestmark", None)
+            if pytestmark is not None:
+                if not isinstance(pytestmark, list):
+                    pytestmark = [pytestmark]
+
+                skip = False
+                for m in pytestmark:
+                    if m.name == "skipif" and m.args == (True,):
+                        skip = True
+                        rich.print(f"Skipping {name} due to skipif condition {m.name}.")
+                        break
+                if skip:
+                    continue
+
+            rich.print(f"Running {name}...")
+            obj()
