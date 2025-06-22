@@ -190,6 +190,12 @@ def _grids(name: Union[str, List[float], Tuple[float, ...]]) -> bytes:
     return response.content
 
 
+@deprecation.deprecated(
+    deprecated_in="0.4.25",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.transform.grids.named.lookup instead.",
+)
 def grids(name: Union[str, List[float], Tuple[float, ...]]) -> dict:
     """Load grid data by name.
 
