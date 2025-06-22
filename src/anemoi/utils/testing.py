@@ -360,7 +360,7 @@ def run_tests(globals: dict[str, callable]) -> None:
         The global namespace containing the test functions.
 
     Example
-    -----
+    -------
 
     Call from a test file to run all tests in that file:
 
