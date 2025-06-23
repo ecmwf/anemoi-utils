@@ -62,14 +62,20 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            if isinstance(v, dict) or is_omegaconf_dict(v):
-                self[k] = DotDict(v)
+            self[k] = self.to_dot_dict(v)
 
-            if isinstance(v, list) or is_omegaconf_list(v):
-                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
+    @staticmethod
+    def to_dot_dict(value):
+        if isinstance(value, dict) or is_omegaconf_dict(value):
+            return DotDict(value)
 
-            if isinstance(v, tuple):
-                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
+        if isinstance(value, list) or is_omegaconf_list(value):
+            return [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in value]
+
+        if isinstance(value, tuple):
+            return [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in value]
+
+        return value
 
     @classmethod
     def from_file(cls, path: str) -> DotDict:
@@ -179,8 +185,7 @@ class DotDict(dict):
         value : Any
             The attribute value.
         """
-        if isinstance(value, dict):
-            value = DotDict(value)
+        value= self.to_dot_dict(value)
         super().__setitem__(attr, value)
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -193,8 +198,7 @@ class DotDict(dict):
         value : Any
             The value to set.
         """
-        if isinstance(value, dict):
-            value = DotDict(value)
+        value = self.to_dot_dict(value)
         super().__setitem__(key, value)
 
     def __repr__(self) -> str:
