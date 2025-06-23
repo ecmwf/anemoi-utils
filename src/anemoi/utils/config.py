@@ -62,10 +62,10 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            self[k] = self.to_dot_dict(v)
+            self[k] = self.convert_to_nested_dot_dict(v)
 
     @staticmethod
-    def to_dot_dict(value):
+    def convert_to_nested_dot_dict(value):
         if isinstance(value, dict) or is_omegaconf_dict(value):
             return DotDict(value)
 
@@ -185,7 +185,7 @@ class DotDict(dict):
         value : Any
             The attribute value.
         """
-        value = self.to_dot_dict(value)
+        value = self.convert_to_nested_dot_dict(value)
         super().__setitem__(attr, value)
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -198,7 +198,7 @@ class DotDict(dict):
         value : Any
             The value to set.
         """
-        value = self.to_dot_dict(value)
+        value = self.convert_to_nested_dot_dict(value)
         super().__setitem__(key, value)
 
     def __repr__(self) -> str:
