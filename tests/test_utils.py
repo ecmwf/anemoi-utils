@@ -63,6 +63,7 @@ def test_adding_list_of_dicts_via_setitem():
     assert d.b[0].c == "d"
     assert d.b[1].e == "f"
 
+
 def test_adding_list_of_dicts_via_setattr():
     d = DotDict(a=1)
     d.b = [

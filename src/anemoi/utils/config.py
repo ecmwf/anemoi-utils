@@ -185,7 +185,7 @@ class DotDict(dict):
         value : Any
             The attribute value.
         """
-        value= self.to_dot_dict(value)
+        value = self.to_dot_dict(value)
         super().__setitem__(attr, value)
 
     def __setitem__(self, key: str, value: Any) -> None:
