@@ -42,6 +42,15 @@ def test_dotdict() -> None:
     assert d.e[1].a == 3
 
 
+def test_add_nested_dict():
+    """Test that assigning a nested dict via item access results in recursive DotDict conversion."""
+    d = DotDict(a=1)
+    d["b"] = {
+        "c": "d",
+    }
+    assert d.b.c == "d"
+
+
 def test_merge_dicts() -> None:
     """Test the _merge_dicts function for merging nested dictionaries.
 
