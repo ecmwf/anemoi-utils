@@ -42,7 +42,7 @@ def test_dotdict() -> None:
     assert d.e[1].a == 3
 
 
-def test_add_nested_dict():
+def test_add_nested_dict_via_setitem():
     """Test that assigning a nested dict via item access results in recursive DotDict conversion."""
     d = DotDict(a=1)
     d["b"] = {
