@@ -44,11 +44,35 @@ def test_dotdict() -> None:
 
 def test_add_nested_dict_via_setitem():
     """Test that assigning a nested dict via item access results in recursive DotDict conversion."""
+
     d = DotDict(a=1)
     d["b"] = {
         "c": "d",
     }
     assert d.b.c == "d"
+
+
+def test_adding_list_of_dicts_via_setitem():
+    d = DotDict(a=1)
+    d["b"] = [
+        {
+            "c": "d",
+        },
+        {"e": "f"},
+    ]
+    assert d.b[0].c == "d"
+    assert d.b[1].e == "f"
+
+def test_adding_list_of_dicts_via_setattr():
+    d = DotDict(a=1)
+    d.b = [
+        {
+            "c": "d",
+        },
+        {"e": "f"},
+    ]
+    assert d.b[0].c == "d"
+    assert d.b[1].e == "f"
 
 
 def test_merge_dicts() -> None:
