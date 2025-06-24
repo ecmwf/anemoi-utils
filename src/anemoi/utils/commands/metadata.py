@@ -14,7 +14,6 @@ import os
 import shutil
 import subprocess
 from argparse import ArgumentParser
-from argparse import BooleanOptionalAction
 from argparse import Namespace
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -90,7 +89,7 @@ class Metadata(Command):
 
         remove_metdata_group.add_argument(
             "--inplace",
-            action=BooleanOptionalAction,
+            action="store_true",
             help="If set, update the source file in place instead of writing to a separate target.",
         )
 
@@ -266,19 +265,19 @@ class Metadata(Command):
         """
         from anemoi.utils.checkpoints import remove_metadata
 
-        if args.inplace and args.output:
-            raise ValueError("Only choose one of --inplace and --output")
+        if args.inplace and args.output_checkpoint:
+            raise ValueError("Only choose one of --inplace and --output-checkpoint")
 
         LOG.info("Removing metadata from %s", args.path)
 
         if args.inplace:
             output = args.path
         else:
-            if not args.output:
+            if not args.output_checkpoint:
                 raise ValueError("Argument --output-checkpoint is required unless --inplace is set")
 
-            shutil.copy2(args.path, args.output)
-            output = args.output
+            shutil.copy2(args.path, args.output_checkpoint)
+            output = args.output_checkpoint
 
         LOG.info("Writing checkpoint at %s", output)
         remove_metadata(output)
