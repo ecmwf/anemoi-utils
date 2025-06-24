@@ -299,3 +299,104 @@ def skip_missing_packages(*names: str) -> callable:
         return pytest.mark.skipif(True, reason=f"Package {missing[0]} is not installed")
 
     return pytest.mark.skipif(True, reason=f"Packages {list_to_human(missing)} are not installed")
+
+
+def skip_if_missing_command(cmd: str) -> callable:
+    """Skip a test if the specified command is not available.
+
+    Parameters
+    ----------
+    cmd : str
+        The name of the command to check.
+
+    Returns
+    -------
+    Callable
+        A decorator that skips the test if the specified command is not available.
+    """
+
+    import shutil
+
+    if shutil.which(cmd):
+        return lambda f: f
+
+    return pytest.mark.skipif(True, reason=f"Command '{cmd}' is not available")
+
+
+def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
+    """Run a CLI command for testing purposes.
+
+    Parameters
+    ----------
+    package : str
+        The name of the package containing the CLI commands.
+        Can be 'anemoi-datasets' or 'anemoi.datasets'.
+    cmd : str
+        The command to run.
+    *args : list[str]
+        Additional arguments to pass to the command.
+    """
+
+    package = package.replace("-", ".")
+    COMMANDS = getattr(__import__(f"{package}.commands", fromlist=["COMMANDS"]), "COMMANDS")
+    version = getattr(__import__(f"{package}._version", fromlist=["__version__"]), "__version__", "0.1.0")
+
+    from anemoi.utils.cli import cli_main
+
+    cli_main(
+        version=version,
+        description=f"Testing the '{cmd}' CLI command from the '{package}' package.",
+        commands=COMMANDS,
+        test_arguments=(cmd,) + args,
+    )
+
+
+def run_tests(globals: dict[str, callable]) -> None:
+    """Run all test functions that start with 'test_'.
+
+    Parameters
+    ----------
+    globals : dict[str, callable]
+        The global namespace containing the test functions.
+
+    Example
+    -------
+
+    Call from a test file to run all tests in that file:
+
+    ```python
+    if __name__ == "__main__":
+        from anemoi.utils.testing import run_tests
+        run_tests(globals())
+    ```
+
+    Useful for debugging or running tests in an interactive environment.
+
+    """
+    import logging
+
+    import rich
+
+    logging.basicConfig(level=logging.INFO)
+
+    for name, obj in list(globals.items()):
+        if name.startswith("test_") and callable(obj):
+
+            pytestmark = getattr(obj, "pytestmark", None)
+            if pytestmark is not None:
+                if not isinstance(pytestmark, list):
+                    pytestmark = [pytestmark]
+
+                skip = False
+                for m in pytestmark:
+                    if m.name == "skipif" and m.args == (True,):
+                        skip = True
+                        rich.print(
+                            f"[red]Skipping [bold]{name}[/bold] due to skipif condition [bold]{m.kwargs['reason']}[/bold].[/red]"
+                        )
+                        break
+                if skip:
+                    continue
+
+            rich.print(f"[green]Running [bold]{name}[/bold]...[/green]")
+            obj()

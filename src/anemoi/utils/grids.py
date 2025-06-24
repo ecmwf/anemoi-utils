@@ -17,8 +17,11 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
+import deprecation
 import numpy as np
 import requests
+
+from anemoi.utils._version import __version__
 
 from .caching import cached
 
@@ -28,6 +31,12 @@ LOG = logging.getLogger(__name__)
 GRIDS_URL_PATTERN = "https://get.ecmwf.int/repository/anemoi/grids/grid-{name}.npz"
 
 
+@deprecation.deprecated(
+    deprecated_in="0.4.25",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.transform.spatial.xyz_to_latlon instead.",
+)
 def xyz_to_latlon(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Convert Cartesian coordinates to latitude and longitude.
 
@@ -51,6 +60,12 @@ def xyz_to_latlon(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> tuple[np.ndarr
     )
 
 
+@deprecation.deprecated(
+    deprecated_in="0.4.25",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.transform.spatial.xyz_to_latlon instead.",
+)
 def latlon_to_xyz(lat: np.ndarray, lon: np.ndarray, radius: float = 1.0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Convert latitude and longitude to Cartesian coordinates.
 
@@ -87,6 +102,12 @@ def latlon_to_xyz(lat: np.ndarray, lon: np.ndarray, radius: float = 1.0) -> tupl
     return x, y, z
 
 
+@deprecation.deprecated(
+    deprecated_in="0.4.25",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.transform.spatial.nearest_grid_points instead.",
+)
 def nearest_grid_points(
     source_latitudes: np.ndarray,
     source_longitudes: np.ndarray,
@@ -169,6 +190,12 @@ def _grids(name: Union[str, List[float], Tuple[float, ...]]) -> bytes:
     return response.content
 
 
+@deprecation.deprecated(
+    deprecated_in="0.4.25",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.transform.grids.named.lookup instead.",
+)
 def grids(name: Union[str, List[float], Tuple[float, ...]]) -> dict:
     """Load grid data by name.
 
