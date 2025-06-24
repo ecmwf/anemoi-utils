@@ -46,7 +46,9 @@ def _check_path(path: str) -> None:
 def temporary_directory_for_test_data(tmp_path_factory) -> callable:
     base_dir = tmp_path_factory.mktemp("test_data_base")
 
-    def _temporary_directory_for_test_data(path: str, archive: bool = False) -> str:
+    def _temporary_directory_for_test_data(path: str = "", archive: bool = False) -> str:
+        if path == "":
+            return str(base_dir)
         _check_path(path)
         return str(base_dir.joinpath(*Path(path).parts)) + (".extracted" if archive else "")
 
