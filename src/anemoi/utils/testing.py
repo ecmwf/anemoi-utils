@@ -46,9 +46,9 @@ def _check_path(path: str) -> None:
 def temporary_directory_for_test_data(tmp_path_factory) -> callable:
     base_dir = tmp_path_factory.mktemp("test_data_base")
 
-    def _temporary_directory_for_test_data(path: str) -> str:
+    def _temporary_directory_for_test_data(path: str, archive: bool = False) -> str:
         _check_path(path)
-        return str(base_dir.joinpath(*Path(path).parts))
+        return str(base_dir.joinpath(*Path(path).parts)) + (".extracted" if archive else "")
 
     return _temporary_directory_for_test_data
 
@@ -124,7 +124,7 @@ def get_test_data(temporary_directory_for_test_data):
 
 @pytest.fixture()
 def get_test_archive(temporary_directory_for_test_data, get_test_data) -> callable:
-    def _get_test_archive(path: str, extension=".extracted") -> str:
+    def _get_test_archive(path: str) -> str:
         """Download an archive file (.zip, .tar, .tar.gz, .tar.bz2, .tar.xz) to a temporary directory
         unpack it, and return the local path to the directory containing the extracted files.
 
@@ -141,7 +141,7 @@ def get_test_archive(temporary_directory_for_test_data, get_test_data) -> callab
             The local path to the downloaded test data.
         """
 
-        target = Path(temporary_directory_for_test_data(path) + extension)
+        target = Path(temporary_directory_for_test_data(path, archive=True))
 
         if os.path.exists(target):
             return target
