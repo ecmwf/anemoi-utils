@@ -43,8 +43,7 @@ class Metadata(Command):
 
         command_parser.add_argument("path", help="Path to the checkpoint.")
 
-        group = command_parser.add_mutually_exclusive_group(required=False)
-        remove_metdata_group = command_parser.add_argument_group(title="Metadata removal")
+        group = command_parser.add_mutually_exclusive_group(required=True)
 
         group.add_argument(
             "--dump",
@@ -81,22 +80,10 @@ class Metadata(Command):
             ),
         )
 
-        remove_metdata_group.add_argument(
+        group.add_argument(
             "--remove",
             action="store_true",
             help="Remove the metadata from the checkpoint.",
-        )
-
-        remove_metdata_group.add_argument(
-            "--inplace",
-            action="store_true",
-            help="If set, update the source file in place instead of writing to a separate target.",
-        )
-
-        remove_metdata_group.add_argument(
-            "--output-checkpoint",
-            type=str,
-            help="Path to checkpoint without metadata. Required unless --inplace is set.",
         )
 
         group.add_argument(
@@ -130,6 +117,12 @@ class Metadata(Command):
         command_parser.add_argument(
             "--output",
             help="The output file name to be used by the ``--dump`` option.",
+        )
+
+        command_parser.add_argument(
+            "--inplace",
+            action="store_true",
+            help="If set, update the source file in place instead of writing to a separate target.",
         )
 
         command_parser.add_argument(
@@ -265,19 +258,19 @@ class Metadata(Command):
         """
         from anemoi.utils.checkpoints import remove_metadata
 
-        if args.inplace and args.output_checkpoint:
-            raise ValueError("Only choose one of --inplace and --output-checkpoint")
+        if args.inplace and args.output:
+            raise ValueError("Only choose one of --inplace and --output")
 
         LOG.info("Removing metadata from %s", args.path)
 
         if args.inplace:
             output = args.path
         else:
-            if not args.output_checkpoint:
-                raise ValueError("Argument --output-checkpoint is required unless --inplace is set")
+            if not args.output:
+                raise ValueError("Argument --output is required unless --inplace is set")
 
-            shutil.copy2(args.path, args.output_checkpoint)
-            output = args.output_checkpoint
+            shutil.copy2(args.path, args.output)
+            output = args.output
 
         LOG.info("Writing checkpoint at %s", output)
         remove_metadata(output)
