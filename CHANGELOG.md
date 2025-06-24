@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.25](https://github.com/ecmwf/anemoi-utils/compare/0.4.24...0.4.25) (2025-06-24)
+
+
+### Features
+
+* Add a CLI to transfer data ([#164](https://github.com/ecmwf/anemoi-utils/issues/164)) ([3a845ca](https://github.com/ecmwf/anemoi-utils/commit/3a845ca0c31d115e6b3d0496d862a3eaee5fb236))
+* Add function to test cli ([#168](https://github.com/ecmwf/anemoi-utils/issues/168)) ([9ac9b06](https://github.com/ecmwf/anemoi-utils/commit/9ac9b06b8fd0a62cad33ea5de6a6b482f0a13656))
+
 ## [0.4.24](https://github.com/ecmwf/anemoi-utils/compare/0.4.23...0.4.24) (2025-06-06)
 
 
