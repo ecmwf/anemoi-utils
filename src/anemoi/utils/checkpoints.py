@@ -308,7 +308,6 @@ def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
     name : str, optional
         The name of the metadata file in the zip archive
     """
-    LOG.info("Removing metadata '%s' from %s", name, path)
 
     def callback(full):
         os.remove(full)
