@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.26](https://github.com/ecmwf/anemoi-utils/compare/0.4.25...0.4.26) (2025-06-25)
+
+
+### Features
+
+* Fixtures for temp dir handling for test data ([#166](https://github.com/ecmwf/anemoi-utils/issues/166)) ([2b9677f](https://github.com/ecmwf/anemoi-utils/commit/2b9677fffc5eba84876f974001b87b73c7e542af))
+* Move anemoi-inference metadata command to this package, add metadata removal options ([#167](https://github.com/ecmwf/anemoi-utils/issues/167)) ([cabb989](https://github.com/ecmwf/anemoi-utils/commit/cabb989bdd4154a0476acf48e1ac44099c91c6db))
+
 ## [0.4.25](https://github.com/ecmwf/anemoi-utils/compare/0.4.24...0.4.25) (2025-06-24)
 
 
