@@ -113,11 +113,28 @@ def _s3_config(bucket: str, *, region: str = None) -> Any:
             boto3_config.update(options["config"])
             del options["config"]
 
+    def _(options):
+
+        def __(k, v):
+            if k in SECRETS:
+                return "***"
+            return v
+
+        if isinstance(options, dict):
+            return {k: __(k, v) for k, v in options.items()}
+
+        if isinstance(options, list):
+            return [_(o) for o in options]
+
+        return options
+
+    LOG.debug(f"Using S3 options: {_(options)}")
+
     return boto3_config, options
 
 
 def s3_options(bucket: str, *, region: str = None, service: str = "s3") -> dict:
-    """Get the S3 options for the specified bucket and region.
+    """Get the S3 configuration for the specified bucket and region.
 
     Parameters
     ----------
