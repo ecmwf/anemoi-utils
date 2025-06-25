@@ -17,7 +17,7 @@ from . import Command
 
 
 class Transfer(Command):
-    """Handle configuration related commands."""
+    """Transfer files or folders from the source to the target location."""
 
     def add_arguments(self, command_parser: ArgumentParser) -> None:
         """Add arguments to the command parser.
