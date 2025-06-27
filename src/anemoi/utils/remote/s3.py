@@ -47,8 +47,8 @@ SECRETS = ["aws_access_key_id", "aws_secret_access_key"]
 thread_local = threading.local()
 
 
-def s3_client(bucket: str, *, region: str = None, service: str = "s3") -> Any:
-    """Get an S3 client for the specified bucket and region.
+def _s3_config(bucket: str, *, region: str = None) -> Any:
+    """Get an S3 client config for the specified bucket and region.
 
     Parameters
     ----------
@@ -56,31 +56,15 @@ def s3_client(bucket: str, *, region: str = None, service: str = "s3") -> Any:
         The name of the S3 bucket.
     region : str, optional
         The AWS region of the S3 bucket.
-    service : str, optional
-        The AWS service to use, default is "s3".
 
     Returns
     -------
     Any
         The S3 client.
     """
-    import boto3
     from botocore import UNSIGNED
-    from botocore.client import Config
 
-    if not hasattr(thread_local, "s3_clients"):
-        thread_local.s3_clients = {}
-
-    key = f"{bucket}-{region}-{service}"
-
-    if key in thread_local.s3_clients:
-        return thread_local.s3_clients[key]
-
-    boto3_config = dict(
-        max_pool_connections=25,
-        request_checksum_calculation="when_required",
-        response_checksum_validation="when_required",
-    )
+    boto3_config = {}
 
     if region:
         # This is using AWS
@@ -128,6 +112,85 @@ def s3_client(bucket: str, *, region: str = None, service: str = "s3") -> Any:
         if "config" in options:
             boto3_config.update(options["config"])
             del options["config"]
+
+    def _(options):
+
+        def __(k, v):
+            if k in SECRETS:
+                return "***"
+            return v
+
+        if isinstance(options, dict):
+            return {k: __(k, v) for k, v in options.items()}
+
+        if isinstance(options, list):
+            return [_(o) for o in options]
+
+        return options
+
+    LOG.debug(f"Using S3 options: {_(options)}")
+
+    return boto3_config, options
+
+
+def s3_options(bucket: str, *, region: str = None, service: str = "s3") -> dict:
+    """Get the S3 configuration for the specified bucket and region.
+
+    Parameters
+    ----------
+    bucket : str
+        The name of the S3 bucket.
+    region : str, optional
+        The AWS region of the S3 bucket.
+    service : str, optional
+        The AWS service to use, default is "s3".
+
+    Returns
+    -------
+    dict
+        The S3 configuration.
+    """
+    _, options = _s3_config(bucket, region=region)
+    return options
+
+
+def s3_client(bucket: str, *, region: str = None, service: str = "s3") -> Any:
+    """Get an S3 client for the specified bucket and region.
+
+    Parameters
+    ----------
+    bucket : str
+        The name of the S3 bucket.
+    region : str, optional
+        The AWS region of the S3 bucket.
+    service : str, optional
+        The AWS service to use, default is "s3".
+
+    Returns
+    -------
+    Any
+        The S3 client.
+    """
+    import boto3
+    from botocore.client import Config
+
+    if not hasattr(thread_local, "s3_clients"):
+        thread_local.s3_clients = {}
+
+    key = f"{bucket}-{region}-{service}"
+
+    if key in thread_local.s3_clients:
+        return thread_local.s3_clients[key]
+
+    boto3_config, options = _s3_config(bucket, region=region)
+
+    boto3_config.update(
+        dict(
+            max_pool_connections=25,
+            request_checksum_calculation="when_required",
+            response_checksum_validation="when_required",
+        )
+    )
 
     options["config"] = Config(**boto3_config)
 
