@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.27](https://github.com/ecmwf/anemoi-utils/compare/0.4.26...0.4.27) (2025-06-27)
+
+
+### Features
+
+* Split s3 config from s3 client code ([#170](https://github.com/ecmwf/anemoi-utils/issues/170)) ([56dacb1](https://github.com/ecmwf/anemoi-utils/commit/56dacb19efa0979acd72edb72a95f058b69d612a))
+
 ## [0.4.26](https://github.com/ecmwf/anemoi-utils/compare/0.4.25...0.4.26) (2025-06-25)
 
 
