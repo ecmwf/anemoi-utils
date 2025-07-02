@@ -188,19 +188,6 @@ class DotDict(dict):
         value = self.convert_to_nested_dot_dict(value)
         super().__setitem__(attr, value)
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Set an item in the dictionary.
-
-        Parameters
-        ----------
-        key : str
-            The key to set.
-        value : Any
-            The value to set.
-        """
-        value = self.convert_to_nested_dot_dict(value)
-        super().__setitem__(key, value)
-
     def __repr__(self) -> str:
         """Return a string representation of the DotDict.
 
