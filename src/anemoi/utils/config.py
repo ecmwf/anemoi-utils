@@ -185,8 +185,31 @@ class DotDict(dict):
         value : Any
             The attribute value.
         """
+
+        self.warn_on_mutation(attr)
         value = self.convert_to_nested_dot_dict(value)
         super().__setitem__(attr, value)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set an item in the dictionary.
+
+        Parameters
+        ----------
+        key : str
+            The key to set.
+        value : Any
+            The value to set.
+        """
+        self.warn_on_mutation(key)
+        value = self.convert_to_nested_dot_dict(value)
+        super().__setitem__(key, value)
+
+    @staticmethod
+    def warn_on_mutation(key):
+        LOG.warning(
+            f"Config key '{key}' was modified after instantiation. "
+            "This is bad practice — configs are intended to be immutable. "
+        )
 
     def __repr__(self) -> str:
         """Return a string representation of the DotDict.
