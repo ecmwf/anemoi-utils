@@ -53,7 +53,7 @@ dependencies = [
   "tqdm",
 ]
 
-optional-dependencies.all = [ "anemoi-utils[grib,provenance,text,s3]" ]
+optional-dependencies.all = [ "anemoi-utils[grib,provenance,text,s3,mlflow]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 
 optional-dependencies.docs = [
@@ -68,6 +68,8 @@ optional-dependencies.docs = [
 ]
 
 optional-dependencies.grib = [ "requests" ]
+
+optional-dependencies.mlflow = [ "mlflow>=2.11.1" ]
 
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
 
