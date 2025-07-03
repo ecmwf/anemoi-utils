@@ -39,3 +39,9 @@ def test_health_check() -> None:
     client = AnemoiMlflowClient("http://localhost:5000", authentication=True, check_health=True)
 
     client.anemoi_auth.authenticate.assert_called_once()
+
+
+def test_login_delegates_to_token_auth() -> None:
+    client = AnemoiMlflowClient("http://localhost:5000", authentication=True, check_health=False)
+    client.login(force_credentials=True)
+    client.anemoi_auth.login.assert_called_once_with(force_credentials=True)

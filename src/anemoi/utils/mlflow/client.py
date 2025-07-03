@@ -59,8 +59,7 @@ class AnemoiMlflowClient(MlflowClient):
         return attr
 
     def login(self, force_credentials: bool = False, **kwargs) -> None:
-        """
-        Explicitly log in to the MLflow server by acquiring or refreshing the token.
+        """Explicitly log in to the MLflow server by acquiring or refreshing the token.
 
         Parameters
         ----------
