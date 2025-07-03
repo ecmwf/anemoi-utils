@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.28](https://github.com/ecmwf/anemoi-utils/compare/0.4.27...0.4.28) (2025-07-03)
+
+
+### Features
+
+* Migrate mlflow utils from anemoi-training ([#174](https://github.com/ecmwf/anemoi-utils/issues/174)) ([0b7767b](https://github.com/ecmwf/anemoi-utils/commit/0b7767bc23486b140ad7423e3c5c7d5857cef71c))
+
+
+### Bug Fixes
+
+* Treat mlflow as an optional dependency ([#177](https://github.com/ecmwf/anemoi-utils/issues/177)) ([feb1088](https://github.com/ecmwf/anemoi-utils/commit/feb1088169a29f42032bf26d5c43f9817557bafc))
+
 ## [0.4.27](https://github.com/ecmwf/anemoi-utils/compare/0.4.26...0.4.27) (2025-06-27)
 
 
