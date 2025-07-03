@@ -57,3 +57,16 @@ class AnemoiMlflowClient(MlflowClient):
         if callable(attr) and name != "anemoi_auth":
             super().__getattribute__("anemoi_auth").authenticate()
         return attr
+
+    def login(self, force_credentials: bool = False, **kwargs) -> None:
+        """
+        Explicitly log in to the MLflow server by acquiring or refreshing the token.
+
+        Parameters
+        ----------
+        force_credentials : bool, optional
+            Force a credential login even if a refresh token is available, by default False.
+        kwargs : dict
+            Additional keyword arguments passed to the underlying TokenAuth.login.
+        """
+        self.anemoi_auth.login(force_credentials=force_credentials, **kwargs)
