@@ -23,13 +23,15 @@ RE1 = re.compile(r"{([^}]*)}")
 RE2 = re.compile(r"\(([^}]*)\)")
 
 
-def sanitise(obj: Any) -> Any:
+def sanitise(obj: Any, remove_urls=False) -> Any:
     """Sanitise an object by replacing all full paths with shortened versions and URL passwords with '***'.
 
     Parameters
     ----------
     obj : Any
         The object to sanitise.
+    remove_urls : bool, optional
+        If True, completely remove URLs, by default False.
 
     Returns
     -------
@@ -47,18 +49,20 @@ def sanitise(obj: Any) -> Any:
         return tuple(sanitise(v) for v in obj)
 
     if isinstance(obj, str):
-        return _sanitise_string(obj)
+        return _sanitise_string(obj, remove_urls=remove_urls)
 
     return obj
 
 
-def _sanitise_string(obj: str) -> str:
+def _sanitise_string(obj: str, remove_urls=False) -> str:
     """Sanitise a string by replacing full paths and URL passwords.
 
     Parameters
     ----------
     obj : str
         The string to sanitise.
+    remove_urls : bool, optional
+        If True, completely remove URLs, by default False.
 
     Returns
     -------
@@ -69,6 +73,8 @@ def _sanitise_string(obj: str) -> str:
     parsed = urlparse(obj, allow_fragments=True)
 
     if parsed.scheme and parsed.scheme[0].isalpha():
+        if remove_urls:
+            return ""
         return _sanitise_url(parsed)
 
     if obj.startswith("/") or obj.startswith("~"):

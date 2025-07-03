@@ -47,6 +47,8 @@ def test_sanitise_urls() -> None:
     assert sanitise("http://www.example.com/path;username=secret") == "http://www.example.com/path;username=hidden"
     assert sanitise("http://www.example.com/path;login=secret") == "http://www.example.com/path;login=hidden"
 
+    assert sanitise("http://www.example.com/path;login=secret", remove_urls=True) == ""
+
 
 def test_sanitise_paths() -> None:
     """Test the sanitise function for sanitizing file paths."""
