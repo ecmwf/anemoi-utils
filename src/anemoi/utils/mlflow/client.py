@@ -12,7 +12,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from mlflow import MlflowClient
+try:
+    from mlflow import MlflowClient
+except ImportError:
+    raise ImportError(
+        "The `mlflow` package is required to use AnemoiMLflowclient. Please install it with `pip install mlflow`."
+    )
 
 from .auth import TokenAuth
 from .utils import health_check
