@@ -199,6 +199,15 @@ def as_timedelta(frequency: Union[int, str, datetime.timedelta]) -> datetime.tim
     except ValueError:
         pass
 
+    if frequency.startswith(" ") or frequency.startswith(" "):
+        frequency = frequency.strip()
+
+    if frequency.startswith("-"):
+        return -as_timedelta(frequency[1:])
+
+    if frequency.startswith("+"):
+        return as_timedelta(frequency[1:])
+
     if re.match(r"^\d+[hdms]$", frequency, re.IGNORECASE):
         unit = frequency[-1].lower()
         v = int(frequency[:-1])
