@@ -270,6 +270,8 @@ def frequency_to_string(frequency: datetime.timedelta) -> str:
     frequency = frequency_to_timedelta(frequency)
 
     total_seconds = frequency.total_seconds()
+    if total_seconds < 0:
+        return f"-{frequency_to_string(-frequency)}"
     assert int(total_seconds) == total_seconds, total_seconds
     total_seconds = int(total_seconds)
 
