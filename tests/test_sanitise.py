@@ -47,6 +47,12 @@ def test_sanitise_urls() -> None:
     assert sanitise("http://www.example.com/path;username=secret") == "http://www.example.com/path;username=hidden"
     assert sanitise("http://www.example.com/path;login=secret") == "http://www.example.com/path;login=hidden"
 
+    assert sanitise("http://www.example.com/path;_api_token=secret", level=2) == "http://hidden/path;_api_token=hidden"
+    assert sanitise("http://johndoe:password@host:port/path", level=2) == "http://user:***@hidden/path"
+    assert sanitise("http://host:port/path", level=2) == "http://hidden/path"
+
+    assert sanitise("http://www.example.com/path;_api_token=secret", level=3) == "http://hidden"
+
 
 def test_sanitise_paths() -> None:
     """Test the sanitise function for sanitizing file paths."""
@@ -64,6 +70,11 @@ def test_sanitise_paths() -> None:
     assert sanitise("./test.grib") == "./test.grib"
     assert sanitise("sub/folder/test.grib") == "sub/folder/test.grib"
     assert sanitise("./folder/test.grib") == "./folder/test.grib"
+
+    assert sanitise("./folder/test.grib", level=2) == "./folder/test.grib"
+
+    assert sanitise("./folder/test.grib", level=3) == "hidden"
+    assert sanitise("/home/johndoe/.ssh/id_rsa", level=3) == "hidden"
 
 
 if __name__ == "__main__":
