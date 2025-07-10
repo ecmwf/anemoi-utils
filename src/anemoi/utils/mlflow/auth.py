@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 import requests
 from requests.exceptions import HTTPError
 
+from ..config import config_path
 from ..config import load_config
 from ..config import save_config
 from ..remote import robust
@@ -87,6 +88,14 @@ class TokenAuth:
 
     @staticmethod
     def load_config() -> dict:
+        path = config_path(TokenAuth.config_file)
+
+        if not os.path.exists(path):
+            save_config(TokenAuth.config_file, {})
+
+        if os.stat(path).st_mode & 0o777 != 0o600:
+            os.chmod(path, 0o600)
+
         return load_config(TokenAuth.config_file)
 
     def enabled(fn: Callable) -> Callable:  # noqa: N805
