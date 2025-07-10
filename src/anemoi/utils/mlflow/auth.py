@@ -93,7 +93,7 @@ class TokenAuth:
         if not os.path.exists(path):
             save_config(TokenAuth.config_file, {})
 
-        if os.stat(path).st_mode & 0o777 != 0o600:
+        if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
             os.chmod(path, 0o600)
 
         return load_config(TokenAuth.config_file)
