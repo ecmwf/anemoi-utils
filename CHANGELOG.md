@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.29](https://github.com/ecmwf/anemoi-utils/compare/0.4.28...0.4.29) (2025-07-16)
+
+
+### Features
+
+* Better support for negative timedeltas ([#180](https://github.com/ecmwf/anemoi-utils/issues/180)) ([3f8041a](https://github.com/ecmwf/anemoi-utils/commit/3f8041a46b525b6fcbe6171cd8a8a40ec30b2c1f))
+* Protect mlflow token file ([#183](https://github.com/ecmwf/anemoi-utils/issues/183)) ([fdf0fc8](https://github.com/ecmwf/anemoi-utils/commit/fdf0fc84ee3e8076928f6c888374cd3aa008023b))
+* Support negative timedelta ([#178](https://github.com/ecmwf/anemoi-utils/issues/178)) ([546f6ec](https://github.com/ecmwf/anemoi-utils/commit/546f6ec76534cd39094957ce3b57b34f14f7a000))
+
 ## [0.4.28](https://github.com/ecmwf/anemoi-utils/compare/0.4.27...0.4.28) (2025-07-03)
 
 
