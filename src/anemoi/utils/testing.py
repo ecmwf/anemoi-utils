@@ -11,6 +11,7 @@ import logging
 import os
 import shutil
 import warnings
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
 
@@ -42,17 +43,21 @@ def _check_path(path: str) -> None:
     assert not path.startswith("."), f"Path '{path}' should not start with '.'"
 
 
-@pytest.fixture(scope="session")
-def temporary_directory_for_test_data(tmp_path_factory) -> callable:
-    base_dir = tmp_path_factory.mktemp("test_data_base")
+class TemporaryDirectoryForTestData:
+    def __init__(self, base_dir: Path) -> None:
+        self.base_dir = base_dir
 
-    def _temporary_directory_for_test_data(path: str = "", archive: bool = False) -> str:
+    def __call__(self, path: str = "", archive: bool = False) -> str:
         if path == "":
-            return str(base_dir)
+            return str(self.base_dir)
         _check_path(path)
-        return str(base_dir.joinpath(*Path(path).parts)) + (".extracted" if archive else "")
+        return str(self.base_dir.joinpath(*Path(path).parts)) + (".extracted" if archive else "")
 
-    return _temporary_directory_for_test_data
+
+@pytest.fixture(scope="session")
+def temporary_directory_for_test_data(tmp_path_factory: pytest.TempPathFactory) -> TemporaryDirectoryForTestData:
+    base_dir = tmp_path_factory.mktemp("test_data_base")
+    return TemporaryDirectoryForTestData(base_dir)
 
 
 def url_for_test_data(path: str) -> str:
@@ -73,11 +78,12 @@ def url_for_test_data(path: str) -> str:
     return f"{TEST_DATA_URL}{path}"
 
 
-@pytest.fixture()
-def get_test_data(temporary_directory_for_test_data):
-    def _get_test_data(path: str, gzipped=False) -> callable:
-        """Download the test data to a temporary directory and return the local path.
+class GetTestData:
+    def __init__(self, temporary_directory_for_test_data: TemporaryDirectoryForTestData) -> None:
+        self.temporary_directory_for_test_data = temporary_directory_for_test_data
 
+    def __call__(self, path: str, gzipped: bool = False) -> str:
+        """Download the test data to a temporary directory and return the local path.
         Parameters
         ----------
         path : str
@@ -94,7 +100,7 @@ def get_test_data(temporary_directory_for_test_data):
         if _offline():
             raise RuntimeError("Offline mode: cannot download test data, add @pytest.mark.skipif(not offline(),...)")
 
-        target = temporary_directory_for_test_data(path)
+        target = self.temporary_directory_for_test_data(path)
 
         if os.path.exists(target):
             return target
@@ -121,12 +127,20 @@ def get_test_data(temporary_directory_for_test_data):
 
         return target
 
-    return _get_test_data
-
 
 @pytest.fixture()
-def get_test_archive(temporary_directory_for_test_data, get_test_data) -> callable:
-    def _get_test_archive(path: str) -> str:
+def get_test_data(temporary_directory_for_test_data: TemporaryDirectoryForTestData) -> GetTestData:
+    return GetTestData(temporary_directory_for_test_data)
+
+
+class GetTestArchive:
+    def __init__(
+        self, temporary_directory_for_test_data: TemporaryDirectoryForTestData, get_test_data: GetTestData
+    ) -> None:
+        self.temporary_directory_for_test_data = temporary_directory_for_test_data
+        self.get_test_data = get_test_data
+
+    def __call__(self, path: str) -> Path:
         """Download an archive file (.zip, .tar, .tar.gz, .tar.bz2, .tar.xz) to a temporary directory
         unpack it, and return the local path to the directory containing the extracted files.
 
@@ -134,8 +148,6 @@ def get_test_archive(temporary_directory_for_test_data, get_test_data) -> callab
         ----------
         path : str
             The relative path to the test data.
-        extension : str, optional
-            The extension to add to the extracted directory, by default '.extracted'
 
         Returns
         -------
@@ -143,12 +155,12 @@ def get_test_archive(temporary_directory_for_test_data, get_test_data) -> callab
             The local path to the downloaded test data.
         """
 
-        target = Path(temporary_directory_for_test_data(path, archive=True))
+        target = Path(self.temporary_directory_for_test_data(path, archive=True))
 
         if os.path.exists(target):
             return target
 
-        archive = get_test_data(path)
+        archive = self.get_test_data(path)
 
         shutil.unpack_archive(archive, os.path.dirname(target) + ".tmp")
         os.rename(os.path.dirname(target) + ".tmp", target)
@@ -157,7 +169,12 @@ def get_test_archive(temporary_directory_for_test_data, get_test_data) -> callab
 
         return target
 
-    return _get_test_archive
+
+@pytest.fixture()
+def get_test_archive(
+    temporary_directory_for_test_data: TemporaryDirectoryForTestData, get_test_data: GetTestData
+) -> GetTestArchive:
+    return GetTestArchive(temporary_directory_for_test_data, get_test_data)
 
 
 def packages_installed(*names: str) -> bool:
@@ -231,28 +248,27 @@ def _run_slow_tests() -> bool:
     bool
         True if the SLOW_TESTS environment variable is set, False otherwise.
     """
-    return int(os.environ.get("SLOW_TESTS", 0))
+    return bool(int(os.environ.get("SLOW_TESTS", 0)))
 
 
 @lru_cache(maxsize=None)
 def _offline() -> bool:
     """Check if we are offline."""
     from urllib import request
+    from urllib.error import URLError
 
     try:
         request.urlopen("https://anemoi.ecmwf.int", timeout=1)
         return False
-    except request.URLError:
+    except URLError:
         return True
-
-    return False
 
 
 skip_if_offline = pytest.mark.skipif(_offline(), reason="No internet connection")
 skip_slow_tests = pytest.mark.skipif(not _run_slow_tests(), reason="Skipping slow tests")
 
 
-def skip_missing_packages(*names: str) -> callable:
+def skip_missing_packages(*names: str) -> pytest.MarkDecorator:
     """Skip a test if any of the specified packages are missing.
 
     Parameters
@@ -268,16 +284,17 @@ def skip_missing_packages(*names: str) -> callable:
 
     missing = [f"'{p}'" for p in _missing_packages(*names)]
 
-    if len(missing) == 0:
-        return lambda f: f
+    reason = ""
 
     if len(missing) == 1:
-        return pytest.mark.skipif(True, reason=f"Package {missing[0]} is not installed")
+        reason = f"Package {missing[0]} is not installed"
+    elif len(missing):
+        reason = f"Packages {list_to_human(missing)} are not installed"
 
-    return pytest.mark.skipif(True, reason=f"Packages {list_to_human(missing)} are not installed")
+    return pytest.mark.skipif(len(missing) > 0, reason=reason)
 
 
-def skip_if_missing_command(cmd: str) -> callable:
+def skip_if_missing_command(cmd: str) -> pytest.MarkDecorator:
     """Skip a test if the specified command is not available.
 
     Parameters
@@ -293,13 +310,10 @@ def skip_if_missing_command(cmd: str) -> callable:
 
     import shutil
 
-    if shutil.which(cmd):
-        return lambda f: f
-
-    return pytest.mark.skipif(True, reason=f"Command '{cmd}' is not available")
+    return pytest.mark.skipif(not shutil.which(cmd), reason=f"Command '{cmd}' is not available")
 
 
-def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
+def cli_testing(package: str, cmd: str, *args: str) -> None:
     """Run a CLI command for testing purposes.
 
     Parameters
@@ -309,7 +323,7 @@ def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
         Can be 'anemoi-datasets' or 'anemoi.datasets'.
     cmd : str
         The command to run.
-    *args : list[str]
+    *args : str
         Additional arguments to pass to the command.
     """
 
@@ -323,16 +337,16 @@ def cli_testing(package: str, cmd: str, *args: list[str]) -> None:
         version=version,
         description=f"Testing the '{cmd}' CLI command from the '{package}' package.",
         commands=COMMANDS,
-        test_arguments=(cmd,) + args,
+        test_arguments=[cmd] + list(args),
     )
 
 
-def run_tests(globals: dict[str, callable]) -> None:
+def run_tests(globals: dict[str, Callable]) -> None:
     """Run all test functions that start with 'test_'.
 
     Parameters
     ----------
-    globals : dict[str, callable]
+    globals : dict[str, Callable]
         The global namespace containing the test functions.
 
     Example
@@ -357,7 +371,6 @@ def run_tests(globals: dict[str, callable]) -> None:
 
     for name, obj in list(globals.items()):
         if name.startswith("test_") and callable(obj):
-
             pytestmark = getattr(obj, "pytestmark", None)
             if pytestmark is not None:
                 if not isinstance(pytestmark, list):
