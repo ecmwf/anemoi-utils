@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.29](https://github.com/ecmwf/anemoi-utils/compare/0.4.28...0.4.29) (2025-07-22)
+
+
+### Features
+
+* Better support for negative timedeltas ([#180](https://github.com/ecmwf/anemoi-utils/issues/180)) ([3f8041a](https://github.com/ecmwf/anemoi-utils/commit/3f8041a46b525b6fcbe6171cd8a8a40ec30b2c1f))
+* **deps:** Use mlflow-skinny instead of mlflow ([#184](https://github.com/ecmwf/anemoi-utils/issues/184)) ([82e5c30](https://github.com/ecmwf/anemoi-utils/commit/82e5c3053962cd8e1e8f6a1ea9e8f92492e497b4))
+* Protect mlflow token file ([#183](https://github.com/ecmwf/anemoi-utils/issues/183)) ([fdf0fc8](https://github.com/ecmwf/anemoi-utils/commit/fdf0fc84ee3e8076928f6c888374cd3aa008023b))
+* **sanitise:** Sanitation level ([#175](https://github.com/ecmwf/anemoi-utils/issues/175)) ([8d85d8f](https://github.com/ecmwf/anemoi-utils/commit/8d85d8fd889bf72b8066cc021d4d7b329a360848))
+* Support negative timedelta ([#178](https://github.com/ecmwf/anemoi-utils/issues/178)) ([546f6ec](https://github.com/ecmwf/anemoi-utils/commit/546f6ec76534cd39094957ce3b57b34f14f7a000))
+
+
+### Bug Fixes
+
+* Clean utils ([#185](https://github.com/ecmwf/anemoi-utils/issues/185)) ([de3c7a4](https://github.com/ecmwf/anemoi-utils/commit/de3c7a47f14c258997942564717c480caa124ee6))
+
 ## [0.4.28](https://github.com/ecmwf/anemoi-utils/compare/0.4.27...0.4.28) (2025-07-03)
 
 
