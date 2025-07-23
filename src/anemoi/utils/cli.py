@@ -22,6 +22,19 @@ try:
 except ImportError:
     argcomplete = None
 
+
+if int(os.environ.get("ANEMOI_DEBUG_IMPORTS", 0)):
+    from datetime import datetime
+    from importlib.abc import MetaPathFinder
+
+    class ImportTracer(MetaPathFinder):
+        def find_spec(self, fullname, path, target=None):
+            now = datetime.now().isoformat(timespec="milliseconds")
+            print(f"[{now}] Importing {fullname} from {path}")
+            return None  # allow normal import processing to continue
+
+    sys.meta_path.insert(0, ImportTracer())
+
 LOG = logging.getLogger(__name__)
 
 
