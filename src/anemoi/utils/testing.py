@@ -341,12 +341,12 @@ def cli_testing(package: str, cmd: str, *args: str) -> None:
     )
 
 
-def run_tests(globals: dict[str, Callable]) -> None:
+def run_tests(globals: dict[str, Callable[[], None]]) -> None:
     """Run all test functions that start with 'test_'.
 
     Parameters
     ----------
-    globals : dict[str, Callable]
+    globals : dict[str, Callable[[], None]]
         The global namespace containing the test functions.
 
     Example
