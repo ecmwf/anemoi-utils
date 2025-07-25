@@ -17,25 +17,32 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 from urllib.parse import urlunparse
 
-# Patterns used but earthkit-data for url-patterns and path-patterns
+# Patterns used by earthkit-data for url-patterns and path-patterns
 
-RE1 = re.compile(r"{([^}]*)}")
-RE2 = re.compile(r"\(([^}]*)\)")
+RE1 = re.compile(r"{([^}]*)}")  # {*}
+RE2 = re.compile(r"\(([^}]*)\)")  # (*)
 
 
-def sanitise(obj: Any) -> Any:
-    """Sanitise an object by replacing all full paths with shortened versions and URL passwords with '***'.
+def sanitise(obj: Any, level=1) -> Any:
+    """Sanitise an object by replacing all full paths with shortened versions and URL credentials with '***'.
 
     Parameters
     ----------
     obj : Any
         The object to sanitise.
+    level : int, optional
+        The level of sanitation. The higher levels will also apply the levels below it.
+        - 1: Shorten file paths to file name and hide credentials in URLs (default).
+        - 2: Hide hostnames in URLs.
+        - 3: Hide full file paths and URLs.
 
     Returns
     -------
     Any
         The sanitised object.
     """
+
+    assert level in (1, 2, 3), "level must be 1, 2 or 3"
 
     if isinstance(obj, dict):
         return {sanitise(k): sanitise(v) for k, v in obj.items()}
@@ -47,29 +54,21 @@ def sanitise(obj: Any) -> Any:
         return tuple(sanitise(v) for v in obj)
 
     if isinstance(obj, str):
-        return _sanitise_string(obj)
+        return _sanitise_string(obj, level)
 
     return obj
 
 
-def _sanitise_string(obj: str) -> str:
-    """Sanitise a string by replacing full paths and URL passwords.
-
-    Parameters
-    ----------
-    obj : str
-        The string to sanitise.
-
-    Returns
-    -------
-    str
-        The sanitised string.
-    """
+def _sanitise_string(obj: str, level=1) -> str:
+    """Sanitise a string by replacing full paths and URL passwords."""
 
     parsed = urlparse(obj, allow_fragments=True)
 
     if parsed.scheme and parsed.scheme[0].isalpha():
-        return _sanitise_url(parsed)
+        return _sanitise_url(parsed, level)
+
+    if level > 2:
+        return "hidden"
 
     if obj.startswith("/") or obj.startswith("~"):
         return _sanitise_path(obj)
@@ -77,19 +76,8 @@ def _sanitise_string(obj: str) -> str:
     return obj
 
 
-def _sanitise_url(parsed: Any) -> str:
-    """Sanitise a URL by replacing passwords with '***'.
-
-    Parameters
-    ----------
-    parsed : Any
-        The parsed URL.
-
-    Returns
-    -------
-    str
-        The sanitised URL.
-    """
+def _sanitise_url(parsed: Any, level=1) -> str:
+    """Sanitise a URL by replacing passwords with '***'."""
 
     LIST = [
         "pass",
@@ -107,6 +95,9 @@ def _sanitise_url(parsed: Any) -> str:
         "_api_key",
         "username",
         "login",
+        "auth",
+        "auth_token",
+        "auth_key",
     ]
 
     scheme, netloc, path, params, query, fragment = parsed
@@ -130,26 +121,25 @@ def _sanitise_url(parsed: Any) -> str:
                 qs[k] = "hidden"
         params = urlencode(qs, doseq=True)
 
+    if level > 1:
+        if (bits := netloc.split("@")) and len(bits) > 1:
+            netloc = f"{bits[0]}@hidden"
+        else:
+            netloc = "hidden"
+
+    if level > 2:
+        return urlunparse([scheme, netloc, "", "", "", ""])
+
     return urlunparse([scheme, netloc, path, params, query, fragment])
 
 
 def _sanitise_path(path: str) -> str:
-    """Sanitise a file path by shortening it.
-
-    Parameters
-    ----------
-    path : str
-        The file path to sanitise.
-
-    Returns
-    -------
-    str
-        The sanitised file path.
-    """
+    """Sanitise a file path by shortening it."""
     bits = list(reversed(Path(path).parts))
     result = [bits.pop(0)]
     for bit in bits:
         if RE1.match(bit) or RE2.match(bit):
+            # keep earthkit-data folder patterns
             result.append(bit)
             continue
         if result[-1] == "...":

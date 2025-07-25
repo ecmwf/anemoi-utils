@@ -53,7 +53,7 @@ dependencies = [
   "tqdm",
 ]
 
-optional-dependencies.all = [ "anemoi-utils[grib,provenance,text,s3]" ]
+optional-dependencies.all = [ "anemoi-utils[grib,provenance,text,s3,mlflow]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 
 optional-dependencies.docs = [
@@ -69,13 +69,15 @@ optional-dependencies.docs = [
 
 optional-dependencies.grib = [ "requests" ]
 
+optional-dependencies.mlflow = [ "mlflow-skinny>=2.11.1", "requests" ]
+
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
 
 optional-dependencies.s3 = [
   "boto3>1.36",
 ]
 
-optional-dependencies.tests = [ "pytest" ]
+optional-dependencies.tests = [ "anemoi-utils[mlflow]", "pytest", "pytest-mock>=3" ]
 
 optional-dependencies.text = [ "termcolor", "wcwidth" ]
 
