@@ -236,75 +236,6 @@ def _is_omegaconf_list(value: Any) -> bool:
         return False
 
 
-def _find(config: Union[dict, list], what: str, result: list = None) -> list:
-    """Find all occurrences of a key in a nested dictionary or list.
-
-    Parameters
-    ----------
-    config : dict or list
-        The configuration to search.
-    what : str
-        The key to search for.
-    result : list, optional
-        The list to store results, by default None.
-
-    Returns
-    -------
-    list
-        The list of found values.
-    """
-    if result is None:
-        result = []
-
-    if isinstance(config, list):
-        for i in config:
-            _find(i, what, result)
-        return result
-
-    if isinstance(config, dict):
-        if what in config:
-            result.append(config[what])
-
-        for k, v in config.items():
-            _find(v, what, result)
-
-    return result
-
-
-def _merge_dicts(a: dict, b: dict) -> None:
-    """Merge two dictionaries recursively.
-
-    Parameters
-    ----------
-    a : dict
-        The first dictionary.
-    b : dict
-        The second dictionary.
-    """
-    for k, v in b.items():
-        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
-            _merge_dicts(a[k], v)
-        else:
-            a[k] = v
-
-
-def _set_defaults(a: dict, b: dict) -> None:
-    """Set default values in a dictionary.
-
-    Parameters
-    ----------
-    a : dict
-        The dictionary to set defaults in.
-    b : dict
-        The dictionary with default values.
-    """
-    for k, v in b.items():
-        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
-            _set_defaults(a[k], v)
-        else:
-            a.setdefault(k, v)
-
-
 def load_any_dict_format(path: str) -> dict:
     """Load a configuration file in any supported format: JSON, YAML and TOML.
 
@@ -389,26 +320,6 @@ def find(metadata: Union[dict, list], what: str, result: list = None, *, select:
 
         for k, v in metadata.items():
             find(v, what, result)
-
-    return result
-
-
-def merge_configs(*configs: dict) -> dict:
-    """Merge multiple configuration dictionaries.
-
-    Parameters
-    ----------
-    *configs : dict
-        The configuration dictionaries to merge.
-
-    Returns
-    -------
-    dict
-        The merged configuration dictionary.
-    """
-    result = {}
-    for config in configs:
-        _merge_dicts(result, config)
 
     return result
 

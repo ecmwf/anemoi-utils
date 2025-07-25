@@ -22,12 +22,7 @@ from typing import Union
 import yaml
 
 from .config import DotDict
-from .config import _find
-from .config import _merge_dicts
-from .config import _set_defaults
 from .config import load_any_dict_format
-from .config import load_raw_config
-from .config import merge_configs
 
 LOG = logging.getLogger(__name__)
 
@@ -37,6 +32,95 @@ CHECKED = {}
 CONFIG_LOCK = threading.RLock()
 QUIET = False
 CONFIG_PATCH = None
+
+
+def _find(config: Union[dict, list], what: str, result: list = None) -> list:
+    """Find all occurrences of a key in a nested dictionary or list.
+
+    Parameters
+    ----------
+    config : dict or list
+        The configuration to search.
+    what : str
+        The key to search for.
+    result : list, optional
+        The list to store results, by default None.
+
+    Returns
+    -------
+    list
+        The list of found values.
+    """
+    if result is None:
+        result = []
+
+    if isinstance(config, list):
+        for i in config:
+            _find(i, what, result)
+        return result
+
+    if isinstance(config, dict):
+        if what in config:
+            result.append(config[what])
+
+        for k, v in config.items():
+            _find(v, what, result)
+
+    return result
+
+
+def _merge_dicts(a: dict, b: dict) -> None:
+    """Merge two dictionaries recursively.
+
+    Parameters
+    ----------
+    a : dict
+        The first dictionary.
+    b : dict
+        The second dictionary.
+    """
+    for k, v in b.items():
+        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
+            _merge_dicts(a[k], v)
+        else:
+            a[k] = v
+
+
+def _set_defaults(a: dict, b: dict) -> None:
+    """Set default values in a dictionary.
+
+    Parameters
+    ----------
+    a : dict
+        The dictionary to set defaults in.
+    b : dict
+        The dictionary with default values.
+    """
+    for k, v in b.items():
+        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
+            _set_defaults(a[k], v)
+        else:
+            a.setdefault(k, v)
+
+
+def merge_configs(*configs: dict) -> dict:
+    """Merge multiple configuration dictionaries.
+
+    Parameters
+    ----------
+    *configs : dict
+        The configuration dictionaries to merge.
+
+    Returns
+    -------
+    dict
+        The merged configuration dictionary.
+    """
+    result = {}
+    for config in configs:
+        _merge_dicts(result, config)
+
+    return result
 
 
 def settings_path(name: str = "settings.toml") -> str:
@@ -116,7 +200,7 @@ def _load_settings(
 
     if defaults is not None:
         if isinstance(defaults, str):
-            defaults = load_raw_config(defaults)
+            defaults = load_raw_settings(defaults)
         _set_defaults(config, defaults)
 
     if secrets is not None:
@@ -204,6 +288,28 @@ def save_settings(name: str, data: Any) -> None:
     """
     with CONFIG_LOCK:
         _save_settings(name, data)
+
+
+def load_raw_settings(name: str, default: Any = None) -> Union[DotDict, str]:
+    """Load a raw configuration file.
+
+    Parameters
+    ----------
+    name : str
+        The name of the configuration file.
+    default : Any, optional
+        The default value if the file does not exist, by default None.
+
+    Returns
+    -------
+    DotDict or str
+        The loaded configuration or the default value.
+    """
+    path = settings_path(name)
+    if os.path.exists(path):
+        return load_any_dict_format(path)
+
+    return default
 
 
 def load_settings(

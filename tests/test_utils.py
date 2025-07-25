@@ -9,10 +9,10 @@
 
 
 from anemoi.utils.config import DotDict
-from anemoi.utils.config import _merge_dicts
-from anemoi.utils.config import _set_defaults
 from anemoi.utils.grib import paramid_to_shortname
 from anemoi.utils.grib import shortname_to_paramid
+from anemoi.utils.settings import _merge_dicts
+from anemoi.utils.settings import _set_defaults
 
 
 def test_dotdict() -> None:
