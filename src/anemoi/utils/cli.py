@@ -14,6 +14,7 @@ import logging
 import os
 import sys
 import traceback
+import warnings
 from typing import Callable
 from typing import Optional
 
@@ -202,6 +203,9 @@ def cli_main(
     test_arguments : list[str], optional
         The command line arguments to parse, used for testing purposes, by default None
     """
+
+    warnings.filterwarnings("default", category=DeprecationWarning)
+
     parser = make_parser(description, commands)
     args, unknown = parser.parse_known_args(test_arguments)
     if argcomplete:

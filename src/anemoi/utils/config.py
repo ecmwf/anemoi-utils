@@ -10,16 +10,16 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 import os
-import threading
 from typing import Any
-from typing import Optional
 from typing import Union
 
+import deprecation
 import yaml
+
+from anemoi.utils._version import __version__
 
 try:
     import tomllib  # Only available since 3.11
@@ -62,14 +62,14 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            if isinstance(v, dict) or is_omegaconf_dict(v):
+            if isinstance(v, dict) or _is_omegaconf_dict(v):
                 self[k] = DotDict(v)
 
-            if isinstance(v, list) or is_omegaconf_list(v):
-                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
+            if isinstance(v, list) or _is_omegaconf_list(v):
+                self[k] = [DotDict(i) if isinstance(i, dict) or _is_omegaconf_dict(i) else i for i in v]
 
             if isinstance(v, tuple):
-                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
+                self[k] = [DotDict(i) if isinstance(i, dict) or _is_omegaconf_dict(i) else i for i in v]
 
     @classmethod
     def from_file(cls, path: str) -> DotDict:
@@ -194,7 +194,7 @@ class DotDict(dict):
         return f"DotDict({super().__repr__()})"
 
 
-def is_omegaconf_dict(value: Any) -> bool:
+def _is_omegaconf_dict(value: Any) -> bool:
     """Check if a value is an OmegaConf DictConfig.
 
     Parameters
@@ -215,7 +215,7 @@ def is_omegaconf_dict(value: Any) -> bool:
         return False
 
 
-def is_omegaconf_list(value: Any) -> bool:
+def _is_omegaconf_list(value: Any) -> bool:
     """Check if a value is an OmegaConf ListConfig.
 
     Parameters
@@ -234,13 +234,6 @@ def is_omegaconf_list(value: Any) -> bool:
         return isinstance(value, ListConfig)
     except ImportError:
         return False
-
-
-CONFIG = {}
-CHECKED = {}
-CONFIG_LOCK = threading.RLock()
-QUIET = False
-CONFIG_PATCH = None
 
 
 def _find(config: Union[dict, list], what: str, result: list = None) -> list:
@@ -312,50 +305,6 @@ def _set_defaults(a: dict, b: dict) -> None:
             a.setdefault(k, v)
 
 
-def config_path(name: str = "settings.toml") -> str:
-    """Get the path to a configuration file.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the configuration file, by default "settings.toml".
-
-    Returns
-    -------
-    str
-        The path to the configuration file.
-    """
-    global QUIET
-
-    if name.startswith("/") or name.startswith("."):
-        return name
-
-    if name.startswith("~"):
-        return os.path.expanduser(name)
-
-    full = os.path.join(os.path.expanduser("~"), ".config", "anemoi", name)
-    os.makedirs(os.path.dirname(full), exist_ok=True)
-
-    if name == "settings.toml":
-        old = os.path.join(os.path.expanduser("~"), ".anemoi.toml")
-        if not os.path.exists(full) and os.path.exists(old):
-            if not QUIET:
-                LOG.warning(
-                    "Configuration file found at ~/.anemoi.toml. Please move it to ~/.config/anemoi/settings.toml"
-                )
-                QUIET = True
-            return old
-        else:
-            if os.path.exists(old):
-                if not QUIET:
-                    LOG.warning(
-                        "Configuration file found at ~/.anemoi.toml and ~/.config/anemoi/settings.toml, ignoring the former"
-                    )
-                    QUIET = True
-
-    return full
-
-
 def load_any_dict_format(path: str) -> dict:
     """Load a configuration file in any supported format: JSON, YAML and TOML.
 
@@ -404,217 +353,6 @@ def load_any_dict_format(path: str) -> dict:
         raise ValueError(f"Failed to parse config file {path} [{e}]")
 
     return open(path).read()
-
-
-def _load_config(
-    name: str = "settings.toml",
-    secrets: Optional[Union[str, list[str]]] = None,
-    defaults: Optional[Union[str, dict]] = None,
-) -> DotDict:
-    """Load a configuration file.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the configuration file, by default "settings.toml".
-    secrets : str or list, optional
-        The name of the secrets file, by default None.
-    defaults : str or dict, optional
-        The name of the defaults file, by default None.
-
-    Returns
-    -------
-    DotDict
-        The loaded configuration.
-    """
-    key = json.dumps((name, secrets, defaults), sort_keys=True, default=str)
-    if key in CONFIG:
-        return CONFIG[key]
-
-    path = config_path(name)
-    if os.path.exists(path):
-        config = load_any_dict_format(path)
-    else:
-        config = {}
-
-    if defaults is not None:
-        if isinstance(defaults, str):
-            defaults = load_raw_config(defaults)
-        _set_defaults(config, defaults)
-
-    if secrets is not None:
-        if isinstance(secrets, str):
-            secrets = [secrets]
-
-        base, ext = os.path.splitext(path)
-        secret_name = base + ".secrets" + ext
-
-        found = set()
-        for secret in secrets:
-            if _find(config, secret):
-                found.add(secret)
-
-        if found:
-            check_config_mode(name, secret_name, found)
-
-        check_config_mode(secret_name, None)
-        secret_config = _load_config(secret_name)
-        _merge_dicts(config, secret_config)
-
-    for env, value in os.environ.items():
-
-        if not env.startswith("ANEMOI_CONFIG_"):
-            continue
-        rest = env[len("ANEMOI_CONFIG_") :]
-
-        package = rest.split("_")[0]
-        sub = rest[len(package) + 1 :]
-
-        package = package.lower()
-        sub = sub.lower()
-
-        LOG.info(f"Using environment variable {env} to override the anemoi config key '{package}.{sub}'")
-
-        if package not in config:
-            config[package] = {}
-        config[package][sub] = value
-
-    CONFIG[key] = DotDict(config)
-    return CONFIG[key]
-
-
-def _save_config(name: str, data: Any) -> None:
-    """Save a configuration file.
-
-    Parameters
-    ----------
-    name : str
-        The name of the configuration file.
-    data : Any
-        The data to save.
-    """
-    CONFIG.pop(name, None)
-
-    conf = config_path(name)
-
-    if conf.endswith(".json"):
-        with open(conf, "w") as f:
-            json.dump(data, f, indent=4)
-        return
-
-    if conf.endswith(".yaml") or conf.endswith(".yml"):
-        with open(conf, "w") as f:
-            yaml.dump(data, f)
-        return
-
-    if conf.endswith(".toml"):
-        raise NotImplementedError("Saving to TOML is not implemented yet")
-
-    with open(conf, "w") as f:
-        f.write(data)
-
-
-def save_config(name: str, data: Any) -> None:
-    """Save a configuration file.
-
-    Parameters
-    ----------
-    name : str
-        The name of the configuration file to save.
-
-    data : Any
-        The data to save.
-    """
-    with CONFIG_LOCK:
-        _save_config(name, data)
-
-
-def load_config(
-    name: str = "settings.toml",
-    secrets: Optional[Union[str, list[str]]] = None,
-    defaults: Optional[Union[str, dict]] = None,
-) -> DotDict | str:
-    """Read a configuration file.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the config file to read, by default "settings.toml"
-    secrets : str or list, optional
-        The name of the secrets file, by default None
-    defaults : str or dict, optional
-        The name of the defaults file, by default None
-
-    Returns
-    -------
-    DotDict or str
-        Return DotDict if it is a dictionary, otherwise the raw data
-    """
-
-    with CONFIG_LOCK:
-        config = _load_config(name, secrets, defaults)
-        if CONFIG_PATCH is not None:
-            config = CONFIG_PATCH(config)
-        return config
-
-
-def load_raw_config(name: str, default: Any = None) -> Union[DotDict, str]:
-    """Load a raw configuration file.
-
-    Parameters
-    ----------
-    name : str
-        The name of the configuration file.
-    default : Any, optional
-        The default value if the file does not exist, by default None.
-
-    Returns
-    -------
-    DotDict or str
-        The loaded configuration or the default value.
-    """
-    path = config_path(name)
-    if os.path.exists(path):
-        return load_any_dict_format(path)
-
-    return default
-
-
-def check_config_mode(name: str = "settings.toml", secrets_name: str = None, secrets: list[str] = None) -> None:
-    """Check that a configuration file is secure.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the configuration file, by default "settings.toml"
-    secrets_name : str, optional
-        The name of the secrets file, by default None
-    secrets : list, optional
-        The list of secrets to check, by default None
-
-    Raises
-    ------
-    SystemError
-        If the configuration file is not secure.
-    """
-    with CONFIG_LOCK:
-        if name in CHECKED:
-            return
-
-        conf = config_path(name)
-        if not os.path.exists(conf):
-            return
-        mode = os.stat(conf).st_mode
-        if mode & 0o777 != 0o600:
-            if secrets_name:
-                secret_path = config_path(secrets_name)
-                raise SystemError(
-                    f"Configuration file {conf} should not hold entries {secrets}.\n"
-                    f"Please move them to {secret_path}."
-                )
-            raise SystemError(f"Configuration file {conf} is not secure.\n" f"Please run `chmod 600 {conf}`.")
-
-        CHECKED[name] = True
 
 
 def find(metadata: Union[dict, list], what: str, result: list = None, *, select: callable = None) -> list:
@@ -675,19 +413,61 @@ def merge_configs(*configs: dict) -> dict:
     return result
 
 
-@contextlib.contextmanager
-def temporary_config(tmp: dict) -> None:
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.temporary_settings instead.",
+)
+def temporary_config(*args, **kwargs) -> None:
+    from .settings import temporary_settings
 
-    global CONFIG_PATCH
+    return temporary_settings(*args, **kwargs)
 
-    def patch_config(config: dict) -> dict:
-        return merge_configs(config, tmp)
 
-    with CONFIG_LOCK:
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.load_settings instead.",
+)
+def load_config(*args, **kwargs) -> DotDict | str:
+    from .settings import load_settings
 
-        CONFIG_PATCH = patch_config
+    return load_settings(*args, **kwargs)
 
-        try:
-            yield
-        finally:
-            CONFIG_PATCH = None
+
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.settings_path instead.",
+)
+def config_path(*args, **kwargs) -> str:
+    from .settings import settings_path
+
+    return settings_path(*args, **kwargs)
+
+
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.save_settings instead.",
+)
+def save_config(*args, **kwargs) -> None:
+    from .settings import save_settings
+
+    save_settings(*args, **kwargs)
+
+
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.load_settings instead.",
+)
+def check_config_mode(*args, **kwargs) -> None:
+    from .settings import check_settings_mode
+
+    check_settings_mode(*args, **kwargs)

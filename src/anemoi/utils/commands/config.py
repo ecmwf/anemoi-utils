@@ -12,8 +12,8 @@ import json
 from argparse import ArgumentParser
 from argparse import Namespace
 
-from ..config import config_path
-from ..config import load_config
+from ..settings import load_settings
+from ..settings import settings_path
 from . import Command
 
 
@@ -39,9 +39,9 @@ class Config(Command):
             The arguments passed to the command.
         """
         if args.path:
-            print(config_path())
+            print(settings_path())
         else:
-            print(json.dumps(load_config(), indent=4))
+            print(json.dumps(load_settings(), indent=4))
 
 
 command = Config
