@@ -13,10 +13,10 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any
 from typing import Union
 
 import deprecation
+import omegaconf.dictconfig
 import yaml
 
 from anemoi.utils._version import __version__
@@ -30,7 +30,7 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
-class DotDict(dict):
+class DotDict(omegaconf.dictconfig.DictConfig):
     """A dictionary that allows access to its keys as attributes.
 
     >>> d = DotDict({"a": 1, "b": {"c": 2}})
@@ -48,28 +48,6 @@ class DotDict(dict):
 
     >>> d = DotDict(a=1, b=2)
     """
-
-    def __init__(self, *args, **kwargs):
-        """Initialize a DotDict instance.
-
-        Parameters
-        ----------
-        *args : tuple
-            Positional arguments for the dict constructor.
-        **kwargs : dict
-            Keyword arguments for the dict constructor.
-        """
-        super().__init__(*args, **kwargs)
-
-        for k, v in self.items():
-            if isinstance(v, dict) or _is_omegaconf_dict(v):
-                self[k] = DotDict(v)
-
-            if isinstance(v, list) or _is_omegaconf_list(v):
-                self[k] = [DotDict(i) if isinstance(i, dict) or _is_omegaconf_dict(i) else i for i in v]
-
-            if isinstance(v, tuple):
-                self[k] = [DotDict(i) if isinstance(i, dict) or _is_omegaconf_dict(i) else i for i in v]
 
     @classmethod
     def from_file(cls, path: str) -> DotDict:
@@ -150,90 +128,6 @@ class DotDict(dict):
         with open(path, "r") as file:
             data = tomllib.load(file)
         return cls(data)
-
-    def __getattr__(self, attr: str) -> Any:
-        """Get an attribute.
-
-        Parameters
-        ----------
-        attr : str
-            The attribute name.
-
-        Returns
-        -------
-        Any
-            The attribute value.
-        """
-        try:
-            return self[attr]
-        except KeyError:
-            raise AttributeError(attr)
-
-    def __setattr__(self, attr: str, value: Any) -> None:
-        """Set an attribute.
-
-        Parameters
-        ----------
-        attr : str
-            The attribute name.
-        value : Any
-            The attribute value.
-        """
-        if isinstance(value, dict):
-            value = DotDict(value)
-        self[attr] = value
-
-    def __repr__(self) -> str:
-        """Return a string representation of the DotDict.
-
-        Returns
-        -------
-        str
-            The string representation.
-        """
-        return f"DotDict({super().__repr__()})"
-
-
-def _is_omegaconf_dict(value: Any) -> bool:
-    """Check if a value is an OmegaConf DictConfig.
-
-    Parameters
-    ----------
-    value : Any
-        The value to check.
-
-    Returns
-    -------
-    bool
-        True if the value is a DictConfig, False otherwise.
-    """
-    try:
-        from omegaconf import DictConfig
-
-        return isinstance(value, DictConfig)
-    except ImportError:
-        return False
-
-
-def _is_omegaconf_list(value: Any) -> bool:
-    """Check if a value is an OmegaConf ListConfig.
-
-    Parameters
-    ----------
-    value : Any
-        The value to check.
-
-    Returns
-    -------
-    bool
-        True if the value is a ListConfig, False otherwise.
-    """
-    try:
-        from omegaconf import ListConfig
-
-        return isinstance(value, ListConfig)
-    except ImportError:
-        return False
 
 
 def load_any_dict_format(path: str) -> dict:
@@ -382,3 +276,10 @@ def check_config_mode(*args, **kwargs) -> None:
     from .settings import check_settings_mode
 
     check_settings_mode(*args, **kwargs)
+
+
+if __name__ == "__main__":
+    a = DotDict({"a": 1, "b": {"c": 2}, "user": "${oc.env:HOME}"})
+    print(a)
+    print(a.a)
+    print(a.user)
