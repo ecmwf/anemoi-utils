@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.30](https://github.com/ecmwf/anemoi-utils/compare/0.4.29...0.4.30) (2025-07-31)
+
+
+### Bug Fixes
+
+* Refactor code for casting dotdicts and apply this in getitem and setitem methods ([#169](https://github.com/ecmwf/anemoi-utils/issues/169)) ([e91aecf](https://github.com/ecmwf/anemoi-utils/commit/e91aecf6699a0daaed6f79e92b4ebc57cd4abe36))
+
 ## [0.4.29](https://github.com/ecmwf/anemoi-utils/compare/0.4.28...0.4.29) (2025-07-22)
 
 
