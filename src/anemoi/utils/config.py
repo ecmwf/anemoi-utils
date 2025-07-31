@@ -16,8 +16,6 @@ import logging
 import os
 import threading
 from typing import Any
-from typing import Optional
-from typing import Union
 
 import yaml
 
@@ -115,7 +113,7 @@ class DotDict(dict):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = yaml.safe_load(file)
 
         return cls(data)
@@ -134,7 +132,7 @@ class DotDict(dict):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = json.load(file)
 
         return cls(data)
@@ -153,7 +151,7 @@ class DotDict(dict):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = tomllib.load(file)
         return cls(data)
 
@@ -271,7 +269,7 @@ QUIET = False
 CONFIG_PATCH = None
 
 
-def _find(config: Union[dict, list], what: str, result: list = None) -> list:
+def _find(config: dict | list, what: str, result: list = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list.
 
     Parameters
@@ -436,8 +434,8 @@ def load_any_dict_format(path: str) -> dict:
 
 def _load_config(
     name: str = "settings.toml",
-    secrets: Optional[Union[str, list[str]]] = None,
-    defaults: Optional[Union[str, dict]] = None,
+    secrets: str | list[str] | None = None,
+    defaults: str | dict | None = None,
 ) -> DotDict:
     """Load a configuration file.
 
@@ -559,8 +557,8 @@ def save_config(name: str, data: Any) -> None:
 
 def load_config(
     name: str = "settings.toml",
-    secrets: Optional[Union[str, list[str]]] = None,
-    defaults: Optional[Union[str, dict]] = None,
+    secrets: str | list[str] | None = None,
+    defaults: str | dict | None = None,
 ) -> DotDict | str:
     """Read a configuration file.
 
@@ -586,7 +584,7 @@ def load_config(
         return config
 
 
-def load_raw_config(name: str, default: Any = None) -> Union[DotDict, str]:
+def load_raw_config(name: str, default: Any = None) -> DotDict | str:
     """Load a raw configuration file.
 
     Parameters
@@ -645,7 +643,7 @@ def check_config_mode(name: str = "settings.toml", secrets_name: str = None, sec
         CHECKED[name] = True
 
 
-def find(metadata: Union[dict, list], what: str, result: list = None, *, select: callable = None) -> list:
+def find(metadata: dict | list, what: str, result: list = None, *, select: callable = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list with an optional selector.
 
     Parameters

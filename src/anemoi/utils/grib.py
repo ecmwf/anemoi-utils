@@ -15,8 +15,6 @@ See https://codes.ecmwf.int/grib/param-db/ for more information.
 
 import logging
 import re
-from typing import Dict
-from typing import Union
 
 import requests
 
@@ -26,7 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 @cached(collection="grib", expires=30 * 24 * 60 * 60)
-def _units() -> Dict[str, str]:
+def _units() -> dict[str, str]:
     """Fetch and cache GRIB parameter units.
 
     Returns
@@ -41,7 +39,7 @@ def _units() -> Dict[str, str]:
 
 
 @cached(collection="grib", expires=30 * 24 * 60 * 60)
-def _search_param(name: str) -> Dict[str, Union[str, int]]:
+def _search_param(name: str) -> dict[str, str | int]:
     """Search for a GRIB parameter by name.
 
     Parameters
@@ -116,7 +114,7 @@ def paramid_to_shortname(paramid: int) -> str:
     return _search_param(str(paramid))["shortname"]
 
 
-def units(param: Union[int, str]) -> str:
+def units(param: int | str) -> str:
     """Return the units of a GRIB parameter given its name or id.
 
     Parameters
@@ -137,7 +135,7 @@ def units(param: Union[int, str]) -> str:
     return _units()[unit_id]
 
 
-def must_be_positive(param: Union[int, str]) -> bool:
+def must_be_positive(param: int | str) -> bool:
     """Check if a parameter must be positive.
 
     Parameters
