@@ -28,9 +28,9 @@ import fnmatch
 import logging
 import os
 import threading
+from collections.abc import Iterable
 from copy import deepcopy
 from typing import Any
-from typing import Iterable
 
 import tqdm
 

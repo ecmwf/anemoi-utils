@@ -8,9 +8,8 @@
 # nor does it submit to any jurisdiction.
 
 import warnings
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
-from typing import Optional
 
 from .remote import transfer
 from .remote.s3 import delete as delete_
@@ -55,7 +54,7 @@ def upload(
     overwrite: bool = False,
     resume: bool = False,
     verbosity: int = 1,
-    progress: Optional[Callable] = None,
+    progress: Callable | None = None,
     threads: int = 1,
 ) -> None:
     """Upload a file to S3.
