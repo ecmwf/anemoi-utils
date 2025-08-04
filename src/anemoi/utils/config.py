@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import threading
+import warnings
 from typing import Any
 
 import yaml
@@ -202,12 +203,8 @@ class DotDict(dict):
         value = self.convert_to_nested_dot_dict(value)
         super().__setitem__(key, value)
 
-    @staticmethod
-    def warn_on_mutation(key):
-        LOG.warning(
-            f"Config key '{key}' was modified after instantiation. "
-            "This is bad practice — configs are intended to be immutable. "
-        )
+    def warn_on_mutation(self, key):
+        warnings.warn("Mofifying and instance of DotDict(). This class is intended to be immutable.")
 
     def __repr__(self) -> str:
         """Return a string representation of the DotDict.
