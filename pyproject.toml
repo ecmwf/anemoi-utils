@@ -100,8 +100,10 @@ markers = [
 
 [tool.mypy]
 strict = false
+mypy_path = "src"
+explicit_package_bases = true
 exclude = [
-  "docs/**",
+  "docs/.*",
 ]
 
 [tool.pydocstringformatter]
