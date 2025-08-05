@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.32](https://github.com/ecmwf/anemoi-utils/compare/0.4.31...0.4.32) (2025-08-05)
+
+
+### Features
+
+* Improve types of testing ([#186](https://github.com/ecmwf/anemoi-utils/issues/186)) ([7bc7cbd](https://github.com/ecmwf/anemoi-utils/commit/7bc7cbdc1f3452e131b12067684f39dea067eed6))
+
 ## [0.4.31](https://github.com/ecmwf/anemoi-utils/compare/0.4.30...0.4.31) (2025-08-04)
 
 
