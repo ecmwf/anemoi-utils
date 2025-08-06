@@ -27,7 +27,7 @@ except ImportError:
 
 
 LOG = logging.getLogger(__name__)
-ANEMOI_CONFIG_PATH = "ANEMOI_CONFIG_PATH"
+ANEMOI_CONFIG_OVERRIDE_PATH = "ANEMOI_CONFIG_OVERRIDE_PATH"
 
 
 class DotDict(dict):
@@ -577,8 +577,8 @@ def load_config(
 
     with CONFIG_LOCK:
         config = _load_config(name, secrets, defaults)
-        if ANEMOI_CONFIG_PATH in os.environ:
-            override_config = _load_config(os.path.abspath(os.environ[ANEMOI_CONFIG_PATH]))
+        if ANEMOI_CONFIG_OVERRIDE_PATH in os.environ:
+            override_config = _load_config(os.path.abspath(os.environ[ANEMOI_CONFIG_OVERRIDE_PATH]))
             merge_configs(config, override_config)
         if CONFIG_PATCH is not None:
             config = CONFIG_PATCH(config)
