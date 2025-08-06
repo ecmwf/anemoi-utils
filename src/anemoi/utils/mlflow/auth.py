@@ -253,3 +253,14 @@ class TokenAuth:
         except HTTPError:
             self.log.exception("HTTP error occurred")
             raise
+
+
+class PassiveAuth(TokenAuth):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def authenticate(self):
+        pass
+
+    def save(self):
+        pass
