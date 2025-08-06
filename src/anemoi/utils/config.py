@@ -27,6 +27,7 @@ except ImportError:
 
 
 LOG = logging.getLogger(__name__)
+ANEMOI_CONFIG_ENV = "ANEMOI_CONFIG_PATH"
 
 
 class DotDict(dict):
@@ -61,7 +62,7 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            self[k] = self.convert_to_nested_dot_dict(v)
+            super().__setitem__(k, self.convert_to_nested_dot_dict(v))
 
     @staticmethod
     def convert_to_nested_dot_dict(value):
@@ -576,6 +577,9 @@ def load_config(
 
     with CONFIG_LOCK:
         config = _load_config(name, secrets, defaults)
+        if ANEMOI_CONFIG_ENV in os.environ:
+            override_config = _load_config(os.path.abspath(os.environ[ANEMOI_CONFIG_ENV]))
+            merge_configs(config, override_config)
         if CONFIG_PATCH is not None:
             config = CONFIG_PATCH(config)
         return config
