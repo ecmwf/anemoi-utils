@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.33](https://github.com/ecmwf/anemoi-utils/compare/0.4.32...0.4.33) (2025-08-07)
+
+
+### Features
+
+* **config:** Expand environment var recognition for the use of config override ([#197](https://github.com/ecmwf/anemoi-utils/issues/197)) ([9bd9170](https://github.com/ecmwf/anemoi-utils/commit/9bd9170478857cf129fa6b8042bc22d1a3940156))
+
 ## [0.4.32](https://github.com/ecmwf/anemoi-utils/compare/0.4.31...0.4.32) (2025-08-05)
 
 
