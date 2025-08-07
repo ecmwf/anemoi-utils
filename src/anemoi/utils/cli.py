@@ -16,10 +16,25 @@ import sys
 import traceback
 from collections.abc import Callable
 
+from anemoi.utils import ENV
+
 try:
     import argcomplete
 except ImportError:
     argcomplete = None
+
+
+if ENV.ANEMOI_DEBUG_IMPORTS:
+    from datetime import datetime
+    from importlib.abc import MetaPathFinder
+
+    class ImportTracer(MetaPathFinder):
+        def find_spec(self, fullname, path, target=None):
+            now = datetime.now().isoformat(timespec="milliseconds")
+            print(f"[{now}] Importing {fullname} from {path}")
+            return None  # allow normal import processing to continue
+
+    sys.meta_path.insert(0, ImportTracer())
 
 LOG = logging.getLogger(__name__)
 
