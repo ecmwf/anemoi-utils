@@ -16,13 +16,15 @@ import sys
 import traceback
 from collections.abc import Callable
 
+from anemoi.utils import ENV
+
 try:
     import argcomplete
 except ImportError:
     argcomplete = None
 
 
-if int(os.environ.get("ANEMOI_DEBUG_IMPORTS", 0)):
+if ENV.ANEMOI_DEBUG_IMPORTS:
     from datetime import datetime
     from importlib.abc import MetaPathFinder
 

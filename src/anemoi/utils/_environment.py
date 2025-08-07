@@ -17,6 +17,9 @@ class Environment:
     ANEMOI_CONFIG_OVERRIDE_PATH: str
     """Path to the configuration override file for Anemoi."""
 
+    ANEMOI_DEBUG_IMPORTS: bool
+    """Enable debug imports to trace module loading."""
+
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("Cannot set attributes on Environment class. Use environment variables instead.")
 
