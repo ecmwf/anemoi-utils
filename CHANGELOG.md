@@ -8,6 +8,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.33](https://github.com/ecmwf/anemoi-utils/compare/0.4.32...0.4.33) (2025-08-07)
+
+
+### Features
+
+* **config:** Expand environment var recognition for the use of config override ([#197](https://github.com/ecmwf/anemoi-utils/issues/197)) ([9bd9170](https://github.com/ecmwf/anemoi-utils/commit/9bd9170478857cf129fa6b8042bc22d1a3940156))
+
+## [0.4.32](https://github.com/ecmwf/anemoi-utils/compare/0.4.31...0.4.32) (2025-08-05)
+
+
+### Features
+
+* Improve types of testing ([#186](https://github.com/ecmwf/anemoi-utils/issues/186)) ([7bc7cbd](https://github.com/ecmwf/anemoi-utils/commit/7bc7cbdc1f3452e131b12067684f39dea067eed6))
+
+## [0.4.31](https://github.com/ecmwf/anemoi-utils/compare/0.4.30...0.4.31) (2025-08-04)
+
+
+### Bug Fixes
+
+* Remove too many warnings ([#193](https://github.com/ecmwf/anemoi-utils/issues/193)) ([df6862b](https://github.com/ecmwf/anemoi-utils/commit/df6862bf829e67651ccc97cbaac9f38096ad4d34))
+
+## [0.4.30](https://github.com/ecmwf/anemoi-utils/compare/0.4.29...0.4.30) (2025-07-31)
+
+
+### Bug Fixes
+
+* Refactor code for casting dotdicts and apply this in getitem and setitem methods ([#169](https://github.com/ecmwf/anemoi-utils/issues/169)) ([e91aecf](https://github.com/ecmwf/anemoi-utils/commit/e91aecf6699a0daaed6f79e92b4ebc57cd4abe36))
+
+## [0.4.29](https://github.com/ecmwf/anemoi-utils/compare/0.4.28...0.4.29) (2025-07-22)
+
+
+### Features
+
+* Better support for negative timedeltas ([#180](https://github.com/ecmwf/anemoi-utils/issues/180)) ([3f8041a](https://github.com/ecmwf/anemoi-utils/commit/3f8041a46b525b6fcbe6171cd8a8a40ec30b2c1f))
+* **deps:** Use mlflow-skinny instead of mlflow ([#184](https://github.com/ecmwf/anemoi-utils/issues/184)) ([82e5c30](https://github.com/ecmwf/anemoi-utils/commit/82e5c3053962cd8e1e8f6a1ea9e8f92492e497b4))
+* Protect mlflow token file ([#183](https://github.com/ecmwf/anemoi-utils/issues/183)) ([fdf0fc8](https://github.com/ecmwf/anemoi-utils/commit/fdf0fc84ee3e8076928f6c888374cd3aa008023b))
+* **sanitise:** Sanitation level ([#175](https://github.com/ecmwf/anemoi-utils/issues/175)) ([8d85d8f](https://github.com/ecmwf/anemoi-utils/commit/8d85d8fd889bf72b8066cc021d4d7b329a360848))
+* Support negative timedelta ([#178](https://github.com/ecmwf/anemoi-utils/issues/178)) ([546f6ec](https://github.com/ecmwf/anemoi-utils/commit/546f6ec76534cd39094957ce3b57b34f14f7a000))
+
+
+### Bug Fixes
+
+* Clean utils ([#185](https://github.com/ecmwf/anemoi-utils/issues/185)) ([de3c7a4](https://github.com/ecmwf/anemoi-utils/commit/de3c7a47f14c258997942564717c480caa124ee6))
+
+## [0.4.28](https://github.com/ecmwf/anemoi-utils/compare/0.4.27...0.4.28) (2025-07-03)
+
+
+### Features
+
+* Migrate mlflow utils from anemoi-training ([#174](https://github.com/ecmwf/anemoi-utils/issues/174)) ([0b7767b](https://github.com/ecmwf/anemoi-utils/commit/0b7767bc23486b140ad7423e3c5c7d5857cef71c))
+
+
+### Bug Fixes
+
+* Treat mlflow as an optional dependency ([#177](https://github.com/ecmwf/anemoi-utils/issues/177)) ([feb1088](https://github.com/ecmwf/anemoi-utils/commit/feb1088169a29f42032bf26d5c43f9817557bafc))
+
 ## [0.4.27](https://github.com/ecmwf/anemoi-utils/compare/0.4.26...0.4.27) (2025-06-27)
 
 

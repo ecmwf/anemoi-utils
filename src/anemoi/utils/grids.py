@@ -13,9 +13,6 @@
 import logging
 import os
 from io import BytesIO
-from typing import List
-from typing import Tuple
-from typing import Union
 
 import deprecation
 import numpy as np
@@ -145,7 +142,7 @@ def nearest_grid_points(
 
 
 @cached(collection="grids", encoding="npz")
-def _grids(name: Union[str, List[float], Tuple[float, ...]]) -> bytes:
+def _grids(name: str | list[float] | tuple[float, ...]) -> bytes:
     """Get grid data by name.
 
     Parameters
@@ -196,7 +193,7 @@ def _grids(name: Union[str, List[float], Tuple[float, ...]]) -> bytes:
     current_version=__version__,
     details="Use anemoi.transform.grids.named.lookup instead.",
 )
-def grids(name: Union[str, List[float], Tuple[float, ...]]) -> dict:
+def grids(name: str | list[float] | tuple[float, ...]) -> dict:
     """Load grid data by name.
 
     Parameters

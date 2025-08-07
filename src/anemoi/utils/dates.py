@@ -12,16 +12,11 @@ import calendar
 import datetime
 import re
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Set
-from typing import Tuple
-from typing import Union
 
 import aniso8601
 
 
-def normalise_frequency(frequency: Union[int, str]) -> int:
+def normalise_frequency(frequency: int | str) -> int:
     """Normalise frequency to hours.
 
     Parameters
@@ -61,7 +56,7 @@ def _no_time_zone(date: datetime.datetime) -> datetime.datetime:
 
 
 # this function is use in anemoi-datasets
-def as_datetime(date: Union[datetime.date, datetime.datetime, str], keep_time_zone: bool = False) -> datetime.datetime:
+def as_datetime(date: datetime.date | datetime.datetime | str, keep_time_zone: bool = False) -> datetime.datetime:
     """Convert a date to a datetime object, removing any time zone information.
 
     Parameters
@@ -91,9 +86,7 @@ def as_datetime(date: Union[datetime.date, datetime.datetime, str], keep_time_zo
     raise ValueError(f"Invalid date type: {type(date)}")
 
 
-def _as_datetime_list(
-    date: Union[datetime.date, datetime.datetime, str], default_increment: datetime.timedelta
-) -> iter:
+def _as_datetime_list(date: datetime.date | datetime.datetime | str, default_increment: datetime.timedelta) -> iter:
     """Convert a date to a list of datetime objects.
 
     Parameters
@@ -137,7 +130,7 @@ def _as_datetime_list(
 
 
 def as_datetime_list(
-    date: Union[datetime.date, datetime.datetime, str], default_increment: int = 1
+    date: datetime.date | datetime.datetime | str, default_increment: int = 1
 ) -> list[datetime.datetime]:
     """Convert a date to a list of datetime objects.
 
@@ -157,7 +150,7 @@ def as_datetime_list(
     return list(_as_datetime_list(date, default_increment))
 
 
-def as_timedelta(frequency: Union[int, str, datetime.timedelta]) -> datetime.timedelta:
+def as_timedelta(frequency: int | str | datetime.timedelta) -> datetime.timedelta:
     """Convert anything to a timedelta object.
 
     Parameters
@@ -199,6 +192,15 @@ def as_timedelta(frequency: Union[int, str, datetime.timedelta]) -> datetime.tim
     except ValueError:
         pass
 
+    if frequency.startswith(" ") or frequency.startswith(" "):
+        frequency = frequency.strip()
+
+    if frequency.startswith("-"):
+        return -as_timedelta(frequency[1:])
+
+    if frequency.startswith("+"):
+        return as_timedelta(frequency[1:])
+
     if re.match(r"^\d+[hdms]$", frequency, re.IGNORECASE):
         unit = frequency[-1].lower()
         v = int(frequency[:-1])
@@ -228,7 +230,7 @@ def as_timedelta(frequency: Union[int, str, datetime.timedelta]) -> datetime.tim
     raise ValueError(f"Cannot convert frequency {frequency} to timedelta")
 
 
-def frequency_to_timedelta(frequency: Union[int, str, datetime.timedelta]) -> datetime.timedelta:
+def frequency_to_timedelta(frequency: int | str | datetime.timedelta) -> datetime.timedelta:
     """Convert a frequency to a timedelta object.
 
     Parameters
@@ -261,6 +263,8 @@ def frequency_to_string(frequency: datetime.timedelta) -> str:
     frequency = frequency_to_timedelta(frequency)
 
     total_seconds = frequency.total_seconds()
+    if total_seconds < 0:
+        return f"-{frequency_to_string(-frequency)}"
     assert int(total_seconds) == total_seconds, total_seconds
     total_seconds = int(total_seconds)
 
@@ -291,7 +295,7 @@ def frequency_to_string(frequency: datetime.timedelta) -> str:
     return str(frequency)
 
 
-def frequency_to_seconds(frequency: Union[int, str, datetime.timedelta]) -> int:
+def frequency_to_seconds(frequency: int | str | datetime.timedelta) -> int:
     """Convert a frequency to seconds.
 
     Parameters
@@ -336,7 +340,7 @@ MONTH = {
 }
 
 
-def _make_day(day: Optional[Tuple[int, List[int]]]) -> Set[int]:
+def _make_day(day: tuple[int, list[int]] | None) -> set[int]:
     """Create a set of days.
 
     Parameters
@@ -356,7 +360,7 @@ def _make_day(day: Optional[Tuple[int, List[int]]]) -> Set[int]:
     return {int(d) for d in day}
 
 
-def _make_week(week: Optional[Tuple[str, List[str]]]) -> Set[int]:
+def _make_week(week: tuple[str, list[str]] | None) -> set[int]:
     """Create a set of weekdays.
 
     Parameters
@@ -376,7 +380,7 @@ def _make_week(week: Optional[Tuple[str, List[str]]]) -> Set[int]:
     return {DOW[w.lower()] for w in week}
 
 
-def _make_months(months: Optional[Union[int, str, List[Union[int, str]]]]) -> Set[int]:
+def _make_months(months: int | str | list[int | str] | None) -> set[int]:
     """Create a set of months.
 
     Parameters
@@ -403,13 +407,13 @@ class DateTimes:
 
     def __init__(
         self,
-        start: Union[datetime.date, datetime.datetime, str],
-        end: Union[datetime.date, datetime.datetime, str],
+        start: datetime.date | datetime.datetime | str,
+        end: datetime.date | datetime.datetime | str,
         increment: int = 24,
         *,
-        day_of_month: Optional[Tuple[int, List[int]]] = None,
-        day_of_week: Optional[Tuple[str, List[str]]] = None,
-        calendar_months: Optional[Union[int, str, List[Union[int, str]]]] = None,
+        day_of_month: tuple[int, list[int]] | None = None,
+        day_of_week: tuple[str, list[str]] | None = None,
+        calendar_months: int | str | list[int | str] | None = None,
     ):
         """Initialize the DateTimes iterator.
 
@@ -560,7 +564,7 @@ class ConcatDateTimes:
 class EnumDateTimes:
     """EnumDateTimes is an iterator that generates datetime objects from a list of dates."""
 
-    def __init__(self, dates: list[Union[datetime.date, datetime.datetime, str]]):
+    def __init__(self, dates: list[datetime.date | datetime.datetime | str]):
         """Initialize the EnumDateTimes iterator.
 
         Parameters
@@ -582,7 +586,7 @@ class EnumDateTimes:
             yield as_datetime(date)
 
 
-def datetimes_factory(*args: Any, **kwargs: Any) -> Union[DateTimes, ConcatDateTimes, EnumDateTimes]:
+def datetimes_factory(*args: Any, **kwargs: Any) -> DateTimes | ConcatDateTimes | EnumDateTimes:
     """Create a DateTimes, ConcatDateTimes, or EnumDateTimes object.
 
     Parameters

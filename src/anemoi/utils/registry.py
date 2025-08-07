@@ -13,15 +13,12 @@ import logging
 import os
 import sys
 import warnings
+from collections.abc import Callable
 from functools import cached_property
 from typing import Any
-from typing import Callable
-from typing import Dict
 from typing import Generic
-from typing import List
 from typing import Optional
 from typing import TypeVar
-from typing import Union
 
 import entrypoints
 
@@ -121,9 +118,7 @@ class Registry(Generic[T]):
         """
         return _BY_KIND.get(kind)
 
-    def register(
-        self, name: str, factory: Optional[Callable] = None, source: Optional[Any] = None
-    ) -> Optional[Wrapper]:
+    def register(self, name: str, factory: Callable | None = None, source: Any | None = None) -> Wrapper | None:
         """Register a factory with the registry.
 
         Parameters
@@ -201,7 +196,7 @@ class Registry(Generic[T]):
                 LOG.info(f"Registered: {e} ({self._sources.get(e)})")
         return ok
 
-    def lookup(self, name: str, *, return_none: bool = False) -> Optional[Callable]:
+    def lookup(self, name: str, *, return_none: bool = False) -> Callable | None:
         """Lookup a factory by name.
 
         Parameters
@@ -234,7 +229,7 @@ class Registry(Generic[T]):
         return factory
 
     @cached_property
-    def factories(self) -> Dict[str, Callable]:
+    def factories(self) -> dict[str, Callable]:
 
         directory = sys.modules[self.package].__path__[0]
 
@@ -286,7 +281,7 @@ class Registry(Generic[T]):
         return self.__registered
 
     @property
-    def registered(self) -> List[str]:
+    def registered(self) -> list[str]:
         """Get the registered factories."""
 
         return sorted(self.factories.keys())
@@ -314,7 +309,7 @@ class Registry(Generic[T]):
         factory = self.lookup(name)
         return factory(*args, **kwargs)
 
-    def from_config(self, config: Union[str, Dict[str, Any]], *args: Any, **kwargs: Any) -> T:
+    def from_config(self, config: str | dict[str, Any], *args: Any, **kwargs: Any) -> T:
         """Create an instance from a configuration.
 
         Parameters

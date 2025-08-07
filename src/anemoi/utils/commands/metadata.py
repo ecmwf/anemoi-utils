@@ -17,7 +17,6 @@ from argparse import ArgumentParser
 from argparse import Namespace
 from tempfile import TemporaryDirectory
 from typing import Any
-from typing import Dict
 
 import yaml
 
@@ -213,7 +212,7 @@ class Metadata(Command):
         from anemoi.utils.checkpoints import load_metadata
         from anemoi.utils.checkpoints import replace_metadata
 
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
 
         if args.json:
             ext = "json"

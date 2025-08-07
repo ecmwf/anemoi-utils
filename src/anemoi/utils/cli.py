@@ -14,8 +14,7 @@ import logging
 import os
 import sys
 import traceback
-from typing import Callable
-from typing import Optional
+from collections.abc import Callable
 
 try:
     import argcomplete
@@ -200,7 +199,7 @@ def register_commands(here: str, package: str, select: Callable, fail: Callable 
 
 
 def cli_main(
-    version: str, description: str, commands: dict[str, Command], test_arguments: Optional[list[str]] = None
+    version: str, description: str, commands: dict[str, Command], test_arguments: list[str] | None = None
 ) -> None:
     """Main entry point for the CLI.
 
