@@ -7,17 +7,13 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+from collections.abc import Mapping
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Union
 
 
 class Rule:
 
-    def __init__(self, match: Dict[str, Any], result: Any):
+    def __init__(self, match: dict[str, Any], result: Any):
         """Initialize a Rule object.
 
         Parameters
@@ -55,14 +51,14 @@ class Rule:
         return self._result
 
     @property
-    def condition(self) -> Dict[str, Any]:
+    def condition(self) -> dict[str, Any]:
         """The conditions that define the rule."""
         return self._match
 
 
 class RuleSet:
 
-    def __init__(self, rules: List[Union[Rule, Dict[str, Any], List[Any]]]):
+    def __init__(self, rules: list[Rule | dict[str, Any] | list[Any]]):
         """Initialize a RuleSet object.
 
         Parameters
@@ -73,7 +69,7 @@ class RuleSet:
         """
         assert isinstance(rules, list), "rules must be a list"
 
-        self.rules: List[Rule] = []
+        self.rules: list[Rule] = []
 
         for rule in rules:
             if isinstance(rule, Rule):
@@ -107,7 +103,7 @@ class RuleSet:
             )
 
     @classmethod
-    def from_list(cls, rules: List[Any]) -> "RuleSet":
+    def from_list(cls, rules: list[Any]) -> "RuleSet":
         """Create a RuleSet from a list of rules.
 
         Parameters
@@ -144,19 +140,19 @@ class RuleSet:
         if path.endswith(".json"):
             import json
 
-            with open(path, "r") as f:
+            with open(path) as f:
                 return cls.from_list(json.load(f))
 
         if path.endswith(".yaml") or path.endswith(".yml"):
             import yaml
 
-            with open(path, "r") as f:
+            with open(path) as f:
                 return cls.from_list(yaml.safe_load(f))
 
         raise ValueError("Unsupported file format. Supported formats are .json and .yaml/.yml.")
 
     @classmethod
-    def from_any(cls, rules: Union[str, List[Any]]) -> "RuleSet":
+    def from_any(cls, rules: str | list[Any]) -> "RuleSet":
         """Create a RuleSet from a list or a file path.
 
         Parameters
@@ -182,7 +178,7 @@ class RuleSet:
 
         raise ValueError("Unsupported rules format. Must be a list or a file path.")
 
-    def match(self, obj: Mapping[str, Any], strategy: str = "first-match") -> Optional[Rule]:
+    def match(self, obj: Mapping[str, Any], strategy: str = "first-match") -> Rule | None:
         """Match an object against the rules in the RuleSet.
 
         Parameters

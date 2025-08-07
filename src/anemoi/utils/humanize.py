@@ -15,14 +15,9 @@ import json
 import re
 import warnings
 from collections import defaultdict
+from collections.abc import Callable
+from collections.abc import Generator
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 from anemoi.utils.dates import as_datetime
 
@@ -57,7 +52,7 @@ def bytes_to_human(n: float) -> str:
     while n >= 1024:
         n /= 1024.0
         i += 1
-    return "%s%g%s" % (sign, int(n * 10 + 0.5) / 10.0, u[i])
+    return f"{sign}{int(n * 10 + 0.5) / 10.0:g}{u[i]}"
 
 
 def bytes(n: float) -> str:
@@ -99,7 +94,7 @@ def base2_to_human(n: float) -> str:
     while n >= 1024:
         n /= 1024.0
         i += 1
-    return "%g%s" % (int(n * 10 + 0.5) / 10.0, u[i])
+    return f"{int(n * 10 + 0.5) / 10.0:g}{u[i]}"
 
 
 def base2(n: float) -> str:
@@ -151,7 +146,7 @@ def _plural(count: int) -> str:
         return ""
 
 
-def seconds_to_human(seconds: Union[float, datetime.timedelta]) -> str:
+def seconds_to_human(seconds: float | datetime.timedelta) -> str:
     """Convert a number of seconds to a human readable string.
 
     >>> seconds_to_human(4000)
@@ -205,7 +200,7 @@ def seconds_to_human(seconds: Union[float, datetime.timedelta]) -> str:
 
     if not s:
         seconds = round(seconds * 10) / 10
-        s.append("%g second%s" % (seconds, _plural(seconds)))
+        s.append(f"{seconds:g} second{_plural(seconds)}")
     return " ".join(s)
 
 
@@ -303,7 +298,7 @@ def __(n: int) -> str:
 
 
 def when(
-    then: datetime.datetime, now: Optional[datetime.datetime] = None, short: bool = True, use_utc: bool = False
+    then: datetime.datetime, now: datetime.datetime | None = None, short: bool = True, use_utc: bool = False
 ) -> str:
     """Generate a human readable string for a date, relative to now.
 
@@ -359,23 +354,23 @@ def when(
 
     def _(x):
         if last == "last":
-            return "%s ago" % (x,)
+            return f"{x} ago"
         else:
-            return "in %s" % (x,)
+            return f"in {x}"
 
     if diff < 60:
         diff = int(diff + 0.5)
-        return _("%s second%s" % (diff, _plural(diff)))
+        return _(f"{diff} second{_plural(diff)}")
 
     if diff < 60 * 60:
         diff /= 60
         diff = int(diff + 0.5)
-        return _("%s minute%s" % (diff, _plural(diff)))
+        return _(f"{diff} minute{_plural(diff)}")
 
     if diff < 60 * 60 * 6:
         diff /= 60 * 60
         diff = int(diff + 0.5)
-        return _("%s hour%s" % (diff, _plural(diff)))
+        return _(f"{diff} hour{_plural(diff)}")
 
     jnow = now.toordinal()
     jthen = then.toordinal()
@@ -392,7 +387,7 @@ def when(
     if abs(jnow - jthen) <= 7:
         if last == "next":
             last = "this"
-        return "%s %s" % (
+        return "{} {}".format(
             last,
             DOW[then.weekday()],
         )
@@ -462,7 +457,7 @@ def string_distance(s: str, t: str) -> int:
     return d[m, n]
 
 
-def did_you_mean(word: str, vocabulary: List[str]) -> str:
+def did_you_mean(word: str, vocabulary: list[str]) -> str:
     """Pick the closest word in a vocabulary.
 
     >>> did_you_mean("aple", ["banana", "lemon", "apple", "orange"])
@@ -485,7 +480,7 @@ def did_you_mean(word: str, vocabulary: List[str]) -> str:
     return best
 
 
-def dict_to_human(query: Dict[str, Any]) -> str:
+def dict_to_human(query: dict[str, Any]) -> str:
     """Convert a dictionary to a human readable string.
 
     Parameters
@@ -503,7 +498,7 @@ def dict_to_human(query: Dict[str, Any]) -> str:
     return list_to_human(lst)
 
 
-def list_to_human(lst: List[str], conjunction: str = "and") -> str:
+def list_to_human(lst: list[str], conjunction: str = "and") -> str:
     """Convert a list of strings to a human readable string.
 
     >>> list_to_human(["banana", "lemon", "apple", "orange"])
@@ -530,7 +525,7 @@ def list_to_human(lst: List[str], conjunction: str = "and") -> str:
     return f" {conjunction} ".join(lst)
 
 
-def human_to_number(value: Union[str, int], name: str, units: Dict[str, int], none_ok: bool) -> Optional[int]:
+def human_to_number(value: str | int, name: str, units: dict[str, int], none_ok: bool) -> int | None:
     """Convert a human readable string to a number.
 
     Parameters
@@ -568,8 +563,8 @@ def human_to_number(value: Union[str, int], name: str, units: Dict[str, int], no
 
 
 def as_number(
-    value: Union[str, int], name: Optional[str] = None, units: Optional[Dict[str, int]] = None, none_ok: bool = False
-) -> Optional[int]:
+    value: str | int, name: str | None = None, units: dict[str, int] | None = None, none_ok: bool = False
+) -> int | None:
     """Deprecated function to convert a human readable string to a number.
 
     Parameters
@@ -596,7 +591,7 @@ def as_number(
     return human_to_number(value, name, units, none_ok)
 
 
-def human_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+def human_seconds(value: str | int, name: str | None = None, none_ok: bool = False) -> int | None:
     """Convert a human readable string to seconds.
 
     Parameters
@@ -617,7 +612,7 @@ def human_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: b
     return human_to_number(value, name, units, none_ok)
 
 
-def as_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+def as_seconds(value: str | int, name: str | None = None, none_ok: bool = False) -> int | None:
     """Deprecated function to convert a human readable string to seconds.
 
     Parameters
@@ -642,7 +637,7 @@ def as_seconds(value: Union[str, int], name: Optional[str] = None, none_ok: bool
     return human_seconds(value, name, none_ok)
 
 
-def human_to_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+def human_to_percent(value: str | int, name: str | None = None, none_ok: bool = False) -> int | None:
     """Convert a human readable string to a percentage.
 
     Parameters
@@ -663,7 +658,7 @@ def human_to_percent(value: Union[str, int], name: Optional[str] = None, none_ok
     return human_to_number(value, name, units, none_ok)
 
 
-def as_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+def as_percent(value: str | int, name: str | None = None, none_ok: bool = False) -> int | None:
     """Deprecated function to convert a human readable string to a percentage.
 
     Parameters
@@ -688,7 +683,7 @@ def as_percent(value: Union[str, int], name: Optional[str] = None, none_ok: bool
     return human_to_percent(value, name, none_ok)
 
 
-def human_to_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+def human_to_bytes(value: str | int, name: str | None = None, none_ok: bool = False) -> int | None:
     """Convert a human readable string to bytes.
 
     Parameters
@@ -715,7 +710,7 @@ def human_to_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: 
     return human_to_number(value, name, units, none_ok)
 
 
-def as_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool = False) -> Optional[int]:
+def as_bytes(value: str | int, name: str | None = None, none_ok: bool = False) -> int | None:
     """Deprecated function to convert a human readable string to bytes.
 
     Parameters
@@ -740,7 +735,7 @@ def as_bytes(value: Union[str, int], name: Optional[str] = None, none_ok: bool =
     return human_to_bytes(value, name, none_ok)
 
 
-def human_to_timedelta(value: str, name: Optional[str] = None, none_ok: bool = False) -> datetime.timedelta:
+def human_to_timedelta(value: str, name: str | None = None, none_ok: bool = False) -> datetime.timedelta:
     """Convert a human readable string to a timedelta.
 
     Parameters
@@ -792,7 +787,7 @@ def human_to_timedelta(value: str, name: Optional[str] = None, none_ok: bool = F
     )
 
 
-def as_timedelta(value: str, name: Optional[str] = None, none_ok: bool = False) -> datetime.timedelta:
+def as_timedelta(value: str, name: str | None = None, none_ok: bool = False) -> datetime.timedelta:
     """Deprecated function to convert a human readable string to a timedelta.
 
     Parameters
@@ -892,7 +887,7 @@ def json_pretty_dump(obj: Any, max_line_length: int = 120, default: Callable = s
     return _format_json(obj)
 
 
-def shorten_list(lst: Union[List[Any], Tuple[Any]], max_length: int = 5) -> Union[List[Any], Tuple[Any]]:
+def shorten_list(lst: list[Any] | tuple[Any], max_length: int = 5) -> list[Any] | tuple[Any]:
     """Shorten a list to a maximum length.
 
     Parameters
@@ -918,10 +913,8 @@ def shorten_list(lst: Union[List[Any], Tuple[Any]], max_length: int = 5) -> Unio
 
 
 def _compress_dates(
-    dates: List[datetime.datetime],
-) -> Generator[
-    Union[List[datetime.datetime], Tuple[datetime.datetime, datetime.datetime, datetime.timedelta]], None, None
-]:
+    dates: list[datetime.datetime],
+) -> Generator[list[datetime.datetime] | tuple[datetime.datetime, datetime.datetime, datetime.timedelta], None, None]:
     """Compress a list of dates into a more compact representation.
 
     Parameters
@@ -953,7 +946,7 @@ def _compress_dates(
         yield from _compress_dates([curr] + dates)
 
 
-def compress_dates(dates: List[Union[datetime.datetime, str]]) -> str:
+def compress_dates(dates: list[datetime.datetime | str]) -> str:
     """Compress a list of dates into a human-readable format.
 
     Parameters
@@ -979,7 +972,7 @@ def compress_dates(dates: List[Union[datetime.datetime, str]]) -> str:
     return result
 
 
-def print_dates(dates: List[Union[datetime.datetime, str]]) -> None:
+def print_dates(dates: list[datetime.datetime | str]) -> None:
     """Print a list of dates in a human-readable format.
 
     Parameters
@@ -990,7 +983,7 @@ def print_dates(dates: List[Union[datetime.datetime, str]]) -> None:
     print(compress_dates(dates))
 
 
-def make_list_int(value: Union[str, List[int], Tuple[int], int]) -> List[int]:
+def make_list_int(value: str | list[int] | tuple[int] | int) -> list[int]:
     """Convert a string like "1/2/3" or "1/to/3" or "1/to/10/by/2" to a list of integers.
 
     Parameters

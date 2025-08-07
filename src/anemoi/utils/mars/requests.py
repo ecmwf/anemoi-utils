@@ -7,11 +7,10 @@
 
 import sys
 from typing import Any
-from typing import Dict
 from typing import TextIO
 
 
-def print_request(verb: str, request: Dict[str, Any], file: TextIO = sys.stdout) -> None:
+def print_request(verb: str, request: dict[str, Any], file: TextIO = sys.stdout) -> None:
     """Prints a formatted request.
 
     Parameters

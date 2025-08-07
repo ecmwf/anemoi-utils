@@ -17,8 +17,8 @@ import logging
 import os
 import time
 import zipfile
+from collections.abc import Callable
 from tempfile import TemporaryDirectory
-from typing import Callable
 
 import tqdm
 

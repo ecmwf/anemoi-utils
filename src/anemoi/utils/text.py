@@ -13,10 +13,7 @@
 import re
 from collections import defaultdict
 from typing import Any
-from typing import List
 from typing import Optional
-from typing import Tuple
-from typing import Union
 
 # https://en.wikipedia.org/wiki/Box-drawing_character
 
@@ -61,7 +58,7 @@ def _has_ansi_escape(s: str) -> bool:
     return _ansi_escape.search(s) is not None
 
 
-def _split_tokens(s: str) -> List[Tuple[str, int]]:
+def _split_tokens(s: str) -> list[tuple[str, int]]:
     """Split a string into a list of visual characters with their lengths.
 
     Parameters
@@ -104,7 +101,7 @@ def _split_tokens(s: str) -> List[Tuple[str, int]]:
     return out
 
 
-def visual_len(s: Union[str, List[Tuple[str, int]]]) -> int:
+def visual_len(s: str | list[tuple[str, int]]) -> int:
     """Compute the length of a string as it appears on the terminal.
 
     Parameters
@@ -308,7 +305,7 @@ class Tree:
         return len(self._kids) == 0
 
     @property
-    def key(self) -> Tuple:
+    def key(self) -> tuple:
         """Tuple: The key of the tree node."""
         return tuple(sorted(self._actor.as_dict().items()))
 
@@ -363,7 +360,7 @@ class Tree:
 
         self._print(padding)
 
-    def _leaves(self, result: List["Tree"]) -> None:
+    def _leaves(self, result: list["Tree"]) -> None:
         """Collect all leaf nodes.
 
         Parameters
@@ -432,7 +429,7 @@ class Tree:
 
         return result
 
-    def _print(self, padding: List[str]) -> None:
+    def _print(self, padding: list[str]) -> None:
         """Print the tree with padding.
 
         Parameters
@@ -480,7 +477,7 @@ class Tree:
         }
 
 
-def table(rows: List[List[Any]], header: List[str], align: List[str], margin: int = 0) -> str:
+def table(rows: list[list[Any]], header: list[str], align: list[str], margin: int = 0) -> str:
     """Format a table.
 
         >>> table([['Aa', 12, 5],

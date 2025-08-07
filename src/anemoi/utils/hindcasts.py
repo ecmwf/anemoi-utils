@@ -9,9 +9,7 @@
 
 
 import datetime
-from typing import Iterator
-from typing import List
-from typing import Tuple
+from collections.abc import Iterator
 
 
 class HindcastDatesTimes:
@@ -25,7 +23,7 @@ class HindcastDatesTimes:
         Number of years to go back from each reference date.
     """
 
-    def __init__(self, reference_dates: List[datetime.datetime], years: int = 20):
+    def __init__(self, reference_dates: list[datetime.datetime], years: int = 20):
         """Initialize the HindcastDatesTimes iterator.
 
         Parameters
@@ -41,7 +39,7 @@ class HindcastDatesTimes:
         assert years > 0, f"years must be greater than 0, got {years}"
         self.years = years
 
-    def __iter__(self) -> Iterator[Tuple[datetime.datetime, datetime.datetime]]:
+    def __iter__(self) -> Iterator[tuple[datetime.datetime, datetime.datetime]]:
         """Generate tuples of past dates and their corresponding reference dates.
 
         Yields

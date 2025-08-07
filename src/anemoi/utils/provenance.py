@@ -25,16 +25,11 @@ import sys
 import sysconfig
 from functools import cache
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 LOG = logging.getLogger(__name__)
 
 
-def lookup_git_repo(path: str) -> Optional[Any]:
+def lookup_git_repo(path: str) -> Any | None:
     """Lookup the git repository for a given path.
 
     Parameters
@@ -62,7 +57,7 @@ def lookup_git_repo(path: str) -> Optional[Any]:
     return None
 
 
-def _check_for_git(paths: List[Tuple[str, str]], full: bool) -> Dict[str, Any]:
+def _check_for_git(paths: list[tuple[str, str]], full: bool) -> dict[str, Any]:
     """Check for git information for the given paths.
 
     Parameters
@@ -112,7 +107,7 @@ def _check_for_git(paths: List[Tuple[str, str]], full: bool) -> Dict[str, Any]:
 
 
 def version(
-    versions: Dict[str, Any], name: str, module: Any, roots: Dict[str, str], namespaces: set, paths: set, full: bool
+    versions: dict[str, Any], name: str, module: Any, roots: dict[str, str], namespaces: set, paths: set, full: bool
 ) -> None:
     """Collect version information for a module.
 
@@ -174,7 +169,7 @@ def version(
     versions[name] = str(module)
 
 
-def _module_versions(full: bool) -> Tuple[Dict[str, Any], set]:
+def _module_versions(full: bool) -> tuple[dict[str, Any], set]:
     """Collect version information for all loaded modules.
 
     Parameters
@@ -216,7 +211,7 @@ def _module_versions(full: bool) -> Tuple[Dict[str, Any], set]:
 
 
 @cache
-def package_distributions() -> Dict[str, List[str]]:
+def package_distributions() -> dict[str, list[str]]:
     """Get the package distributions.
 
     Returns
@@ -235,7 +230,7 @@ def package_distributions() -> Dict[str, List[str]]:
     return metadata.packages_distributions()
 
 
-def import_name_to_distribution_name(packages: List[str]) -> Dict[str, str]:
+def import_name_to_distribution_name(packages: list[str]) -> dict[str, str]:
     """Convert import names to distribution names.
 
     Parameters
@@ -266,7 +261,7 @@ def import_name_to_distribution_name(packages: List[str]) -> Dict[str, str]:
     return distribution_names
 
 
-def module_versions(full: bool) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def module_versions(full: bool) -> tuple[dict[str, Any], dict[str, Any]]:
     """Collect version information for all loaded modules and their git information.
 
     Parameters
@@ -306,7 +301,7 @@ def _name(obj: Any) -> str:
     return str(obj)
 
 
-def _paths(path_or_object: Union[None, str, List[str], Tuple[str], Any]) -> List[Tuple[str, str]]:
+def _paths(path_or_object: None | str | list[str] | tuple[str] | Any) -> list[tuple[str, str]]:
     """Get the paths for a given path or object.
 
     Parameters
@@ -357,7 +352,7 @@ def _paths(path_or_object: Union[None, str, List[str], Tuple[str], Any]) -> List
     return paths
 
 
-def git_check(*args: Any) -> Dict[str, Any]:
+def git_check(*args: Any) -> dict[str, Any]:
     """Return the git information for the given arguments.
 
     Arguments can be:
@@ -400,7 +395,7 @@ def git_check(*args: Any) -> Dict[str, Any]:
     return result
 
 
-def platform_info() -> Dict[str, Any]:
+def platform_info() -> dict[str, Any]:
     """Get the platform information.
 
     Returns
@@ -429,7 +424,7 @@ def platform_info() -> Dict[str, Any]:
     return r
 
 
-def gpu_info() -> Union[str, List[Dict[str, Any]]]:
+def gpu_info() -> str | list[dict[str, Any]]:
     """Get the GPU information.
 
     Returns
@@ -470,7 +465,7 @@ def path_md5(path: str) -> str:
     return hash.hexdigest()
 
 
-def assets_info(paths: List[str]) -> Dict[str, Any]:
+def assets_info(paths: list[str]) -> dict[str, Any]:
     """Get information about the given assets.
 
     Parameters
@@ -511,7 +506,7 @@ def assets_info(paths: List[str]) -> Dict[str, Any]:
     return result
 
 
-def gather_provenance_info(assets: List[str] = [], full: bool = False) -> Dict[str, Any]:
+def gather_provenance_info(assets: list[str] = [], full: bool = False) -> dict[str, Any]:
     """Gather information about the current environment.
 
     Parameters

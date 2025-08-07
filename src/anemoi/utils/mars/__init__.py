@@ -17,9 +17,6 @@ import datetime
 import logging
 import os
 from typing import Any
-from typing import Dict
-from typing import Optional
-from typing import Tuple
 
 import yaml
 
@@ -33,7 +30,7 @@ DEFAULT_MARS_LABELLING = {
 }
 
 
-def _expand_mars_labelling(request: Dict[str, Any]) -> Dict[str, Any]:
+def _expand_mars_labelling(request: dict[str, Any]) -> dict[str, Any]:
     """Expand the request with the default Mars labelling.
 
     Parameters
@@ -54,7 +51,7 @@ def _expand_mars_labelling(request: Dict[str, Any]) -> Dict[str, Any]:
 STREAMS = None
 
 
-def _lookup_mars_stream(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _lookup_mars_stream(request: dict[str, Any]) -> dict[str, Any] | None:
     """Look up the Mars stream information for a given request.
 
     Parameters
@@ -82,8 +79,8 @@ def _lookup_mars_stream(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def recenter(
-    date: datetime.datetime, center: Dict[str, Any], members: Dict[str, Any]
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    date: datetime.datetime, center: dict[str, Any], members: dict[str, Any]
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Recenter the given date with the specified center and members.
 
     Parameters

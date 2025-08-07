@@ -12,10 +12,9 @@ import hashlib
 import json
 import os
 import time
+from collections.abc import Callable
 from threading import Lock
 from typing import Any
-from typing import Callable
-from typing import Optional
 
 import numpy as np
 
@@ -61,7 +60,7 @@ class Cacher:
     Private class, do not use directly.
     """
 
-    def __init__(self, collection: str, expires: Optional[int]):
+    def __init__(self, collection: str, expires: int | None):
         """Initialize the Cacher.
 
         Parameters
@@ -181,7 +180,7 @@ class JsonCacher(Cacher):
         dict
             The loaded data
         """
-        with open(path, "r") as f:
+        with open(path) as f:
             return json.load(f)
 
 
@@ -226,7 +225,7 @@ class NpzCacher(Cacher):
 
 
 # This function is the main entry point for the caching mechanism for the other anemoi packages
-def cached(collection: str = "default", expires: Optional[int] = None, encoding: str = "json") -> Callable:
+def cached(collection: str = "default", expires: int | None = None, encoding: str = "json") -> Callable:
     """Decorator to cache the result of a function.
 
     Default is to use a json file to store the cache, but you can also use npz files

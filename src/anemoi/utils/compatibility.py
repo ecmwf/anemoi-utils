@@ -10,15 +10,11 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
-from typing import Optional
-from typing import Union
 
 
-def aliases(
-    aliases: Optional[dict[str, Union[str, list[str]]]] = None, **kwargs: Any
-) -> Callable[[Callable], Callable]:
+def aliases(aliases: dict[str, str | list[str]] | None = None, **kwargs: Any) -> Callable[[Callable], Callable]:
     """Alias keyword arguments in a function call.
 
     Allows for dynamically renaming keyword arguments in a function call.

@@ -15,11 +15,12 @@ import json
 import logging
 import os
 import threading
+import warnings
 from typing import Any
-from typing import Optional
-from typing import Union
 
 import yaml
+
+from anemoi.utils import ENV
 
 try:
     import tomllib  # Only available since 3.11
@@ -62,14 +63,20 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            if isinstance(v, dict) or is_omegaconf_dict(v):
-                self[k] = DotDict(v)
+            super().__setitem__(k, self.convert_to_nested_dot_dict(v))
 
-            if isinstance(v, list) or is_omegaconf_list(v):
-                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
+    @staticmethod
+    def convert_to_nested_dot_dict(value):
+        if isinstance(value, dict) or is_omegaconf_dict(value):
+            return DotDict(value)
 
-            if isinstance(v, tuple):
-                self[k] = [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in v]
+        if isinstance(value, list) or is_omegaconf_list(value):
+            return [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in value]
+
+        if isinstance(value, tuple):
+            return [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in value]
+
+        return value
 
     @classmethod
     def from_file(cls, path: str) -> DotDict:
@@ -109,7 +116,7 @@ class DotDict(dict):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = yaml.safe_load(file)
 
         return cls(data)
@@ -128,7 +135,7 @@ class DotDict(dict):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = json.load(file)
 
         return cls(data)
@@ -147,7 +154,7 @@ class DotDict(dict):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = tomllib.load(file)
         return cls(data)
 
@@ -179,9 +186,27 @@ class DotDict(dict):
         value : Any
             The attribute value.
         """
-        if isinstance(value, dict):
-            value = DotDict(value)
-        self[attr] = value
+
+        self.warn_on_mutation(attr)
+        value = self.convert_to_nested_dot_dict(value)
+        super().__setitem__(attr, value)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set an item in the dictionary.
+
+        Parameters
+        ----------
+        key : str
+            The key to set.
+        value : Any
+            The value to set.
+        """
+        self.warn_on_mutation(key)
+        value = self.convert_to_nested_dot_dict(value)
+        super().__setitem__(key, value)
+
+    def warn_on_mutation(self, key):
+        warnings.warn("Mofifying and instance of DotDict(). This class is intended to be immutable.")
 
     def __repr__(self) -> str:
         """Return a string representation of the DotDict.
@@ -243,7 +268,7 @@ QUIET = False
 CONFIG_PATCH = None
 
 
-def _find(config: Union[dict, list], what: str, result: list = None) -> list:
+def _find(config: dict | list, what: str, result: list = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list.
 
     Parameters
@@ -408,8 +433,8 @@ def load_any_dict_format(path: str) -> dict:
 
 def _load_config(
     name: str = "settings.toml",
-    secrets: Optional[Union[str, list[str]]] = None,
-    defaults: Optional[Union[str, dict]] = None,
+    secrets: str | list[str] | None = None,
+    defaults: str | dict | None = None,
 ) -> DotDict:
     """Load a configuration file.
 
@@ -531,8 +556,8 @@ def save_config(name: str, data: Any) -> None:
 
 def load_config(
     name: str = "settings.toml",
-    secrets: Optional[Union[str, list[str]]] = None,
-    defaults: Optional[Union[str, dict]] = None,
+    secrets: str | list[str] | None = None,
+    defaults: str | dict | None = None,
 ) -> DotDict | str:
     """Read a configuration file.
 
@@ -553,12 +578,15 @@ def load_config(
 
     with CONFIG_LOCK:
         config = _load_config(name, secrets, defaults)
+        if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
+            override_config = _load_config(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
+            merge_configs(config, override_config)
         if CONFIG_PATCH is not None:
             config = CONFIG_PATCH(config)
         return config
 
 
-def load_raw_config(name: str, default: Any = None) -> Union[DotDict, str]:
+def load_raw_config(name: str, default: Any = None) -> DotDict | str:
     """Load a raw configuration file.
 
     Parameters
@@ -617,7 +645,7 @@ def check_config_mode(name: str = "settings.toml", secrets_name: str = None, sec
         CHECKED[name] = True
 
 
-def find(metadata: Union[dict, list], what: str, result: list = None, *, select: callable = None) -> list:
+def find(metadata: dict | list, what: str, result: list = None, *, select: callable = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list with an optional selector.
 
     Parameters
