@@ -20,7 +20,7 @@ from typing import Any
 
 import yaml
 
-import anemoi.utils._environment as anemoi_env
+from anemoi.utils import ENV
 
 try:
     import tomllib  # Only available since 3.11
@@ -578,8 +578,8 @@ def load_config(
 
     with CONFIG_LOCK:
         config = _load_config(name, secrets, defaults)
-        if anemoi_env.ANEMOI_CONFIG_OVERRIDE_PATH in os.environ:
-            override_config = _load_config(os.path.abspath(os.environ[anemoi_env.ANEMOI_CONFIG_OVERRIDE_PATH]))
+        if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
+            override_config = _load_config(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
             merge_configs(config, override_config)
         if CONFIG_PATCH is not None:
             config = CONFIG_PATCH(config)
