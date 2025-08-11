@@ -135,17 +135,18 @@ class SshBaseUpload(BaseUpload):
 
 def _isProgramOnPath(program_name):
     import shutil
+
     return shutil.which(program_name) is not None
+
 
 class MscpUpload(SshBaseUpload):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        #Check if mscp is available
+        # Check if mscp is available
         if not _isProgramOnPath("mscp"):
             return RuntimeError("Error. MscpUpload requested but 'mscp' couldnt be found on path")
-
 
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
@@ -197,6 +198,7 @@ class MscpUpload(SshBaseUpload):
                 f"{hostname}:{path}",
             )
         return size
+
 
 class RsyncUpload(SshBaseUpload):
 
@@ -326,12 +328,12 @@ def upload(source: str, target: str, **kwargs) -> None:
     kwargs : dict
         Additional arguments for the transfer.
     """
-    #TODO fallback to rsync if mscp cant be found
-    mscpAvailable=True
+    # TODO fallback to rsync if mscp cant be found
+    mscpAvailable = True
     try:
         uploader = MscpUpload()
     except RuntimeError as e:
-        mscpAvailable=False
+        mscpAvailable = False
         print(e)
 
     if mscpAvailable:
@@ -341,7 +343,7 @@ def upload(source: str, target: str, **kwargs) -> None:
         uploader = RsyncUpload()
         LOGGER.debug(f"Copying {source} to {target} with rsync")
 
-    #if os.path.isdir(source):
+    # if os.path.isdir(source):
     #    uploader.transfer_folder(source=source, target=target, **kwargs)
-    #else:
+    # else:
     uploader.transfer_file(source=source, target=target, **kwargs)

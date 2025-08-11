@@ -409,7 +409,6 @@ class BaseUpload(Loader):
             else:
                 self.transfer_file(source=source, target=target, **kwargs)
 
-
     def list_source(self, source: str) -> Iterable:
         """List the files in the source location.
 
