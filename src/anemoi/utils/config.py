@@ -206,7 +206,7 @@ class DotDict(dict):
         super().__setitem__(key, value)
 
     def warn_on_mutation(self, key):
-        warnings.warn("Mofifying and instance of DotDict(). This class is intended to be immutable.")
+        warnings.warn("Modifying an instance of DotDict(). This class is intended to be immutable.")
 
     def __repr__(self) -> str:
         """Return a string representation of the DotDict.
