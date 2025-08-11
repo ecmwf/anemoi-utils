@@ -326,12 +326,14 @@ def upload(source: str, target: str, **kwargs) -> None:
         mscpAvailable=False
         print(e)
 
-    if not mscpAvailable:
-        print("Falling back to rsync")
+    if mscpAvailable:
+        LOGGER.debug(f"Copying {source} to {target} with mscp")
+    else:
+        LOGGER.debug("Falling back to rsync")
         uploader = RsyncUpload()
+        LOGGER.debug(f"Copying {source} to {target} with rsync")
 
     #if os.path.isdir(source):
     #    uploader.transfer_folder(source=source, target=target, **kwargs)
     #else:
-    print(f"Copying {target}")
     uploader.transfer_file(source=source, target=target, **kwargs)
