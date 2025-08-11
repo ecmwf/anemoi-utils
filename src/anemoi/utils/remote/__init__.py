@@ -393,9 +393,9 @@ class BaseUpload(Loader):
         kwargs : dict
             Additional arguments for the transfer.
         """
-        #if os.path.isdir(source):
-            #self.transfer_folder(source=source, target=target, **kwargs)
-        #else:
+        # if os.path.isdir(source):
+        # self.transfer_folder(source=source, target=target, **kwargs)
+        # else:
         self.transfer_file(source=source, target=target, **kwargs)
 
     def list_source(self, source: str) -> Iterable:
