@@ -393,10 +393,10 @@ class BaseUpload(Loader):
         kwargs : dict
             Additional arguments for the transfer.
         """
-        if os.path.isdir(source):
-            self.transfer_folder(source=source, target=target, **kwargs)
-        else:
-            self.transfer_file(source=source, target=target, **kwargs)
+        #if os.path.isdir(source):
+            #self.transfer_folder(source=source, target=target, **kwargs)
+        #else:
+        self.transfer_file(source=source, target=target, **kwargs)
 
     def list_source(self, source: str) -> Iterable:
         """List the files in the source location.
@@ -614,9 +614,9 @@ def _find_transfer_class(source: str, target: str) -> type:
     assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
 
     if from_local and into_ssh:  # local -> ssh
-        from .ssh import RsyncUpload
+        from .ssh import MscpUpload
 
-        return RsyncUpload
+        return MscpUpload
 
     if from_s3 and into_local:  # local <- S3
         from .s3 import S3Download

@@ -133,6 +133,63 @@ class SshBaseUpload(BaseUpload):
         # call_process("ssh", hostname, "rm", "-rf", shlex.quote(path))
 
 
+def _isProgramOnPath(program_name):
+    import shutil
+    return shutil.which(program_name) is not None
+
+class MscpUpload(SshBaseUpload):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        #Check if mscp is available
+        if not _isProgramOnPath("mscp"):
+            return RuntimeError("Error. MscpUpload requested but 'mscp' couldnt be found on path")
+
+
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
+        """Transfer a file using mscp.
+
+        Parameters
+        ----------
+        source : str
+            The source file path.
+        target : str
+            The target file path.
+        overwrite : bool
+            Whether to overwrite the target if it exists.
+        resume : bool
+            Whether to resume the transfer if possible.
+        verbosity : int
+            The verbosity level.
+        threads : int
+            The number of threads to use.
+        config : dict, optional
+            Additional configuration options.
+
+        Returns
+        -------
+        int
+            The size of the transferred file.
+        """
+        print(f"Copying {source} to {target} with Mscp")
+        hostname, path = self._parse_target(target)
+
+        size = os.path.getsize(source)
+
+        if verbosity > 0:
+            LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
+
+        call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(path)))
+        call_process(
+            "mscp",
+            source,
+            f"{hostname}:{path}",
+        )
+        return size
+
 class RsyncUpload(SshBaseUpload):
 
     def _transfer_file(
@@ -261,9 +318,20 @@ def upload(source: str, target: str, **kwargs) -> None:
     kwargs : dict
         Additional arguments for the transfer.
     """
-    uploader = RsyncUpload()
+    #TODO fallback to rsync if mscp cant be found
+    mscpAvailable=True
+    try:
+        uploader = MscpUpload()
+    except RuntimeError as e:
+        mscpAvailable=False
+        print(e)
 
-    if os.path.isdir(source):
-        uploader.transfer_folder(source=source, target=target, **kwargs)
-    else:
-        uploader.transfer_file(source=source, target=target, **kwargs)
+    if not mscpAvailable:
+        print("Falling back to rsync")
+        uploader = RsyncUpload()
+
+    #if os.path.isdir(source):
+    #    uploader.transfer_folder(source=source, target=target, **kwargs)
+    #else:
+    print(f"Copying {target}")
+    uploader.transfer_file(source=source, target=target, **kwargs)
