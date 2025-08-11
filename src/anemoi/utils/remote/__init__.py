@@ -11,17 +11,16 @@ import os
 import shutil
 from abc import abstractmethod
 from collections.abc import Iterable
+from os import getenv
 from typing import Any
 
 import tqdm
 
 from ..humanize import bytes_to_human
 
-from os import getenv
-
-#Select between mscp and rsync with an env var
+# Select between mscp and rsync with an env var
 # TEMPORARY, just for benchmarking
-USE_MSCP=False
+USE_MSCP = False
 if getenv("MSCP", "0") == "1":
     USE_MSCP = True
 
@@ -633,7 +632,6 @@ def _find_transfer_class(source: str, target: str) -> type:
             from .ssh import RsyncUpload
 
             return RsyncUpload
-
 
     if from_s3 and into_local:  # local <- S3
         from .s3 import S3Download
