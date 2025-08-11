@@ -17,6 +17,14 @@ import tqdm
 
 from ..humanize import bytes_to_human
 
+from os import getenv
+
+#Select between mscp and rsync with an env var
+# TEMPORARY, just for benchmarking
+USE_MSCP=False
+if getenv("MSCP", "0") == "1":
+    USE_MSCP = True
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -393,10 +401,14 @@ class BaseUpload(Loader):
         kwargs : dict
             Additional arguments for the transfer.
         """
-        #if os.path.isdir(source):
-        #    self.transfer_folder(source=source, target=target, **kwargs)
-        #else:
-        self.transfer_file(source=source, target=target, **kwargs)
+        if USE_MSCP:
+            self.transfer_file(source=source, target=target, **kwargs)
+        else:
+            if os.path.isdir(source):
+                self.transfer_folder(source=source, target=target, **kwargs)
+            else:
+                self.transfer_file(source=source, target=target, **kwargs)
+
 
     def list_source(self, source: str) -> Iterable:
         """List the files in the source location.
@@ -614,9 +626,15 @@ def _find_transfer_class(source: str, target: str) -> type:
     assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
 
     if from_local and into_ssh:  # local -> ssh
-        from .ssh import MscpUpload
+        if USE_MSCP:
+            from .ssh import MscpUpload
 
-        return MscpUpload
+            return MscpUpload
+        else:
+            from .ssh import RsyncUpload
+
+            return RsyncUpload
+
 
     if from_s3 and into_local:  # local <- S3
         from .s3 import S3Download

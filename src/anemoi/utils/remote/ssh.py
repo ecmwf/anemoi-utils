@@ -182,19 +182,20 @@ class MscpUpload(SshBaseUpload):
         if verbosity > 0:
             LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
 
-        #use the default mscp threads unless specified
-        threads_flag="" 
-        if threads != 1:
-            threads_flag=["-n", threads]
-
-
         call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(path)))
-        call_process(
-            "mscp",
-            **threads_flag,
-            source,
-            f"{hostname}:{path}",
-        )
+        if threads > 1:
+            call_process(
+                "mscp",
+                "-n", str(threads),
+                source,
+                f"{hostname}:{path}",
+            )
+        else: #if threads not specified, use the default number of cores from mscp "floor(log(#cores)) + 1"
+             call_process(
+                "mscp",
+                source,
+                f"{hostname}:{path}",
+            )
         return size
 
 class RsyncUpload(SshBaseUpload):
