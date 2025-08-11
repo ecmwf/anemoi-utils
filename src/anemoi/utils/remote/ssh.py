@@ -182,9 +182,16 @@ class MscpUpload(SshBaseUpload):
         if verbosity > 0:
             LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
 
+        #use the default mscp threads unless specified
+        threads_flag="" 
+        if threads != 1:
+            threads_flag=["-n", threads]
+
+
         call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(path)))
         call_process(
             "mscp",
+            **threads_flag,
             source,
             f"{hostname}:{path}",
         )

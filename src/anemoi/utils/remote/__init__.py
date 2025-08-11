@@ -394,7 +394,7 @@ class BaseUpload(Loader):
             Additional arguments for the transfer.
         """
         #if os.path.isdir(source):
-            #self.transfer_folder(source=source, target=target, **kwargs)
+        #    self.transfer_folder(source=source, target=target, **kwargs)
         #else:
         self.transfer_file(source=source, target=target, **kwargs)
 
