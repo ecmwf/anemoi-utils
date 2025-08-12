@@ -179,12 +179,13 @@ class MscpUpload(SshBaseUpload):
         if threads > 1:
             call_process(
                 "mscp",
-                "-n", str(threads),
+                "-n",
+                str(threads),
                 source,
                 f"{hostname}:{path}",
             )
-        else: #if threads not specified, use the default number of cores from mscp "floor(log(#cores)) + 1"
-             call_process(
+        else:  # if threads not specified, use the default number of cores from mscp "floor(log(#cores)) + 1"
+            call_process(
                 "mscp",
                 source,
                 f"{hostname}:{path}",

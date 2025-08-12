@@ -11,13 +11,12 @@ import os
 import shutil
 from abc import abstractmethod
 from collections.abc import Iterable
+from os import getenv
 from typing import Any
 
 import tqdm
 
 from ..humanize import bytes_to_human
-
-from os import getenv
 
 LOGGER = logging.getLogger(__name__)
 
