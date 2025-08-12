@@ -140,7 +140,7 @@ class SshBaseUpload(BaseUpload):
 
 
 class MscpUpload(SshBaseUpload):
-    transferWholeDir=True
+    transferWholeDir = True
 
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None

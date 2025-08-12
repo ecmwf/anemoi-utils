@@ -384,7 +384,7 @@ class BaseUpload(Loader):
     # if transferWholeDir is false, then each file in the dir will be
     # passed to the transfer tool individually
     # Otherwise, the entire dir will be passed to the transfer tool
-    transferWholeDir=False 
+    transferWholeDir = False
 
     def copy(self, source: str, target: str, **kwargs) -> None:
         """Copy a file or folder from the source to the target location.
