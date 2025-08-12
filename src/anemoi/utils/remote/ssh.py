@@ -22,6 +22,7 @@ def _isProgramOnPath(program_name):
 
     return shutil.which(program_name) is not None
 
+
 def call_process(*args: str) -> str:
     """Execute a subprocess with the given arguments and return its output.
 
@@ -308,25 +309,29 @@ class ScpUpload(SshBaseUpload):
 
         return size
 
+
 def _pickTransferTool():
-    tools={"mscp": MscpUpload, "rsync" : RsyncUpload, "scp" : ScpUpload}
+    tools = {"mscp": MscpUpload, "rsync": RsyncUpload, "scp": ScpUpload}
 
     from anemoi.utils.config import load_config
+
     tool = load_config().get("utils", {}).get("transfer_tool", None)
     if tool is not None:
-        #check if the tool listed in the config can be found
+        # check if the tool listed in the config can be found
         if tool in tools and _isProgramOnPath(tool):
             LOGGER.info(f"Using {tool} to transfer as specified in the anemoi utils config")
             return tools[tool]
 
-    #Loops through this list in order until it finds a tool
+    # Loops through this list in order until it finds a tool
     for tool in tools:
         if _isProgramOnPath(tool):
             LOGGER.info(f"Using {tool} to transfer")
             return tools[tool]
     raise RuntimeError(f"No suitable transfer tool found. Looked for the following: {tools}")
 
-SshUpload=_pickTransferTool()
+
+SshUpload = _pickTransferTool()
+
 
 def upload(source: str, target: str, **kwargs) -> None:
     """Upload a file or folder to the target location using rsync.
