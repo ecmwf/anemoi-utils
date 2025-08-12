@@ -17,6 +17,11 @@ from . import BaseUpload
 LOGGER = logging.getLogger(__name__)
 
 
+def _isProgramOnPath(program_name):
+    import shutil
+
+    return shutil.which(program_name) is not None
+
 def call_process(*args: str) -> str:
     """Execute a subprocess with the given arguments and return its output.
 
@@ -133,20 +138,7 @@ class SshBaseUpload(BaseUpload):
         # call_process("ssh", hostname, "rm", "-rf", shlex.quote(path))
 
 
-def _isProgramOnPath(program_name):
-    import shutil
-
-    return shutil.which(program_name) is not None
-
-
 class MscpUpload(SshBaseUpload):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        # Check if mscp is available
-        if not _isProgramOnPath("mscp"):
-            return RuntimeError("Error. MscpUpload requested but 'mscp' couldnt be found on path")
 
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
@@ -175,7 +167,7 @@ class MscpUpload(SshBaseUpload):
         int
             The size of the transferred file.
         """
-        print(f"Copying {source} to {target} with Mscp")
+        LOGGER.debug(f"Copying {source} to {target} with Mscp")
         hostname, path = self._parse_target(target)
 
         size = os.path.getsize(source)
@@ -315,6 +307,25 @@ class ScpUpload(SshBaseUpload):
 
         return size
 
+def _pickTransferTool():
+    tools={"mscp": MscpUpload, "rsync" : RsyncUpload, "scp" : ScpUpload}
+
+    from anemoi.utils.config import load_config
+    tool = load_config().get("utils", {}).get("transfer_tool", None)
+    if tool is not None:
+        #check if the tool listed in the config can be found
+        if tool in tools and _isProgramOnPath(tool):
+            LOGGER.info(f"Using {tool} to transfer as specified in the anemoi utils config")
+            return tools[tool]
+
+    #Loops through this list in order until it finds a tool
+    for tool in tools:
+        if _isProgramOnPath(tool):
+            LOGGER.info(f"Using {tool} to transfer")
+            return tools[tool]
+    raise RuntimeError(f"No suitable transfer tool found. Looked for the following: {tools}")
+
+SshUpload=_pickTransferTool()
 
 def upload(source: str, target: str, **kwargs) -> None:
     """Upload a file or folder to the target location using rsync.
@@ -328,20 +339,7 @@ def upload(source: str, target: str, **kwargs) -> None:
     kwargs : dict
         Additional arguments for the transfer.
     """
-    # TODO fallback to rsync if mscp cant be found
-    mscpAvailable = True
-    try:
-        uploader = MscpUpload()
-    except RuntimeError as e:
-        mscpAvailable = False
-        print(e)
-
-    if mscpAvailable:
-        LOGGER.debug(f"Copying {source} to {target} with mscp")
-    else:
-        LOGGER.debug("Falling back to rsync")
-        uploader = RsyncUpload()
-        LOGGER.debug(f"Copying {source} to {target} with rsync")
+    uploader = SshUpload()
 
     # if os.path.isdir(source):
     #    uploader.transfer_folder(source=source, target=target, **kwargs)
