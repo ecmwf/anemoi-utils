@@ -381,6 +381,10 @@ class BaseDownload(Loader):
 
 class BaseUpload(Loader):
     action = "Uploading"
+    # if transferWholeDir is false, then each file in the dir will be
+    # passed to the transfer tool individually
+    # Otherwise, the entire dir will be passed to the transfer tool
+    transferWholeDir=False 
 
     def copy(self, source: str, target: str, **kwargs) -> None:
         """Copy a file or folder from the source to the target location.
@@ -394,11 +398,10 @@ class BaseUpload(Loader):
         kwargs : dict
             Additional arguments for the transfer.
         """
-        self.transfer_file(source=source, target=target, **kwargs)
-        # if os.path.isdir(source):
-        #    self.transfer_folder(source=source, target=target, **kwargs)
-        # else:
-        #    self.transfer_file(source=source, target=target, **kwargs)
+        if os.path.isdir(source) and self.transferWholeDir is False:
+            self.transfer_folder(source=source, target=target, **kwargs)
+        else:
+            self.transfer_file(source=source, target=target, **kwargs)
 
     def list_source(self, source: str) -> Iterable:
         """List the files in the source location.
