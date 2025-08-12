@@ -140,7 +140,20 @@ class SshBaseUpload(BaseUpload):
 
 
 class MscpUpload(SshBaseUpload):
-    transferWholeDir = True
+
+    def copy(self, source: str, target: str, **kwargs) -> None:
+        """Copy a file or a folder from the source to the target location.
+
+        Parameters
+        ----------
+        source : str
+            The source location.
+        target : str
+            The target location.
+        kwargs : dict
+            Additional arguments for the transfer.
+        """
+        self.transfer_file(source=source, target=target, **kwargs)
 
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
