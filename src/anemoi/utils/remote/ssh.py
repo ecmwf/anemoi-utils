@@ -381,4 +381,4 @@ def upload(source: str, target: str, **kwargs) -> None:
     """
     uploader = SshUpload()
 
-    uploader.transfer_file(source=source, target=target, **kwargs)
+    uploader.copy(source=source, target=target, **kwargs)
