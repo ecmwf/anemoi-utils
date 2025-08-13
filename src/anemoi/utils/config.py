@@ -206,7 +206,7 @@ class DotDict(dict):
         super().__setitem__(key, value)
 
     def warn_on_mutation(self, key):
-        warnings.warn("Mofifying and instance of DotDict(). This class is intended to be immutable.")
+        warnings.warn("Modifying an instance of DotDict(). This class is intended to be immutable.")
 
     def __repr__(self) -> str:
         """Return a string representation of the DotDict.
@@ -486,6 +486,10 @@ def _load_config(
         secret_config = _load_config(secret_name)
         _merge_dicts(config, secret_config)
 
+    if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
+        override_config = load_any_dict_format(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
+        config = merge_configs(config, override_config)
+
     for env, value in os.environ.items():
 
         if not env.startswith("ANEMOI_CONFIG_"):
@@ -578,9 +582,6 @@ def load_config(
 
     with CONFIG_LOCK:
         config = _load_config(name, secrets, defaults)
-        if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
-            override_config = _load_config(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
-            merge_configs(config, override_config)
         if CONFIG_PATCH is not None:
             config = CONFIG_PATCH(config)
         return config
