@@ -240,17 +240,6 @@ def _missing_packages(*names: str) -> list[str]:
     return missing
 
 
-def _run_slow_tests() -> bool:
-    """Check if the SLOW_TESTS environment variable is set.
-
-    Returns
-    -------
-    bool
-        True if the SLOW_TESTS environment variable is set, False otherwise.
-    """
-    return bool(int(os.environ.get("SLOW_TESTS", 0)))
-
-
 @lru_cache(maxsize=None)
 def _offline() -> bool:
     """Check if we are offline."""
@@ -265,7 +254,6 @@ def _offline() -> bool:
 
 
 skip_if_offline = pytest.mark.skipif(_offline(), reason="No internet connection")
-skip_slow_tests = pytest.mark.skipif(not _run_slow_tests(), reason="Skipping slow tests")
 
 
 def skip_missing_packages(*names: str) -> pytest.MarkDecorator:
