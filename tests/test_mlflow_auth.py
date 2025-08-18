@@ -35,17 +35,19 @@ def mocks(
     response.update(token_request)
 
     config = {
-        "refresh_token": "old_refresh_token",
-        "refresh_expires": time.time() + 3600,
+        "https://test.url": {
+            "refresh_token": "old_refresh_token",
+            "refresh_expires": time.time() + 3600,
+        }
     }
-    config.update(load_config)
+    config["https://test.url"].update(load_config)
 
     mock_token_request = mocker.patch(
         "anemoi.utils.mlflow.auth.TokenAuth._token_request",
         return_value=response,
     )
     mocker.patch(
-        "anemoi.utils.mlflow.auth.load_config",
+        "anemoi.utils.mlflow.auth.load_raw_config",
         return_value=config,
     )
     mocker.patch(

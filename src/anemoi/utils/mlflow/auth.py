@@ -24,8 +24,9 @@ from typing import TYPE_CHECKING
 import requests
 from requests.exceptions import HTTPError
 
+from ..config import CONFIG_LOCK
 from ..config import config_path
-from ..config import load_config
+from ..config import load_raw_config
 from ..config import save_config
 from ..remote import robust
 from ..timer import Timer
@@ -101,7 +102,7 @@ class TokenAuth(AuthBase):
         self.target_env_var = target_env_var
         self._enabled = enabled
 
-        config = self.load_config()
+        config = self.load_config(url=url)
 
         self._refresh_token = config.get("refresh_token")
         self.refresh_expires = config.get("refresh_expires", 0)
@@ -125,16 +126,48 @@ class TokenAuth(AuthBase):
         self.refresh_expires = time.time() + (REFRESH_EXPIRE_DAYS * 86400)  # 86400 seconds in a day
 
     @staticmethod
-    def load_config() -> dict:
-        path = config_path(TokenAuth.config_file)
+    def load_config(url=None) -> dict:
+        """Load the server configuration from the config file.
 
-        if not os.path.exists(path):
-            save_config(TokenAuth.config_file, {})
+        Parameters
+        ----------
+        url : str, optional
+            The server URL.
+            If not provided, attempt to load the last used server configuration.
 
-        if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
-            os.chmod(path, 0o600)
+        Returns
+        -------
+        config : dict
+            Dictionary with the following keys: `url`, `refresh_token`, `refresh_expires`.
+            If no configuration is found, an empty dictionary is returned.
+        """
+        with CONFIG_LOCK:
+            file = TokenAuth.config_file
+            path = config_path(file)
 
-        return load_config(TokenAuth.config_file)
+            if not os.path.exists(path):
+                save_config(file, {})
+
+            if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
+                os.chmod(path, 0o600)
+
+            config = load_raw_config(file)
+
+            # convert legacy single-server config format to multi-server
+            if _url := config.pop("url", None):
+                config = {_url: config.copy()}
+                save_config(file, config)
+
+        if url is not None:
+            cfg = config.get(url, {})
+            return dict(url=url, **cfg) if cfg else {}
+
+        # return the last used server config, or {} if not found
+        last = {}
+        for url, cfg in config.items():
+            if cfg.get("refresh_expires", 0) > last.get("refresh_expires", 0):
+                last = dict(url=url, **cfg)
+        return last
 
     def enabled(fn: Callable) -> Callable:  # noqa: N805
         """Decorator to call or ignore a function based on the `enabled` flag."""
@@ -237,12 +270,17 @@ class TokenAuth(AuthBase):
             self.log.warning("No refresh token to save.")
             return
 
-        config = {
-            "url": self.url,
-            "refresh_token": self.refresh_token,
-            "refresh_expires": self.refresh_expires,
+        server_config = {
+            self.url: {
+                "refresh_token": self.refresh_token,
+                "refresh_expires": self.refresh_expires,
+            }
         }
-        save_config(self.config_file, config)
+
+        with CONFIG_LOCK:
+            config = load_raw_config(self.config_file)
+            config.update(server_config)
+            save_config(self.config_file, config)
 
         expire_date = datetime.fromtimestamp(self.refresh_expires, tz=timezone.utc)
         self.log.info(
