@@ -14,7 +14,7 @@ import time
 
 import pytest
 
-from anemoi.utils.mlflow.auth import TokenAuth
+from anemoi.utils.mlflow.auth import NoAuth, TokenAuth
 
 
 def mocks(
@@ -160,3 +160,19 @@ def test_target_env_var(mocker: pytest.MockerFixture) -> None:
     auth.authenticate()
 
     os.environ.__setitem__.assert_called_once_with("MLFLOW_TEST_ENV_VAR", "access_token")
+
+
+def test_noauth_init():
+    """Test NoAuth can be initialized without error."""
+    auth = NoAuth()
+    assert isinstance(auth, NoAuth)
+    assert hasattr(auth, '_enabled')
+    assert auth._enabled is False
+
+
+def test_noauth_methods_do_nothing():
+    """Test NoAuth methods do nothing and return None."""
+    auth = NoAuth()
+    assert auth.save() is None
+    assert auth.login() is None
+    assert auth.authenticate() is None
