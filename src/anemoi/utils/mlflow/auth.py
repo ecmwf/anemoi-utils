@@ -13,12 +13,13 @@ from __future__ import annotations
 import logging
 import os
 import time
+from abc import ABC
+from abc import abstractmethod
 from datetime import datetime
 from datetime import timezone
 from functools import wraps
 from getpass import getpass
 from typing import TYPE_CHECKING
-from abc import ABC, abstractmethod
 
 import requests
 from requests.exceptions import HTTPError
