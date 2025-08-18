@@ -14,7 +14,8 @@ import time
 
 import pytest
 
-from anemoi.utils.mlflow.auth import NoAuth, TokenAuth
+from anemoi.utils.mlflow.auth import NoAuth
+from anemoi.utils.mlflow.auth import TokenAuth
 
 
 def mocks(
@@ -166,7 +167,7 @@ def test_noauth_init():
     """Test NoAuth can be initialized without error."""
     auth = NoAuth()
     assert isinstance(auth, NoAuth)
-    assert hasattr(auth, '_enabled')
+    assert hasattr(auth, "_enabled")
     assert auth._enabled is False
 
 
