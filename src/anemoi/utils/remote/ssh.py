@@ -155,22 +155,6 @@ class MscpUpload(SshBaseUpload):
         """
         self.transfer_file(source=source, target=target, **kwargs)
 
-    def _strip_zarr_path(self, path: str) -> str:
-        """Removes last level from path string if it ends in ".zarr/" or ".zarr"
-
-        Needed for mscp because i always creates a dir called dataset_name.zarr under the given dest
-        so if the dest is given as "/path/to/dataset_name.zarr" you would end up with
-        "/path/to/dataset_name.zarr/dataset_name.zarr".
-
-        """
-        path = path.rstrip("/")  # Remove trailing slash if any
-        dirname, basename = os.path.split(path)
-
-        if basename.endswith(".zarr"):
-            return os.path.join(dirname, "")
-        else:
-            return path + "/" if not path.endswith("/") else path
-
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
     ) -> int:
@@ -204,7 +188,10 @@ class MscpUpload(SshBaseUpload):
 
         # remove dataset name from dest path if its included
         # mscp will add it regardless, so we dont want it twice
-        target = self._strip_zarr_path(target)
+        _, src_basename = os.path.split(source)
+        if src_basename in target:
+            LOGGER.debug(f"Removing {src_basename} from {target}")
+            target = target.strip(src_basename)
         LOGGER.debug(f"Copying {source} to {target} with Mscp")
 
         if verbosity > 0:
