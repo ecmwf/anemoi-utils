@@ -179,3 +179,75 @@ def test_noauth_methods_do_nothing():
     assert auth.save() is None
     assert auth.login() is None
     assert auth.authenticate() is None
+
+
+def test_old_config_format(mocker: pytest.MockerFixture) -> None:
+    mocks(mocker)
+
+    old_config = {
+        "url": "https://test.url",
+        "refresh_token": "some_refresh_token",
+        "refresh_expires": 123,
+    }
+    new_config = {
+        old_config["url"]: {
+            "refresh_token": old_config["refresh_token"],
+            "refresh_expires": old_config["refresh_expires"],
+        }
+    }
+    mocker.patch(
+        "anemoi.utils.mlflow.auth.load_raw_config",
+        return_value=old_config,
+    )
+    mock_save_config = mocker.patch(
+        "anemoi.utils.mlflow.auth.save_config",
+    )
+
+    config = TokenAuth.load_config()
+    mock_save_config.assert_called_with(TokenAuth.config_file, new_config)
+
+    # the public interface of load_config has not changed, it still returns the old format
+    assert config == old_config
+
+
+@pytest.mark.parametrize(
+    "url, unknown",
+    [
+        (None, False),
+        ("https://server-1.url", False),
+        ("https://server-2.url", False),
+        ("https://server-3.url", False),
+        ("https://unknown.url", True),
+    ],
+)
+def test_multi_server_config(mocker: pytest.MockerFixture, url: str, unknown: bool) -> None:
+    mocks(mocker)
+
+    multi_config = {
+        "https://server-1.url": {
+            "refresh_token": "refresh-token-1",
+            "refresh_expires": 1,
+        },
+        "https://server-3.url": {
+            "refresh_token": "refresh-token-3",
+            "refresh_expires": 3,
+        },
+        "https://server-2.url": {
+            "refresh_token": "refresh-token-2",
+            "refresh_expires": 2,
+        },
+    }
+    mocker.patch(
+        "anemoi.utils.mlflow.auth.load_raw_config",
+        return_value=multi_config,
+    )
+
+    config = TokenAuth.load_config(url=url)
+
+    if url is None:
+        url = "https://server-3.url"  # the last used server (highest expiry time) is returned if no URL is specified
+
+    if unknown:
+        assert config == {}
+    else:
+        assert config == dict(url=url, **multi_config[url])
