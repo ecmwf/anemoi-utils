@@ -154,8 +154,9 @@ class TokenAuth(AuthBase):
             config = load_raw_config(file)
 
             # convert legacy single-server config format to multi-server
-            if _url := config.pop("url", None):
-                config = {_url: config.copy()}
+            _config = config.copy()
+            if _url := _config.pop("url", None):
+                config = {_url: _config}
                 save_config(file, config)
 
         if url is not None:
