@@ -29,6 +29,10 @@ class Command:
 
     accept_unknown_args = False
 
+    def check(self, parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+        """Check the command arguments."""
+        pass
+
     def run(self, args: argparse.Namespace) -> None:
         """Run the command.
 
@@ -237,6 +241,8 @@ def cli_main(
     if unknown and not cmd.accept_unknown_args:
         # This should trigger an error
         parser.parse_args(test_arguments)
+
+    cmd.check(parser, args)
 
     try:
         if unknown:
