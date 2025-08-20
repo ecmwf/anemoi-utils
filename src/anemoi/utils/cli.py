@@ -72,6 +72,11 @@ def make_parser(description: str, commands: dict[str, Command]) -> argparse.Argu
         action="store_true",
         help="Debug mode",
     )
+    parser.add_argument(
+        "--rich",
+        action="store_true",
+        help="Use rich for logging",
+    )
 
     subparsers = parser.add_subparsers(help="commands:", dest="command")
     for name, command in commands.items():
@@ -216,11 +221,18 @@ def cli_main(
 
     cmd = commands[args.command]
 
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.DEBUG if args.debug else logging.INFO,
-    )
+    if args.rich:
+        from .logs import get_rich_handler
+
+        logging.basicConfig(
+            format="%(message)s", level=logging.DEBUG if args.debug else logging.INFO, handlers=[get_rich_handler()]
+        )
+    else:
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=logging.DEBUG if args.debug else logging.INFO,
+        )
 
     if unknown and not cmd.accept_unknown_args:
         # This should trigger an error
