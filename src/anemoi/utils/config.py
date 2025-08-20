@@ -19,6 +19,8 @@ from typing import Any
 
 import yaml
 
+from anemoi.utils import ENV
+
 try:
     import tomllib  # Only available since 3.11
 except ImportError:
@@ -60,7 +62,7 @@ class DotDict(dict):
         super().__init__(*args, **kwargs)
 
         for k, v in self.items():
-            self[k] = self.convert_to_nested_dot_dict(v)
+            super().__setitem__(k, self.convert_to_nested_dot_dict(v))
 
     @staticmethod
     def convert_to_nested_dot_dict(value):
@@ -477,6 +479,10 @@ def _load_config(
         check_config_mode(secret_name, None)
         secret_config = _load_config(secret_name)
         _merge_dicts(config, secret_config)
+
+    if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
+        override_config = load_any_dict_format(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
+        config = merge_configs(config, override_config)
 
     for env, value in os.environ.items():
 

@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 import os
 import time
+from abc import ABC
+from abc import abstractmethod
 from datetime import datetime
 from datetime import timezone
 from functools import wraps
@@ -35,7 +37,43 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class TokenAuth:
+class AuthBase(ABC):
+    """Base class for authentication implementations."""
+
+    @abstractmethod
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def save(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def login(self, force_credentials: bool = False, **kwargs):
+        pass
+
+    @abstractmethod
+    def authenticate(self, **kwargs):
+        pass
+
+
+class NoAuth(AuthBase):
+    """No-op authentication class."""
+
+    def __init__(self, *args, **kwargs):
+        self._enabled = False
+
+    def save(self, **kwargs):
+        pass
+
+    def login(self, force_credentials: bool = False, **kwargs):
+        pass
+
+    def authenticate(self, **kwargs):
+        pass
+
+
+class TokenAuth(AuthBase):
     """Manage authentication with a keycloak token server."""
 
     config_file = "mlflow-token.json"
