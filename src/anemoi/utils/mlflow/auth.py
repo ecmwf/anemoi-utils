@@ -57,7 +57,7 @@ class ServerConfig(BaseModel):
 
 
 class ServerStore(RootModel):
-    root: dict[str, ServerConfig]
+    root: dict[str, ServerConfig] = {}
 
     def get(self, url: str) -> ServerConfig | None:
         return self.root.get(url)
@@ -81,7 +81,7 @@ class ServerStore(RootModel):
     @classmethod
     def load_legacy_format(cls, data: dict) -> dict:
         """Convert legacy single-server config format to multi-server."""
-        if "url" in data:
+        if isinstance(data, dict) and "url" in data:
             _data = data.copy()
             _url = _data.pop("url")
             data = {_url: ServerConfig(**_data)}

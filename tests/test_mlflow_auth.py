@@ -185,30 +185,31 @@ def test_noauth_methods_do_nothing():
 def test_config_format(mocker: pytest.MockerFixture) -> None:
     mocks(mocker)
 
-    old_config = {
+    legacy_config = {
         "url": "https://test.url",
         "refresh_token": "some_refresh_token",
         "refresh_expires": 123,
     }
     new_config = {
-        old_config["url"]: {
-            "refresh_token": old_config["refresh_token"],
-            "refresh_expires": old_config["refresh_expires"],
+        legacy_config["url"]: {
+            "refresh_token": legacy_config["refresh_token"],
+            "refresh_expires": legacy_config["refresh_expires"],
         }
     }
     mocker.patch(
         "anemoi.utils.mlflow.auth.load_raw_config",
-        return_value=old_config,
+        return_value=legacy_config,
     )
 
     config = TokenAuth.load_config(url="https://test.url")
-    # the public interface of load_config has not changed, it still returns the old format
-    assert config == old_config
+    # the public interface of load_config has not changed, it still returns a dict identical to the legacy format
+    assert config == legacy_config
 
-    old_store = ServerStore(old_config)
+    # test that the store can handle both formats and the outputs are identical
+    legacy_store = ServerStore(legacy_config)
     new_store = ServerStore(new_config)
-    assert old_store["https://test.url"].model_dump() == new_store["https://test.url"].model_dump() == old_config
-    assert old_store.model_dump() == new_store.model_dump() == new_config
+    assert legacy_store["https://test.url"].model_dump() == new_store["https://test.url"].model_dump() == legacy_config
+    assert legacy_store.model_dump() == new_store.model_dump() == new_config
 
 
 @pytest.mark.parametrize(
