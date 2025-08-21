@@ -15,6 +15,7 @@ import time
 import pytest
 
 from anemoi.utils.mlflow.auth import NoAuth
+from anemoi.utils.mlflow.auth import ServerStore
 from anemoi.utils.mlflow.auth import TokenAuth
 
 
@@ -181,7 +182,7 @@ def test_noauth_methods_do_nothing():
     assert auth.authenticate() is None
 
 
-def test_old_config_format(mocker: pytest.MockerFixture) -> None:
+def test_config_format(mocker: pytest.MockerFixture) -> None:
     mocks(mocker)
 
     old_config = {
@@ -199,15 +200,15 @@ def test_old_config_format(mocker: pytest.MockerFixture) -> None:
         "anemoi.utils.mlflow.auth.load_raw_config",
         return_value=old_config,
     )
-    mock_save_config = mocker.patch(
-        "anemoi.utils.mlflow.auth.save_config",
-    )
 
-    config = TokenAuth.load_config()
-    mock_save_config.assert_called_with(TokenAuth.config_file, new_config)
-
+    config = TokenAuth.load_config(url="https://test.url")
     # the public interface of load_config has not changed, it still returns the old format
     assert config == old_config
+
+    old_store = ServerStore(old_config)
+    new_store = ServerStore(new_config)
+    assert old_store["https://test.url"].model_dump() == new_store["https://test.url"].model_dump() == old_config
+    assert old_store.model_dump() == new_store.model_dump() == new_config
 
 
 @pytest.mark.parametrize(
@@ -220,7 +221,7 @@ def test_old_config_format(mocker: pytest.MockerFixture) -> None:
         ("https://unknown.url", True),
     ],
 )
-def test_multi_server_config(mocker: pytest.MockerFixture, url: str, unknown: bool) -> None:
+def test_multi_server_load_config(mocker: pytest.MockerFixture, url: str, unknown: bool) -> None:
     mocks(mocker)
 
     multi_config = {

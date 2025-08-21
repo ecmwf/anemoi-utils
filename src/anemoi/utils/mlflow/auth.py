@@ -20,8 +20,14 @@ from datetime import timezone
 from functools import wraps
 from getpass import getpass
 from typing import TYPE_CHECKING
+from typing import Any
+from typing import Self
 
 import requests
+from pydantic import BaseModel
+from pydantic import RootModel
+from pydantic import field_validator
+from pydantic import model_validator
 from requests.exceptions import HTTPError
 
 from ..config import CONFIG_LOCK
@@ -36,6 +42,58 @@ REFRESH_EXPIRE_DAYS = 29
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+class ServerConfig(BaseModel):
+    url: str | None = None
+    refresh_token: str | None = None
+    refresh_expires: int = 0
+
+    @field_validator("refresh_expires", mode="before")
+    def to_int(cls, value: float | int) -> int:
+        if not isinstance(value, int):
+            return int(value)
+        return value
+
+
+class ServerStore(RootModel):
+    root: dict[str, ServerConfig]
+
+    def get(self, url: str) -> ServerConfig | None:
+        return self.root.get(url)
+
+    def __getitem__(self, url: str) -> ServerConfig:
+        return self.root[url]
+
+    def items(self):
+        return self.root.items()
+
+    def update(self, url, config: ServerConfig) -> None:
+        """Update the server configuration for a given URL."""
+        self.root[url] = config
+
+    def model_dump(self, *args, ignore_unset=True, **kwargs) -> dict[str, Any]:
+        """Ignore the unset keys (url) by default when serialising to disk."""
+        kwargs.setdefault("exclude_unset", ignore_unset)
+        return super().model_dump(*args, **kwargs)
+
+    @model_validator(mode="before")
+    @classmethod
+    def load_legacy_format(cls, data: dict) -> dict:
+        """Convert legacy single-server config format to multi-server."""
+        if "url" in data:
+            _data = data.copy()
+            _url = _data.pop("url")
+            data = {_url: ServerConfig(**_data)}
+        return data
+
+    @model_validator(mode="after")
+    def add_url(self) -> Self:
+        """Ensure each server config in the store has a URL, but treat it as unset."""
+        for url, cfg in self.items():
+            cfg.url = url
+            cfg.model_fields_set.remove("url")
+        return self
 
 
 class AuthBase(ABC):
@@ -151,24 +209,18 @@ class TokenAuth(AuthBase):
             if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
                 os.chmod(path, 0o600)
 
-            config = load_raw_config(file)
-
-            # convert legacy single-server config format to multi-server
-            _config = config.copy()
-            if _url := _config.pop("url", None):
-                config = {_url: _config}
-                save_config(file, config)
+            config = ServerStore(**load_raw_config(file))
 
         if url is not None:
-            cfg = config.get(url, {})
-            return dict(url=url, **cfg) if cfg else {}
+            cfg = config.get(url)
+            return cfg.model_dump() if cfg else {}
 
-        # return the last used server config, or {} if not found
-        last = {}
+        # return the last used server config, or empty if not found
+        last = ServerConfig()
         for url, cfg in config.items():
-            if cfg.get("refresh_expires", 0) > last.get("refresh_expires", 0):
-                last = dict(url=url, **cfg)
-        return last
+            if cfg.refresh_expires > last.refresh_expires:
+                last = cfg
+        return last.model_dump(exclude_defaults=True)
 
     def enabled(fn: Callable) -> Callable:  # noqa: N805
         """Decorator to call or ignore a function based on the `enabled` flag."""
@@ -271,17 +323,15 @@ class TokenAuth(AuthBase):
             self.log.warning("No refresh token to save.")
             return
 
-        server_config = {
-            self.url: {
-                "refresh_token": self.refresh_token,
-                "refresh_expires": self.refresh_expires,
-            }
-        }
+        server_config = ServerConfig(
+            refresh_token=self.refresh_token,
+            refresh_expires=self.refresh_expires,
+        )
 
         with CONFIG_LOCK:
-            config = load_raw_config(self.config_file)
-            config.update(server_config)
-            save_config(self.config_file, config)
+            config = ServerStore(**load_raw_config(self.config_file))
+            config.update(self.url, server_config)
+            save_config(self.config_file, config.model_dump())
 
         expire_date = datetime.fromtimestamp(self.refresh_expires, tz=timezone.utc)
         self.log.info(
