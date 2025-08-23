@@ -8,6 +8,7 @@
 import os
 import shutil
 import sys
+import uuid
 
 import pytest
 
@@ -41,8 +42,7 @@ SSH = [
 ]
 
 ROOT_S3_READ = "s3://ml-tests/test-data/anemoi-utils/pytest/transfer"
-ROOT_S3_WRITE = f"s3://ml-tmp/anemoi-utils/pytest/transfer/test-{os.getpid()}"
-
+ROOT_S3_WRITE = f"s3://ml-tmp/anemoi-utils/pytest/transfer-tests/{uuid.uuid4()}"
 LOCAL_TEST_DATA = os.path.dirname(__file__) + "/test-transfer-data"
 
 
