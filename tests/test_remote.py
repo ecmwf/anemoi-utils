@@ -114,7 +114,7 @@ def test_transfer_find_none(source: str, target: str) -> None:
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("boto3"), reason="boto3 is not installed")
+@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
 def test_transfer_zarr_s3_to_local(tmpdir: pytest.TempPathFactory) -> None:
     """Test transferring a Zarr file from S3 to local.
 
@@ -135,7 +135,7 @@ def test_transfer_zarr_s3_to_local(tmpdir: pytest.TempPathFactory) -> None:
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("boto3"), reason="boto3 is not installed")
+@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
 def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
     """Test transferring a Zarr file from local to S3.
 
@@ -197,7 +197,7 @@ def compare(local1: str, local2: str) -> None:
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("boto3"), reason="boto3 is not installed")
+@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
 @pytest.mark.parametrize("path", ["directory/", "file"])
 def test_transfer_local_to_s3_to_local(path: str) -> None:
     """Test transferring a file or directory from local to S3 and back to local.

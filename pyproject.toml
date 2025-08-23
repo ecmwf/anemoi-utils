@@ -73,7 +73,7 @@ optional-dependencies.mlflow = [ "mlflow-skinny>=2.11.1", "requests" ]
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
 
 optional-dependencies.s3 = [
-  "boto3>1.36",
+  "obstore",
 ]
 
 optional-dependencies.tests = [ "anemoi-utils[mlflow]", "pytest", "pytest-mock>=3" ]
