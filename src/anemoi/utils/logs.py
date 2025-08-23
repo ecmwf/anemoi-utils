@@ -13,7 +13,7 @@
 import contextvars
 import logging
 
-logging_name_ctx = contextvars.ContextVar("logging_name", default="main")
+LOGGING_NAME = contextvars.ContextVar("logging_name", default="main")
 
 
 LOGGER = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def set_logging_name(name: str) -> None:
     name : str
         The name to set for logging.
     """
-    logging_name_ctx.set(name)
+    LOGGING_NAME.set(name)
 
 
 class ThreadCustomFormatter(logging.Formatter):
@@ -46,7 +46,7 @@ class ThreadCustomFormatter(logging.Formatter):
         str
             The formatted log record.
         """
-        record.logging_name = logging_name_ctx.get()
+        record.logging_name = LOGGING_NAME.get()
         return super().format(record)
 
 
