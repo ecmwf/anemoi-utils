@@ -263,7 +263,7 @@ def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosi
     ) as pbar:
         chunk_size = 1024 * 1024
         total = size
-        with open(target, "rb") as f:
+        with open(source, "rb") as f:
             with closing(obstore.open_writer(s3, obj.key, buffer_size=chunk_size)) as g:
                 while total > 0:
                     chunk = f.read(min(chunk_size, total))
@@ -392,7 +392,7 @@ def delete_folder(target: str) -> None:
     for batch in _list_objects(obj, batch=True):
         paths = [o["path"] for o in batch]
         LOG.info(f"Deleting {len(batch):,} objects from {target}")
-        obstore.delete.delete(s3, paths)
+        obstore.delete(s3, paths)
         total += len(batch)
         LOG.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
@@ -409,7 +409,7 @@ def delete_file(target: str) -> None:
         return
 
     LOG.info(f"Deleting {target}")
-    obstore.delete.delete(s3, obj.key)
+    obstore.delete(s3, obj.key)
     LOG.info(f"{target} is deleted")
 
 

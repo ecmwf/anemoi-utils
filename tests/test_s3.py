@@ -6,6 +6,7 @@
 # nor does it submit to any jurisdiction.
 
 import os
+import uuid
 
 import pytest
 
@@ -15,7 +16,7 @@ IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("IN_C
 
 
 ROOT_S3_READ = "s3://ml-tests/test-data/anemoi-utils/pytest/transfer"
-ROOT_S3_WRITE = f"s3://ml-tmp/anemoi-utils/pytest/transfer/test-{os.getpid()}"
+ROOT_S3_WRITE = f"s3://ml-tmp/anemoi-utils/pytest/transfer-tests/{uuid.uuid4()}"
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")

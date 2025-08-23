@@ -227,6 +227,17 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
 
     _delete_file_or_directory(local2)
 
+    from anemoi.utils.remote.s3 import delete
+    from anemoi.utils.remote.s3 import list_folder
+    from anemoi.utils.remote.s3 import object_exists
+
+    delete(remote)
+
+    if remote.endswith("/"):
+        assert len(list(list_folder(remote))) == 0
+    else:
+        assert object_exists(remote) is False
+
 
 @pytest.mark.skipif(IN_CI, reason="Test requires ssh access to localhost")
 @pytest.mark.skipif(sys.platform == "darwin", reason="Does not work on MacOS")
