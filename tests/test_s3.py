@@ -58,18 +58,6 @@ def test_s3_info() -> None:
     assert info["path"] == "aifs-ea-an-oper-0001-mars-20p0-2000-2000-12h-v0-TESTING2.zarr/.zattrs"
 
 
-@pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
-def test_s3_delete_folder() -> None:
-    pass
-
-
-@pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
-def test_s3_delete_object() -> None:
-    pass
-
-
 if __name__ == "__main__":
     for name, obj in list(globals().items()):
         if name.startswith("test_") and callable(obj):
