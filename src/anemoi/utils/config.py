@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import threading
-import warnings
 from typing import Any
 
 import yaml
@@ -187,7 +186,6 @@ class DotDict(dict):
             The attribute value.
         """
 
-        self.warn_on_mutation(attr)
         value = self.convert_to_nested_dot_dict(value)
         super().__setitem__(attr, value)
 
@@ -201,12 +199,8 @@ class DotDict(dict):
         value : Any
             The value to set.
         """
-        self.warn_on_mutation(key)
         value = self.convert_to_nested_dot_dict(value)
         super().__setitem__(key, value)
-
-    def warn_on_mutation(self, key):
-        warnings.warn("Modifying an instance of DotDict(). This class is intended to be immutable.")
 
     def __repr__(self) -> str:
         """Return a string representation of the DotDict.

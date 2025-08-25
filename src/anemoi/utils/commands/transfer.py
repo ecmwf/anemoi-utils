@@ -28,10 +28,14 @@ class Transfer(Command):
             The argument parser to which the arguments will be added.
         """
         command_parser.add_argument(
-            "--source", help="A path to a local file or folder or a URL to a file or a folder on S3."
+            "--source",
+            help="A path to a local file or folder or a URL to a file or a folder on S3.",
+            required=True,
         )
         command_parser.add_argument(
-            "--target", help="A path to a local file or folder or a URL to a file or a folder on S3 or a remote folder."
+            "--target",
+            help="A path to a local file or folder or a URL to a file or a folder on S3 or a remote folder.",
+            required=True,
         )
         command_parser.add_argument(
             "--overwrite",
