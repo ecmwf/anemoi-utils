@@ -10,10 +10,10 @@
 
 """Logging utilities."""
 
+import contextvars
 import logging
-import threading
 
-thread_local = threading.local()
+LOGGING_NAME = contextvars.ContextVar("logging_name", default="main")
 
 
 LOGGER = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def set_logging_name(name: str) -> None:
     name : str
         The name to set for logging.
     """
-    thread_local.logging_name = name
+    LOGGING_NAME.set(name)
 
 
 class ThreadCustomFormatter(logging.Formatter):
@@ -46,7 +46,7 @@ class ThreadCustomFormatter(logging.Formatter):
         str
             The formatted log record.
         """
-        record.logging_name = thread_local.logging_name
+        record.logging_name = LOGGING_NAME.get()
         return super().format(record)
 
 
