@@ -42,7 +42,7 @@ SSH = [
 ]
 
 ROOT_S3_READ = "s3://ml-tests/test-data/anemoi-utils/pytest/transfer"
-ROOT_S3_WRITE = f"s3://ml-tmp/anemoi-utils/pytest/transfer-tests/{uuid.uuid4()}"
+ROOT_S3_WRITE = "s3://ml-tmp/anemoi-utils/pytest/transfer-tests"
 LOCAL_TEST_DATA = os.path.dirname(__file__) + "/test-transfer-data"
 
 
@@ -146,16 +146,23 @@ def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
     """
     fixture = "s3://ml-datasets/aifs-ea-an-oper-0001-mars-20p0-2000-2000-12h-v0-TESTING2.zarr/"
     source = tmpdir.strpath + "/test"
-    target = ROOT_S3_WRITE + "/test.zarr"
+    target = ROOT_S3_WRITE + f"/{uuid.uuid4()}/test.zarr"
 
-    transfer(fixture, source)
-    transfer(source, target)
+    try:
 
-    with pytest.raises(ValueError, match="already exists"):
+        transfer(fixture, source)
         transfer(source, target)
 
-    transfer(source, target, resume=True)
-    transfer(source, target, overwrite=True)
+        with pytest.raises(ValueError, match="already exists"):
+            transfer(source, target)
+
+        transfer(source, target, resume=True)
+        transfer(source, target, overwrite=True)
+
+    finally:
+        from anemoi.utils.remote.s3 import delete_folder
+
+        delete_folder(target)
 
 
 def _delete_file_or_directory(path: str) -> None:
@@ -208,30 +215,35 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
         The path to the file or directory
     """
     local = LOCAL_TEST_DATA + "/" + path
-    remote = ROOT_S3_WRITE + "/" + path
+    remote = ROOT_S3_WRITE + f"/{uuid.uuid4()}/" + path
     local2 = LOCAL_TEST_DATA + "-copy-" + path
 
-    transfer(local, remote, overwrite=True)
-    transfer(local, remote, resume=True)
-    with pytest.raises(ValueError, match="already exists"):
-        transfer(local, remote)
+    try:
 
-    _delete_file_or_directory(local2)
-    transfer(remote, local2)
-    with pytest.raises(ValueError, match="already exists"):
+        transfer(local, remote, overwrite=True)
+        transfer(local, remote, resume=True)
+        with pytest.raises(ValueError, match="already exists"):
+            transfer(local, remote)
+
+        _delete_file_or_directory(local2)
         transfer(remote, local2)
-    transfer(local, remote, overwrite=True)
-    transfer(local, remote, resume=True)
+        with pytest.raises(ValueError, match="already exists"):
+            transfer(remote, local2)
+        transfer(local, remote, overwrite=True)
+        transfer(local, remote, resume=True)
 
-    compare(local, local2)
+        compare(local, local2)
 
-    _delete_file_or_directory(local2)
+        _delete_file_or_directory(local2)
 
-    from anemoi.utils.remote.s3 import delete
+    finally:
+
+        from anemoi.utils.remote.s3 import delete
+
+        delete(remote)
+
     from anemoi.utils.remote.s3 import list_folder
     from anemoi.utils.remote.s3 import object_exists
-
-    delete(remote)
 
     if remote.endswith("/"):
         assert len(list(list_folder(remote))) == 0
