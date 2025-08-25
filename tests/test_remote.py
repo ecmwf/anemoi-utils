@@ -144,6 +144,8 @@ def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
     tmpdir : pytest.TempPathFactory
         Temporary directory factory
     """
+    from anemoi.utils.remote.s3 import delete_folder
+
     fixture = "s3://ml-datasets/aifs-ea-an-oper-0001-mars-20p0-2000-2000-12h-v0-TESTING2.zarr/"
     source = tmpdir.strpath + "/test"
     target = ROOT_S3_WRITE + f"/{uuid.uuid4()}/test.zarr"
@@ -160,8 +162,6 @@ def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
         transfer(source, target, overwrite=True)
 
     finally:
-        from anemoi.utils.remote.s3 import delete_folder
-
         delete_folder(target)
 
 
@@ -214,6 +214,11 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
     path : str
         The path to the file or directory
     """
+
+    from anemoi.utils.remote.s3 import delete
+    from anemoi.utils.remote.s3 import list_folder
+    from anemoi.utils.remote.s3 import object_exists
+
     local = LOCAL_TEST_DATA + "/" + path
     remote = ROOT_S3_WRITE + f"/{uuid.uuid4()}/" + path
     local2 = LOCAL_TEST_DATA + "-copy-" + path
@@ -237,13 +242,7 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
         _delete_file_or_directory(local2)
 
     finally:
-
-        from anemoi.utils.remote.s3 import delete
-
         delete(remote)
-
-    from anemoi.utils.remote.s3 import list_folder
-    from anemoi.utils.remote.s3 import object_exists
 
     if remote.endswith("/"):
         assert len(list(list_folder(remote))) == 0
