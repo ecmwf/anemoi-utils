@@ -155,9 +155,7 @@ def _s3_options(obj: str | S3Object) -> dict:
         if isinstance(v, dict):
             if fnmatch.fnmatch(obj.bucket, k):
                 if candidate is not None:
-                    raise ValueError(
-                        f"Multiple object storage configurations match {obj.    bucket}: {candidate} and {k}"
-                    )
+                    raise ValueError(f"Multiple object storage configurations match {obj.bucket}: {candidate} and {k}")
                 candidate = k
 
     if candidate is not None:
