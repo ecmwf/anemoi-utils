@@ -6,7 +6,7 @@ on:
   # Trigger the workflow on push to main or develop, except tag creation
   push:
     branches:
-      - '522-fix-test-dependencies'
+      - 'test_fix_core'
     tags-ignore:
       - '**'
     paths-ignore:
@@ -37,7 +37,7 @@ jobs:
   downstream-ci:
     name: downstream-ci
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
-    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@main
+    uses: ./.github/workflows/downstream-ci.yml
     with:
       anemoi-utils: ecmwf/anemoi-utils@${{ github.event.pull_request.head.sha || github.sha }}
       codecov_upload: true
