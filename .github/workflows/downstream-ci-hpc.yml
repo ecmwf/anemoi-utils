@@ -6,8 +6,7 @@ on:
   # Trigger the workflow on push to main or develop, except tag creation
   push:
     branches:
-      - 'main'
-      - 'develop'
+      - '522-fix-test-dependencies'
     tags-ignore:
       - '**'
     paths-ignore:
