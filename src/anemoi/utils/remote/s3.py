@@ -63,7 +63,10 @@ class S3Object:
             S3 URL (e.g., 's3://bucket/key').
         """
         self.url = url
-        s3, empty, self.bucket, self.key = url.split("/", 3)
+        try:
+            s3, empty, self.bucket, self.key = url.split("/", 3)
+        except ValueError:
+            raise ValueError(f"Invalid S3 URL: {url}")
         assert s3 == "s3:"
         assert empty == ""
         self.dirname = f"s3://{self.bucket}"
@@ -481,6 +484,25 @@ def object_exists(target: str) -> bool:
         return True
     except FileNotFoundError:
         return False
+
+
+def get_object(target: str) -> bool:
+    """Check if an S3 object exists.
+
+    Parameters
+    ----------
+    target : str
+        S3 object URL.
+
+    Returns
+    -------
+    bool
+        True if object exists, False otherwise.
+    """
+    obj = _s3_object(target)
+    s3 = s3_client(obj)
+
+    return s3.get(obj.key).bytes()
 
 
 def download(source: str, target: str, *args, **kwargs) -> None:
