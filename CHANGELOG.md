@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.36](https://github.com/ecmwf/anemoi-utils/compare/0.4.35...0.4.36) (2025-09-08)
+
+
+### Features
+
+* Debug imports ([#182](https://github.com/ecmwf/anemoi-utils/issues/182)) ([1eaa615](https://github.com/ecmwf/anemoi-utils/commit/1eaa61540dc9ac3d5fe82f2c91b7fc98c8bb10af))
+* NoAuth for AML mlflow Logging ([#200](https://github.com/ecmwf/anemoi-utils/issues/200)) ([732182e](https://github.com/ecmwf/anemoi-utils/commit/732182ea5d255ba69ea2ed0a23b307d6f64aaf84))
+* Rich logging ([#209](https://github.com/ecmwf/anemoi-utils/issues/209)) ([3c762a5](https://github.com/ecmwf/anemoi-utils/commit/3c762a593ba2dc734becc54b92984d6dc62967ac))
+* Use obstore to access s3 buckets ([#210](https://github.com/ecmwf/anemoi-utils/issues/210)) ([da380be](https://github.com/ecmwf/anemoi-utils/commit/da380be71d78274d72bd0a3859ef00b1c80e9469))
+
+
+### Bug Fixes
+
+* Add missing s3 function used by datasets ([#212](https://github.com/ecmwf/anemoi-utils/issues/212)) ([30589e8](https://github.com/ecmwf/anemoi-utils/commit/30589e891fbdb1cff205f0350c63e93a725c7242))
+
 ## [0.4.35](https://github.com/ecmwf/anemoi-utils/compare/0.4.34...0.4.35) (2025-08-12)
 
 
