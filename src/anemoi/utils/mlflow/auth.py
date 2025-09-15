@@ -77,6 +77,15 @@ class ServerStore(RootModel):
         kwargs.setdefault("exclude_unset", ignore_unset)
         return super().model_dump(*args, **kwargs)
 
+    @property
+    def servers(self) -> list[str]:
+        """List of server URLs in the store, ordered most recently used first."""
+        return sorted(
+            self.root.keys(),
+            key=lambda url: self.root[url].refresh_expires,
+            reverse=True,
+        )
+
     @model_validator(mode="before")
     @classmethod
     def load_legacy_format(cls, data: dict) -> dict:
@@ -135,7 +144,7 @@ class NoAuth(AuthBase):
 class TokenAuth(AuthBase):
     """Manage authentication with a keycloak token server."""
 
-    config_file = "mlflow-token.json"
+    _config_file = "mlflow-token.json"
 
     def __init__(
         self,
@@ -184,8 +193,23 @@ class TokenAuth(AuthBase):
         self.refresh_expires = time.time() + (REFRESH_EXPIRE_DAYS * 86400)  # 86400 seconds in a day
 
     @staticmethod
+    def get_store() -> ServerStore:
+        """Read and return the full server store."""
+        with CONFIG_LOCK:
+            file = TokenAuth._config_file
+            path = config_path(file)
+
+            if not os.path.exists(path):
+                save_config(file, {})
+
+            if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
+                os.chmod(path, 0o600)
+
+            return ServerStore(**load_raw_config(file))
+
+    @staticmethod
     def load_config(url=None) -> dict:
-        """Load the server configuration from the config file.
+        """Load a server configuration from the store.
 
         Parameters
         ----------
@@ -199,25 +223,15 @@ class TokenAuth(AuthBase):
             Dictionary with the following keys: `url`, `refresh_token`, `refresh_expires`.
             If no configuration is found, an empty dictionary is returned.
         """
-        with CONFIG_LOCK:
-            file = TokenAuth.config_file
-            path = config_path(file)
-
-            if not os.path.exists(path):
-                save_config(file, {})
-
-            if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
-                os.chmod(path, 0o600)
-
-            config = ServerStore(**load_raw_config(file))
+        store = TokenAuth.get_store()
 
         if url is not None:
-            cfg = config.get(url)
+            cfg = store.get(url)
             return cfg.model_dump() if cfg else {}
 
         # return the last used server config, or empty if not found
         last = ServerConfig()
-        for url, cfg in config.items():
+        for url, cfg in store.items():
             if cfg.refresh_expires > last.refresh_expires:
                 last = cfg
         return last.model_dump(exclude_defaults=True)
@@ -329,9 +343,9 @@ class TokenAuth(AuthBase):
         )
 
         with CONFIG_LOCK:
-            config = ServerStore(**load_raw_config(self.config_file))
-            config.update(self.url, server_config)
-            save_config(self.config_file, config.model_dump())
+            store = self.get_store()
+            store.update(self.url, server_config)
+            save_config(self._config_file, store.model_dump())
 
         expire_date = datetime.fromtimestamp(self.refresh_expires, tz=timezone.utc)
         self.log.info(
