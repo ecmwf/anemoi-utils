@@ -15,6 +15,7 @@ import time
 import pytest
 
 from anemoi.utils.mlflow.auth import NoAuth
+from anemoi.utils.mlflow.auth import ServerConfig
 from anemoi.utils.mlflow.auth import ServerStore
 from anemoi.utils.mlflow.auth import TokenAuth
 
@@ -212,6 +213,22 @@ def test_config_format(mocker: pytest.MockerFixture) -> None:
     assert legacy_store.model_dump() == new_store.model_dump() == new_config
 
 
+multi_config = {
+    "https://server-1.url": {
+        "refresh_token": "refresh-token-1",
+        "refresh_expires": 1,
+    },
+    "https://server-3.url": {
+        "refresh_token": "refresh-token-3",
+        "refresh_expires": 3,
+    },
+    "https://server-2.url": {
+        "refresh_token": "refresh-token-2",
+        "refresh_expires": 2,
+    },
+}
+
+
 @pytest.mark.parametrize(
     "url, unknown",
     [
@@ -222,23 +239,9 @@ def test_config_format(mocker: pytest.MockerFixture) -> None:
         ("https://unknown.url", True),
     ],
 )
-def test_multi_server_load_config(mocker: pytest.MockerFixture, url: str, unknown: bool) -> None:
+def test_multi_server_format(mocker: pytest.MockerFixture, url: str, unknown: bool) -> None:
     mocks(mocker)
 
-    multi_config = {
-        "https://server-1.url": {
-            "refresh_token": "refresh-token-1",
-            "refresh_expires": 1,
-        },
-        "https://server-3.url": {
-            "refresh_token": "refresh-token-3",
-            "refresh_expires": 3,
-        },
-        "https://server-2.url": {
-            "refresh_token": "refresh-token-2",
-            "refresh_expires": 2,
-        },
-    }
     mocker.patch(
         "anemoi.utils.mlflow.auth.load_raw_config",
         return_value=multi_config,
@@ -253,3 +256,56 @@ def test_multi_server_load_config(mocker: pytest.MockerFixture, url: str, unknow
         assert config == {}
     else:
         assert config == dict(url=url, **multi_config[url])
+
+
+def test_server_store() -> None:
+    store = ServerStore(multi_config)
+
+    config = store["https://server-2.url"]
+    assert isinstance(config, ServerConfig)
+    assert config.url == "https://server-2.url"
+    assert config.refresh_token == "refresh-token-2"
+    assert config.refresh_expires == 2
+
+    assert store.get("https://unknown.url") is None
+
+    # ordered by expiry time, highest first
+    assert store.servers == ["https://server-3.url", "https://server-2.url", "https://server-1.url"]
+
+    assert ServerStore({}).model_dump() == {}
+
+
+def test_server_store_no_url() -> None:
+    """Test that the URL is stripped from the ServerConfig when adding to the store.
+    Instead, the URL becomes the key in the store dictionary.
+    """
+
+    test_config = ServerConfig(
+        url="https://server-1.url",
+        refresh_token="refresh-token-1",
+        refresh_expires=1,
+    )
+
+    store = ServerStore({"https://server-1.url": test_config.model_dump()})
+
+    # url is a property in memory
+    assert store["https://server-1.url"].url == "https://server-1.url"
+
+    # url becomes the root key on disk
+    assert store.model_dump() == {
+        "https://server-1.url": {
+            "refresh_token": "refresh-token-1",
+            "refresh_expires": 1,
+        }
+    }
+
+
+def test_utils_interface():
+    """TokenAuth uses the utils CONFIG_LOCK when reading and loading the server store to ensure thread safety.
+    Ensure that CONFIG_LOCK stays a reentrant lock, if it were a normal lock it would deadlock itself.
+    """
+    from threading import RLock
+
+    from anemoi.utils.config import CONFIG_LOCK
+
+    assert isinstance(CONFIG_LOCK, type(RLock()))
