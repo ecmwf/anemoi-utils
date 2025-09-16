@@ -278,21 +278,16 @@ def frequency_to_string(frequency: datetime.timedelta) -> str:
     seconds %= 60
 
     if days > 0 and hours == 0 and minutes == 0 and seconds == 0:
-        return f"{days}d"
+        return f"{total_seconds // (24 * 3600)}d"
 
-    if days == 0 and hours > 0 and minutes == 0 and seconds == 0:
-        return f"{hours}h"
+    if hours > 0 and minutes == 0 and seconds == 0:
+        return f"{total_seconds // 3600}h"
 
-    if days == 0 and hours == 0 and minutes > 0 and seconds == 0:
-        return f"{minutes}m"
+    if minutes > 0 and seconds == 0:
+        return f"{total_seconds // 60}m"
 
-    if days == 0 and hours == 0 and minutes == 0 and seconds > 0:
-        return f"{seconds}s"
+    return f"{total_seconds}s"
 
-    if days > 0:
-        return f"{total_seconds}s"
-
-    return str(frequency)
 
 
 def frequency_to_seconds(frequency: int | str | datetime.timedelta) -> int:
