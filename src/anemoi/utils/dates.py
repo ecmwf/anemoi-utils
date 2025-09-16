@@ -289,7 +289,6 @@ def frequency_to_string(frequency: datetime.timedelta) -> str:
     return f"{total_seconds}s"
 
 
-
 def frequency_to_seconds(frequency: int | str | datetime.timedelta) -> int:
     """Convert a frequency to seconds.
 
