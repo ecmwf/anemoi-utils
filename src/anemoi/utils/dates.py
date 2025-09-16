@@ -260,30 +260,18 @@ def frequency_to_string(frequency: datetime.timedelta) -> str:
         A string representation of the frequency.
     """
 
-    frequency = frequency_to_timedelta(frequency)
+    total_seconds = int(frequency.total_seconds())
 
-    total_seconds = frequency.total_seconds()
     if total_seconds < 0:
         return f"-{frequency_to_string(-frequency)}"
-    assert int(total_seconds) == total_seconds, total_seconds
-    total_seconds = int(total_seconds)
 
-    seconds = total_seconds
-
-    days = seconds // (24 * 3600)
-    seconds %= 24 * 3600
-    hours = seconds // 3600
-    seconds %= 3600
-    minutes = seconds // 60
-    seconds %= 60
-
-    if days > 0 and hours == 0 and minutes == 0 and seconds == 0:
+    if total_seconds % (24 * 3600) == 0:
         return f"{total_seconds // (24 * 3600)}d"
 
-    if hours > 0 and minutes == 0 and seconds == 0:
+    if total_seconds % 3600 == 0:
         return f"{total_seconds // 3600}h"
 
-    if minutes > 0 and seconds == 0:
+    if total_seconds % 60 == 0:
         return f"{total_seconds // 60}m"
 
     return f"{total_seconds}s"
