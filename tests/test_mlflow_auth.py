@@ -183,7 +183,7 @@ def test_noauth_methods_do_nothing():
     assert auth.authenticate() is None
 
 
-def test_config_format(mocker: pytest.MockerFixture) -> None:
+def test_legacy_format(mocker: pytest.MockerFixture) -> None:
     mocks(mocker)
 
     legacy_config = {
@@ -202,14 +202,19 @@ def test_config_format(mocker: pytest.MockerFixture) -> None:
         return_value=legacy_config,
     )
 
-    config = TokenAuth.load_config(url="https://test.url")
-    # the public interface of load_config has not changed, it still returns a dict identical to the legacy format
+    # test backwards compatibility of deprecated load_config
+    # when this function is removed, also remove this assert
+    config = TokenAuth.load_config()
     assert config == legacy_config
 
     # test that the store can handle both formats and the outputs are identical
     legacy_store = ServerStore(legacy_config)
     new_store = ServerStore(new_config)
-    assert legacy_store["https://test.url"].model_dump() == new_store["https://test.url"].model_dump() == legacy_config
+    expected_config = new_config["https://test.url"]
+
+    assert (
+        legacy_store["https://test.url"].model_dump() == new_store["https://test.url"].model_dump() == expected_config
+    )
     assert legacy_store.model_dump() == new_store.model_dump() == new_config
 
 
@@ -232,7 +237,6 @@ multi_config = {
 @pytest.mark.parametrize(
     "url, unknown",
     [
-        (None, False),
         ("https://server-1.url", False),
         ("https://server-2.url", False),
         ("https://server-3.url", False),
@@ -247,15 +251,14 @@ def test_multi_server_format(mocker: pytest.MockerFixture, url: str, unknown: bo
         return_value=multi_config,
     )
 
-    config = TokenAuth.load_config(url=url)
-
-    if url is None:
-        url = "https://server-3.url"  # the last used server (highest expiry time) is returned if no URL is specified
+    auth = TokenAuth(url)
 
     if unknown:
-        assert config == {}
+        assert auth.refresh_token is None
+        assert auth.refresh_expires == 0
     else:
-        assert config == dict(url=url, **multi_config[url])
+        assert auth.refresh_token == multi_config[url]["refresh_token"]
+        assert auth.refresh_expires == multi_config[url]["refresh_expires"]
 
 
 def test_server_store() -> None:
@@ -263,7 +266,6 @@ def test_server_store() -> None:
 
     config = store["https://server-2.url"]
     assert isinstance(config, ServerConfig)
-    assert config.url == "https://server-2.url"
     assert config.refresh_token == "refresh-token-2"
     assert config.refresh_expires == 2
 
@@ -273,31 +275,6 @@ def test_server_store() -> None:
     assert store.servers == ["https://server-3.url", "https://server-2.url", "https://server-1.url"]
 
     assert ServerStore({}).model_dump() == {}
-
-
-def test_server_store_no_url() -> None:
-    """Test that the URL is stripped from the ServerConfig when adding to the store.
-    Instead, the URL becomes the key in the store dictionary.
-    """
-
-    test_config = ServerConfig(
-        url="https://server-1.url",
-        refresh_token="refresh-token-1",
-        refresh_expires=1,
-    )
-
-    store = ServerStore({"https://server-1.url": test_config.model_dump()})
-
-    # url is a property in memory
-    assert store["https://server-1.url"].url == "https://server-1.url"
-
-    # url becomes the root key on disk
-    assert store.model_dump() == {
-        "https://server-1.url": {
-            "refresh_token": "refresh-token-1",
-            "refresh_expires": 1,
-        }
-    }
 
 
 def test_utils_interface():

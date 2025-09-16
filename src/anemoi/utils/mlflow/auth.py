@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import warnings
 from abc import ABC
 from abc import abstractmethod
 from datetime import datetime
@@ -20,8 +21,6 @@ from datetime import timezone
 from functools import wraps
 from getpass import getpass
 from typing import TYPE_CHECKING
-from typing import Any
-from typing import Self
 
 import requests
 from pydantic import BaseModel
@@ -45,7 +44,6 @@ if TYPE_CHECKING:
 
 
 class ServerConfig(BaseModel):
-    url: str | None = None
     refresh_token: str | None = None
     refresh_expires: int = 0
 
@@ -72,11 +70,6 @@ class ServerStore(RootModel):
         """Update the server configuration for a given URL."""
         self.root[url] = config
 
-    def model_dump(self, *args, ignore_unset=True, **kwargs) -> dict[str, Any]:
-        """Ignore the unset keys (url) by default when serialising to disk."""
-        kwargs.setdefault("exclude_unset", ignore_unset)
-        return super().model_dump(*args, **kwargs)
-
     @property
     def servers(self) -> list[str]:
         """List of server URLs in the store, ordered most recently used first."""
@@ -95,14 +88,6 @@ class ServerStore(RootModel):
             _url = _data.pop("url")
             data = {_url: ServerConfig(**_data)}
         return data
-
-    @model_validator(mode="after")
-    def add_url(self) -> Self:
-        """Ensure each server config in the store has a URL, but treat it as unset."""
-        for url, cfg in self.items():
-            cfg.url = url
-            cfg.model_fields_set.remove("url")
-        return self
 
 
 class AuthBase(ABC):
@@ -169,10 +154,16 @@ class TokenAuth(AuthBase):
         self.target_env_var = target_env_var
         self._enabled = enabled
 
-        config = self.load_config(url=url)
+        store = self._get_store()
+        config = store.get(self.url)
 
-        self._refresh_token = config.get("refresh_token")
-        self.refresh_expires = config.get("refresh_expires", 0)
+        if config is not None:
+            self._refresh_token = config.refresh_token
+            self.refresh_expires = config.refresh_expires
+        else:
+            self._refresh_token = None
+            self.refresh_expires = 0
+
         self.access_token = None
         self.access_expires = 0
 
@@ -193,8 +184,8 @@ class TokenAuth(AuthBase):
         self.refresh_expires = time.time() + (REFRESH_EXPIRE_DAYS * 86400)  # 86400 seconds in a day
 
     @staticmethod
-    def get_store() -> ServerStore:
-        """Read and return the full server store."""
+    def _get_store() -> ServerStore:
+        """Read the server store from disk."""
         with CONFIG_LOCK:
             file = TokenAuth._config_file
             path = config_path(file)
@@ -208,14 +199,13 @@ class TokenAuth(AuthBase):
             return ServerStore(**load_raw_config(file))
 
     @staticmethod
-    def load_config(url=None) -> dict:
-        """Load a server configuration from the store.
+    def get_servers() -> list[str]:
+        """Get a list of all saved server URLs, ordered by most recently used first."""
+        return TokenAuth._get_store().servers
 
-        Parameters
-        ----------
-        url : str, optional
-            The server URL.
-            If not provided, attempt to load the last used server configuration.
+    @staticmethod
+    def load_config() -> dict:
+        """Load the last used server configuration
 
         Returns
         -------
@@ -223,18 +213,20 @@ class TokenAuth(AuthBase):
             Dictionary with the following keys: `url`, `refresh_token`, `refresh_expires`.
             If no configuration is found, an empty dictionary is returned.
         """
-        store = TokenAuth.get_store()
+        warnings.warn(
+            "TokenAuth.load_config() is deprecated and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
-        if url is not None:
-            cfg = store.get(url)
-            return cfg.model_dump() if cfg else {}
+        store = TokenAuth._get_store()
 
-        # return the last used server config, or empty if not found
-        last = ServerConfig()
+        last = {}
         for url, cfg in store.items():
-            if cfg.refresh_expires > last.refresh_expires:
-                last = cfg
-        return last.model_dump(exclude_defaults=True)
+            if cfg.refresh_expires > last.get("refresh_expires", 0):
+                last = dict(url=url, **cfg.model_dump())
+
+        return last
 
     def enabled(fn: Callable) -> Callable:  # noqa: N805
         """Decorator to call or ignore a function based on the `enabled` flag."""
@@ -343,7 +335,7 @@ class TokenAuth(AuthBase):
         )
 
         with CONFIG_LOCK:
-            store = self.get_store()
+            store = self._get_store()
             store.update(self.url, server_config)
             save_config(self._config_file, store.model_dump())
 
