@@ -278,7 +278,7 @@ def test_server_store() -> None:
 
 
 def test_utils_interface():
-    """TokenAuth uses the utils CONFIG_LOCK when reading and loading the server store to ensure thread safety.
+    """TokenAuth uses the utils CONFIG_LOCK when reading and writing the server store to ensure thread safety.
     Ensure that CONFIG_LOCK stays a reentrant lock, if it were a normal lock it would deadlock itself.
     """
     from threading import RLock
