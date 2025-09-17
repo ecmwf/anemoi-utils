@@ -71,13 +71,16 @@ class ServerStore(RootModel):
         self.root[url] = config
 
     @property
-    def servers(self) -> list[str]:
-        """List of server URLs in the store, ordered most recently used first."""
-        return sorted(
-            self.root.keys(),
-            key=lambda url: self.root[url].refresh_expires,
-            reverse=True,
-        )
+    def servers(self) -> list[tuple[str, int]]:
+        """List of servers in the store, as a tuple (url, refresh_expires). Ordered most recently used first."""
+        return [
+            (url, cfg.refresh_expires)
+            for url, cfg in sorted(
+                self.root.items(),
+                key=lambda item: item[1].refresh_expires,
+                reverse=True,
+            )
+        ]
 
     @model_validator(mode="before")
     @classmethod
@@ -199,8 +202,8 @@ class TokenAuth(AuthBase):
             return ServerStore(**load_raw_config(file))
 
     @staticmethod
-    def get_servers() -> list[str]:
-        """Get a list of all saved server URLs, ordered by most recently used first."""
+    def get_servers() -> list[tuple[str, int]]:
+        """List of all saved servers, as a tuple (url, refresh_expires). Ordered most recently used first."""
         return TokenAuth._get_store().servers
 
     @staticmethod
