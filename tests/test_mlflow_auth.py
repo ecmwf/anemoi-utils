@@ -272,7 +272,7 @@ def test_server_store() -> None:
     assert store.get("https://unknown.url") is None
 
     # ordered by expiry time, highest first
-    assert store.servers == ["https://server-3.url", "https://server-2.url", "https://server-1.url"]
+    assert store.servers == [("https://server-3.url", 3), ("https://server-2.url", 2), ("https://server-1.url", 1)]
 
     assert ServerStore({}).model_dump() == {}
 
