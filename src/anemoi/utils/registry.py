@@ -209,7 +209,7 @@ class Registry(Generic[T]):
         """
 
         name = name.replace("_", "-")
-        name = self.unalias(name)
+        name = self._unalias(name)
 
         ok = name in self.factories
         if not ok:
@@ -235,7 +235,7 @@ class Registry(Generic[T]):
         """
 
         name = name.replace("_", "-")
-        name = self.unalias(name)
+        name = self._unalias(name)
 
         if return_none:
             return self.factories.get(name)
@@ -328,7 +328,7 @@ class Registry(Generic[T]):
         """
 
         name = name.replace("_", "-")
-        name = self.unalias(name)
+        name = self._unalias(name)
 
         factory = self.lookup(name)
         return factory(*args, **kwargs)
@@ -377,7 +377,7 @@ class Registry(Generic[T]):
             f"Entry '{config}' must either be a string, a dictionary with a single entry, or a dictionary with a '{self.key}' key"
         )
 
-    def unalias(self, name: str) -> str:
+    def _unalias(self, name: str) -> str:
         """Resolve an alias to its canonical name.
 
         Parameters
@@ -399,3 +399,10 @@ class Registry(Generic[T]):
             )
 
         return canonical
+
+    def aliases(self):
+        """Get the aliases."""
+        result = {}
+        for alias, name in self._aliases.items():
+            result.setdefault(name, []).append(alias)
+        return result
