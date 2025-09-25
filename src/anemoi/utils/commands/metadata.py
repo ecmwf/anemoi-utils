@@ -315,7 +315,6 @@ class Metadata(Command):
         args : Namespace
             The arguments passed to the command.
         """
-        from pprint import pprint
 
         from anemoi.utils.checkpoints import load_metadata
 
