@@ -139,13 +139,13 @@ class Metadata(Command):
         command_parser.add_argument(
             "--json",
             action="store_true",
-            help="Use the JSON format with ``--dump``, ``--view`` and ``--edit``.",
+            help="Use the JSON format with ``--dump``, ``--view``, ``--get`` and ``--edit``.",
         )
 
         command_parser.add_argument(
             "--yaml",
             action="store_true",
-            help="Use the YAML format with ``--dump``, ``--view`` and ``--edit``.",
+            help="Use the YAML format with ``--dump``, ``--view``, ``--get`` and ``--edit``.",
         )
 
     def run(self, args: Namespace) -> None:
@@ -335,7 +335,10 @@ class Metadata(Command):
 
         print(f"Metadata values for {args.get}: ", end="\n" if isinstance(metadata, (dict, list)) else "")
         if isinstance(metadata, dict):
-            pprint(metadata, indent=2, compact=True)
+            if args.yaml:
+                print(yaml.dump(metadata, indent=2, sort_keys=True))
+                return
+            print(json.dumps(metadata, indent=2, sort_keys=True))
         else:
             print(metadata)
 
