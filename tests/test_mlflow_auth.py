@@ -15,6 +15,8 @@ import time
 import pytest
 
 from anemoi.utils.mlflow.auth import NoAuth
+from anemoi.utils.mlflow.auth import ServerConfig
+from anemoi.utils.mlflow.auth import ServerStore
 from anemoi.utils.mlflow.auth import TokenAuth
 
 
@@ -35,17 +37,19 @@ def mocks(
     response.update(token_request)
 
     config = {
-        "refresh_token": "old_refresh_token",
-        "refresh_expires": time.time() + 3600,
+        "https://test.url": {
+            "refresh_token": "old_refresh_token",
+            "refresh_expires": time.time() + 3600,
+        }
     }
-    config.update(load_config)
+    config["https://test.url"].update(load_config)
 
     mock_token_request = mocker.patch(
         "anemoi.utils.mlflow.auth.TokenAuth._token_request",
         return_value=response,
     )
     mocker.patch(
-        "anemoi.utils.mlflow.auth.load_config",
+        "anemoi.utils.mlflow.auth.load_raw_config",
         return_value=config,
     )
     mocker.patch(
@@ -177,3 +181,108 @@ def test_noauth_methods_do_nothing():
     assert auth.save() is None
     assert auth.login() is None
     assert auth.authenticate() is None
+
+
+def test_legacy_format(mocker: pytest.MockerFixture) -> None:
+    mocks(mocker)
+
+    legacy_config = {
+        "url": "https://test.url",
+        "refresh_token": "some_refresh_token",
+        "refresh_expires": 123,
+    }
+    new_config = {
+        legacy_config["url"]: {
+            "refresh_token": legacy_config["refresh_token"],
+            "refresh_expires": legacy_config["refresh_expires"],
+        }
+    }
+    mocker.patch(
+        "anemoi.utils.mlflow.auth.load_raw_config",
+        return_value=legacy_config,
+    )
+
+    # test backwards compatibility of deprecated load_config
+    # when this function is removed, also remove this assert
+    config = TokenAuth.load_config()
+    assert config == legacy_config
+
+    # test that the store can handle both formats and the outputs are identical
+    legacy_store = ServerStore(legacy_config)
+    new_store = ServerStore(new_config)
+    expected_config = new_config["https://test.url"]
+
+    assert (
+        legacy_store["https://test.url"].model_dump() == new_store["https://test.url"].model_dump() == expected_config
+    )
+    assert legacy_store.model_dump() == new_store.model_dump() == new_config
+
+
+multi_config = {
+    "https://server-1.url": {
+        "refresh_token": "refresh-token-1",
+        "refresh_expires": 1,
+    },
+    "https://server-3.url": {
+        "refresh_token": "refresh-token-3",
+        "refresh_expires": 3,
+    },
+    "https://server-2.url": {
+        "refresh_token": "refresh-token-2",
+        "refresh_expires": 2,
+    },
+}
+
+
+@pytest.mark.parametrize(
+    "url, unknown",
+    [
+        ("https://server-1.url", False),
+        ("https://server-2.url", False),
+        ("https://server-3.url", False),
+        ("https://unknown.url", True),
+    ],
+)
+def test_multi_server_format(mocker: pytest.MockerFixture, url: str, unknown: bool) -> None:
+    mocks(mocker)
+
+    mocker.patch(
+        "anemoi.utils.mlflow.auth.load_raw_config",
+        return_value=multi_config,
+    )
+
+    auth = TokenAuth(url)
+
+    if unknown:
+        assert auth.refresh_token is None
+        assert auth.refresh_expires == 0
+    else:
+        assert auth.refresh_token == multi_config[url]["refresh_token"]
+        assert auth.refresh_expires == multi_config[url]["refresh_expires"]
+
+
+def test_server_store() -> None:
+    store = ServerStore(multi_config)
+
+    config = store["https://server-2.url"]
+    assert isinstance(config, ServerConfig)
+    assert config.refresh_token == "refresh-token-2"
+    assert config.refresh_expires == 2
+
+    assert store.get("https://unknown.url") is None
+
+    # ordered by expiry time, highest first
+    assert store.servers == [("https://server-3.url", 3), ("https://server-2.url", 2), ("https://server-1.url", 1)]
+
+    assert ServerStore({}).model_dump() == {}
+
+
+def test_utils_interface():
+    """TokenAuth uses the utils CONFIG_LOCK when reading and writing the server store to ensure thread safety.
+    Ensure that CONFIG_LOCK stays a reentrant lock, if it were a normal lock it would deadlock itself.
+    """
+    from threading import RLock
+
+    from anemoi.utils.config import CONFIG_LOCK
+
+    assert isinstance(CONFIG_LOCK, type(RLock()))
