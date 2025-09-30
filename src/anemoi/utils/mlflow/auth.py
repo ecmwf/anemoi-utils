@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import warnings
 from abc import ABC
 from abc import abstractmethod
 from datetime import datetime
@@ -22,10 +23,15 @@ from getpass import getpass
 from typing import TYPE_CHECKING
 
 import requests
+from pydantic import BaseModel
+from pydantic import RootModel
+from pydantic import field_validator
+from pydantic import model_validator
 from requests.exceptions import HTTPError
 
+from ..config import CONFIG_LOCK
 from ..config import config_path
-from ..config import load_config
+from ..config import load_raw_config
 from ..config import save_config
 from ..remote import robust
 from ..timer import Timer
@@ -35,6 +41,56 @@ REFRESH_EXPIRE_DAYS = 29
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+class ServerConfig(BaseModel):
+    refresh_token: str | None = None
+    refresh_expires: int = 0
+
+    @field_validator("refresh_expires", mode="before")
+    def to_int(cls, value: float | int) -> int:
+        if not isinstance(value, int):
+            return int(value)
+        return value
+
+
+class ServerStore(RootModel):
+    root: dict[str, ServerConfig] = {}
+
+    def get(self, url: str) -> ServerConfig | None:
+        return self.root.get(url)
+
+    def __getitem__(self, url: str) -> ServerConfig:
+        return self.root[url]
+
+    def items(self):
+        return self.root.items()
+
+    def update(self, url, config: ServerConfig) -> None:
+        """Update the server configuration for a given URL."""
+        self.root[url] = config
+
+    @property
+    def servers(self) -> list[tuple[str, int]]:
+        """List of servers in the store, as a tuple (url, refresh_expires). Ordered most recently used first."""
+        return [
+            (url, cfg.refresh_expires)
+            for url, cfg in sorted(
+                self.root.items(),
+                key=lambda item: item[1].refresh_expires,
+                reverse=True,
+            )
+        ]
+
+    @model_validator(mode="before")
+    @classmethod
+    def load_legacy_format(cls, data: dict) -> dict:
+        """Convert legacy single-server config format to multi-server."""
+        if isinstance(data, dict) and "url" in data:
+            _data = data.copy()
+            _url = _data.pop("url")
+            data = {_url: ServerConfig(**_data)}
+        return data
 
 
 class AuthBase(ABC):
@@ -76,7 +132,7 @@ class NoAuth(AuthBase):
 class TokenAuth(AuthBase):
     """Manage authentication with a keycloak token server."""
 
-    config_file = "mlflow-token.json"
+    _config_file = "mlflow-token.json"
 
     def __init__(
         self,
@@ -101,10 +157,16 @@ class TokenAuth(AuthBase):
         self.target_env_var = target_env_var
         self._enabled = enabled
 
-        config = self.load_config()
+        store = self._get_store()
+        config = store.get(self.url)
 
-        self._refresh_token = config.get("refresh_token")
-        self.refresh_expires = config.get("refresh_expires", 0)
+        if config is not None:
+            self._refresh_token = config.refresh_token
+            self.refresh_expires = config.refresh_expires
+        else:
+            self._refresh_token = None
+            self.refresh_expires = 0
+
         self.access_token = None
         self.access_expires = 0
 
@@ -125,16 +187,49 @@ class TokenAuth(AuthBase):
         self.refresh_expires = time.time() + (REFRESH_EXPIRE_DAYS * 86400)  # 86400 seconds in a day
 
     @staticmethod
+    def _get_store() -> ServerStore:
+        """Read the server store from disk."""
+        with CONFIG_LOCK:
+            file = TokenAuth._config_file
+            path = config_path(file)
+
+            if not os.path.exists(path):
+                save_config(file, {})
+
+            if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
+                os.chmod(path, 0o600)
+
+            return ServerStore(**load_raw_config(file))
+
+    @staticmethod
+    def get_servers() -> list[tuple[str, int]]:
+        """List of all saved servers, as a tuple (url, refresh_expires). Ordered most recently used first."""
+        return TokenAuth._get_store().servers
+
+    @staticmethod
     def load_config() -> dict:
-        path = config_path(TokenAuth.config_file)
+        """Load the last used server configuration
 
-        if not os.path.exists(path):
-            save_config(TokenAuth.config_file, {})
+        Returns
+        -------
+        config : dict
+            Dictionary with the following keys: `url`, `refresh_token`, `refresh_expires`.
+            If no configuration is found, an empty dictionary is returned.
+        """
+        warnings.warn(
+            "TokenAuth.load_config() is deprecated and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
-        if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
-            os.chmod(path, 0o600)
+        store = TokenAuth._get_store()
 
-        return load_config(TokenAuth.config_file)
+        last = {}
+        for url, cfg in store.items():
+            if cfg.refresh_expires > last.get("refresh_expires", 0):
+                last = dict(url=url, **cfg.model_dump())
+
+        return last
 
     def enabled(fn: Callable) -> Callable:  # noqa: N805
         """Decorator to call or ignore a function based on the `enabled` flag."""
@@ -237,12 +332,15 @@ class TokenAuth(AuthBase):
             self.log.warning("No refresh token to save.")
             return
 
-        config = {
-            "url": self.url,
-            "refresh_token": self.refresh_token,
-            "refresh_expires": self.refresh_expires,
-        }
-        save_config(self.config_file, config)
+        server_config = ServerConfig(
+            refresh_token=self.refresh_token,
+            refresh_expires=self.refresh_expires,
+        )
+
+        with CONFIG_LOCK:
+            store = self._get_store()
+            store.update(self.url, server_config)
+            save_config(self._config_file, store.model_dump())
 
         expire_date = datetime.fromtimestamp(self.refresh_expires, tz=timezone.utc)
         self.log.info(
