@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.37](https://github.com/ecmwf/anemoi-utils/compare/0.4.36...0.4.37) (2025-09-30)
+
+
+### Features
+
+* **mlflow auth:** Support for multiple servers ([#217](https://github.com/ecmwf/anemoi-utils/issues/217)) ([8ccfb1a](https://github.com/ecmwf/anemoi-utils/commit/8ccfb1ab063cccfec5852c386580036286b097c6))
+
+
+### Bug Fixes
+
+* Update s3 chunk size to 10 MB ([#220](https://github.com/ecmwf/anemoi-utils/issues/220)) ([aa20fa8](https://github.com/ecmwf/anemoi-utils/commit/aa20fa8b0b572fb6fa510b2f28c2b8b8a2f76d7c))
+* Use `yaml` and `json` flag in metadata get command ([#222](https://github.com/ecmwf/anemoi-utils/issues/222)) ([6af46c4](https://github.com/ecmwf/anemoi-utils/commit/6af46c4e715fc55aca374d2112976aa7d1bac589))
+
 ## [0.4.36](https://github.com/ecmwf/anemoi-utils/compare/0.4.35...0.4.36) (2025-09-22)
 
 
