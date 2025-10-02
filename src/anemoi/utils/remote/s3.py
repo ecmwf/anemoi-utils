@@ -262,7 +262,7 @@ def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosi
         leave=verbosity >= 2,
         delay=0 if verbosity > 0 else 10,
     ) as pbar:
-        chunk_size = 1024 * 1024
+        chunk_size = 1024 * 1024 * 10
         total = size
         with open(source, "rb") as f:
             with closing(obstore.open_writer(s3, obj.key, buffer_size=chunk_size)) as g:
@@ -331,7 +331,7 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
         leave=verbosity >= 2,
         delay=0 if verbosity > 0 else 10,
     ) as pbar:
-        chunk_size = 1024 * 1024
+        chunk_size = 1024 * 1024 * 10
         total = size
         with closing(obstore.open_reader(s3, obj.key, buffer_size=chunk_size)) as f:
             with open(target, "wb") as g:
