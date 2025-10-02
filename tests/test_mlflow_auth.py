@@ -49,11 +49,11 @@ def mocks(
         return_value=response,
     )
     mocker.patch(
-        "anemoi.utils.mlflow.auth.load_raw_config",
+        "anemoi.utils.mlflow.auth.load_raw_settings",
         return_value=config,
     )
     mocker.patch(
-        "anemoi.utils.mlflow.auth.save_config",
+        "anemoi.utils.mlflow.auth.save_settings",
     )
     mocker.patch(
         "anemoi.utils.mlflow.auth.getpass",
@@ -198,7 +198,7 @@ def test_legacy_format(mocker: pytest.MockerFixture) -> None:
         }
     }
     mocker.patch(
-        "anemoi.utils.mlflow.auth.load_raw_config",
+        "anemoi.utils.mlflow.auth.load_raw_settings",
         return_value=legacy_config,
     )
 
@@ -247,7 +247,7 @@ def test_multi_server_format(mocker: pytest.MockerFixture, url: str, unknown: bo
     mocks(mocker)
 
     mocker.patch(
-        "anemoi.utils.mlflow.auth.load_raw_config",
+        "anemoi.utils.mlflow.auth.load_raw_settings",
         return_value=multi_config,
     )
 
@@ -278,11 +278,11 @@ def test_server_store() -> None:
 
 
 def test_utils_interface():
-    """TokenAuth uses the utils CONFIG_LOCK when reading and writing the server store to ensure thread safety.
-    Ensure that CONFIG_LOCK stays a reentrant lock, if it were a normal lock it would deadlock itself.
+    """TokenAuth uses the utils SETTINGS_LOCK when reading and writing the server store to ensure thread safety.
+    Ensure that SETTINGS_LOCK stays a reentrant lock, if it were a normal lock it would deadlock itself.
     """
     from threading import RLock
 
-    from anemoi.utils.config import CONFIG_LOCK
+    from anemoi.utils.settings import SETTINGS_LOCK
 
-    assert isinstance(CONFIG_LOCK, type(RLock()))
+    assert isinstance(SETTINGS_LOCK, type(RLock()))

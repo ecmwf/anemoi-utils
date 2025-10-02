@@ -9,8 +9,6 @@
 
 
 from anemoi.utils.config import DotDict
-from anemoi.utils.grib import paramid_to_shortname
-from anemoi.utils.grib import shortname_to_paramid
 from anemoi.utils.settings import _merge_dicts
 from anemoi.utils.settings import _set_defaults
 
@@ -53,6 +51,13 @@ def test_add_nested_dict_via_setitem():
 
 
 def test_adding_list_of_dicts_via_setitem():
+    """Test that assigning a list of dicts via item access results in recursive DotDict conversion.
+
+    Tests
+    -----
+    - Assigning a list of dicts to a DotDict key.
+    - Ensuring each dict in the list is converted to DotDict.
+    """
     d = DotDict(a=1)
     d["b"] = [
         {
@@ -65,6 +70,13 @@ def test_adding_list_of_dicts_via_setitem():
 
 
 def test_adding_list_of_dicts_via_setattr():
+    """Test that assigning a list of dicts via attribute access results in recursive DotDict conversion.
+
+    Tests
+    -----
+    - Assigning a list of dicts to a DotDict attribute.
+    - Ensuring each dict in the list is converted to DotDict.
+    """
     d = DotDict(a=1)
     d.b = [
         {
@@ -102,15 +114,52 @@ def test_set_defaults() -> None:
     assert a == {"a": 1, "b": 2, "c": {"d": 3, "e": 4, "a": 30}, "d": 9}
 
 
-def test_grib() -> None:
-    """Test the GRIB utility functions.
+def test_interpolation() -> None:
+    """Test interpolation in DotDict using OmegaConf-like syntax.
 
-    Tests:
-        - Converting short names to parameter IDs.
-        - Converting parameter IDs to short names.
+    Tests
+    -----
+    - Interpolating values from other keys using nested references.
     """
-    assert shortname_to_paramid("2t") == 167
-    assert paramid_to_shortname(167) == "2t"
+    # From omegaconf documentation
+
+    d = DotDict(
+        {
+            "plans": {
+                "A": "plan A",
+                "B": "plan B",
+            },
+            "selected_plan": "A",
+            "plan": "${plans[${selected_plan}]}",
+        }
+    )
+
+    assert d.to_dict() == {"plan": "plan A", "plans": {"A": "plan A", "B": "plan B"}, "selected_plan": "A"}
+
+
+def test_cli_arguments() -> None:
+    """Test that DotDict correctly applies CLI arguments to override values.
+
+    Tests
+    -----
+    - Overriding top-level and nested values using CLI arguments.
+    """
+    d = DotDict(
+        {
+            "a": 1,
+            "b": 2,
+            "c": {
+                "d": 3,
+                "e": 4,
+            },
+        },
+        cli_arguments=["a=10", "c.d=30"],
+    )
+
+    assert d.a == 10
+    assert d.b == 2
+    assert d.c.d == 30
+    assert d.c.e == 4
 
 
 if __name__ == "__main__":

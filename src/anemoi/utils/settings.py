@@ -31,7 +31,7 @@ LOG = logging.getLogger(__name__)
 
 CONFIG = {}
 CHECKED = {}
-CONFIG_LOCK = threading.RLock()
+SETTINGS_LOCK = threading.RLock()
 QUIET = False
 CONFIG_PATCH = None
 
@@ -292,7 +292,7 @@ def save_settings(name: str, data: Any) -> None:
     data : Any
         The data to save.
     """
-    with CONFIG_LOCK:
+    with SETTINGS_LOCK:
         _save_settings(name, data)
 
 
@@ -340,7 +340,7 @@ def load_settings(
         Return DotDict if it is a dictionary, otherwise the raw data
     """
 
-    with CONFIG_LOCK:
+    with SETTINGS_LOCK:
         config = _load_settings(name, secrets, defaults)
         if CONFIG_PATCH is not None:
             config = CONFIG_PATCH(config)
@@ -386,7 +386,7 @@ def check_settings_mode(name: str = "settings.toml", secrets_name: str = None, s
     SystemError
         If the configuration file is not secure.
     """
-    with CONFIG_LOCK:
+    with SETTINGS_LOCK:
         if name in CHECKED:
             return
 
@@ -414,7 +414,7 @@ def temporary_settings(tmp: dict) -> None:
     def patch_config(config: dict) -> dict:
         return merge_configs(config, tmp)
 
-    with CONFIG_LOCK:
+    with SETTINGS_LOCK:
 
         CONFIG_PATCH = patch_config
 
