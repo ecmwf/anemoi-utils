@@ -8,6 +8,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.37](https://github.com/ecmwf/anemoi-utils/compare/0.4.36...0.4.37) (2025-09-30)
+
+
+### Features
+
+* **mlflow auth:** Support for multiple servers ([#217](https://github.com/ecmwf/anemoi-utils/issues/217)) ([8ccfb1a](https://github.com/ecmwf/anemoi-utils/commit/8ccfb1ab063cccfec5852c386580036286b097c6))
+
+
+### Bug Fixes
+
+* Update s3 chunk size to 10 MB ([#220](https://github.com/ecmwf/anemoi-utils/issues/220)) ([aa20fa8](https://github.com/ecmwf/anemoi-utils/commit/aa20fa8b0b572fb6fa510b2f28c2b8b8a2f76d7c))
+* Use `yaml` and `json` flag in metadata get command ([#222](https://github.com/ecmwf/anemoi-utils/issues/222)) ([6af46c4](https://github.com/ecmwf/anemoi-utils/commit/6af46c4e715fc55aca374d2112976aa7d1bac589))
+
+## [0.4.36](https://github.com/ecmwf/anemoi-utils/compare/0.4.35...0.4.36) (2025-09-22)
+
+
+### Features
+
+* Add aliases to registry ([#219](https://github.com/ecmwf/anemoi-utils/issues/219)) ([37267b5](https://github.com/ecmwf/anemoi-utils/commit/37267b548556a796a01b43abb908011eeec85454))
+* Debug imports ([#182](https://github.com/ecmwf/anemoi-utils/issues/182)) ([1eaa615](https://github.com/ecmwf/anemoi-utils/commit/1eaa61540dc9ac3d5fe82f2c91b7fc98c8bb10af))
+* NoAuth for AML mlflow Logging ([#200](https://github.com/ecmwf/anemoi-utils/issues/200)) ([732182e](https://github.com/ecmwf/anemoi-utils/commit/732182ea5d255ba69ea2ed0a23b307d6f64aaf84))
+* Rich logging ([#209](https://github.com/ecmwf/anemoi-utils/issues/209)) ([3c762a5](https://github.com/ecmwf/anemoi-utils/commit/3c762a593ba2dc734becc54b92984d6dc62967ac))
+* Speedup checkpoint editing - remove compression ([#218](https://github.com/ecmwf/anemoi-utils/issues/218)) ([b49120f](https://github.com/ecmwf/anemoi-utils/commit/b49120f763b0b6ee10c805bab2aa7b973047f963))
+* Use obstore to access s3 buckets ([#210](https://github.com/ecmwf/anemoi-utils/issues/210)) ([da380be](https://github.com/ecmwf/anemoi-utils/commit/da380be71d78274d72bd0a3859ef00b1c80e9469))
+
+
+### Bug Fixes
+
+* Add missing s3 function used by datasets ([#212](https://github.com/ecmwf/anemoi-utils/issues/212)) ([30589e8](https://github.com/ecmwf/anemoi-utils/commit/30589e891fbdb1cff205f0350c63e93a725c7242))
+
+## [0.4.35](https://github.com/ecmwf/anemoi-utils/compare/0.4.34...0.4.35) (2025-08-12)
+
+
+### Bug Fixes
+
+* Config override ([#204](https://github.com/ecmwf/anemoi-utils/issues/204)) ([cdeef1e](https://github.com/ecmwf/anemoi-utils/commit/cdeef1ef95ecd3696fefc751f8a97e90fe357329))
+
+## [0.4.34](https://github.com/ecmwf/anemoi-utils/compare/0.4.33...0.4.34) (2025-08-11)
+
+
+### Bug Fixes
+
+* Typo ([#201](https://github.com/ecmwf/anemoi-utils/issues/201)) ([7c98725](https://github.com/ecmwf/anemoi-utils/commit/7c987258b8c3ccfc159175d6d8f5bf460f308499))
+
+## [0.4.33](https://github.com/ecmwf/anemoi-utils/compare/0.4.32...0.4.33) (2025-08-07)
+
+
+### Features
+
+* **config:** Expand environment var recognition for the use of config override ([#197](https://github.com/ecmwf/anemoi-utils/issues/197)) ([9bd9170](https://github.com/ecmwf/anemoi-utils/commit/9bd9170478857cf129fa6b8042bc22d1a3940156))
+
+## [0.4.32](https://github.com/ecmwf/anemoi-utils/compare/0.4.31...0.4.32) (2025-08-05)
+
+
+### Features
+
+* Improve types of testing ([#186](https://github.com/ecmwf/anemoi-utils/issues/186)) ([7bc7cbd](https://github.com/ecmwf/anemoi-utils/commit/7bc7cbdc1f3452e131b12067684f39dea067eed6))
+
+## [0.4.31](https://github.com/ecmwf/anemoi-utils/compare/0.4.30...0.4.31) (2025-08-04)
+
+
+### Bug Fixes
+
+* Remove too many warnings ([#193](https://github.com/ecmwf/anemoi-utils/issues/193)) ([df6862b](https://github.com/ecmwf/anemoi-utils/commit/df6862bf829e67651ccc97cbaac9f38096ad4d34))
+
+## [0.4.30](https://github.com/ecmwf/anemoi-utils/compare/0.4.29...0.4.30) (2025-07-31)
+
+
+### Bug Fixes
+
+* Refactor code for casting dotdicts and apply this in getitem and setitem methods ([#169](https://github.com/ecmwf/anemoi-utils/issues/169)) ([e91aecf](https://github.com/ecmwf/anemoi-utils/commit/e91aecf6699a0daaed6f79e92b4ebc57cd4abe36))
+
 ## [0.4.29](https://github.com/ecmwf/anemoi-utils/compare/0.4.28...0.4.29) (2025-07-22)
 
 

@@ -28,9 +28,9 @@ import fnmatch
 import logging
 import os
 import threading
-from copy import deepcopy
+from collections.abc import Iterable
+from contextlib import closing
 from typing import Any
-from typing import Iterable
 
 import tqdm
 
@@ -38,583 +38,390 @@ from ..config import load_config
 from ..humanize import bytes_to_human
 from . import BaseDownload
 from . import BaseUpload
+from . import transfer
 
 LOG = logging.getLogger(__name__)
-SECRETS = ["aws_access_key_id", "aws_secret_access_key"]
-
-# s3_clients are not thread-safe, so we need to create a new client for each thread
-
-thread_local = threading.local()
+SECRETS = ["aws_access_key_id", "aws_secret_access_key", "access_key_id", "secret_access_key"]
 
 
-def _s3_config(bucket: str, *, region: str = None) -> Any:
-    """Get an S3 client config for the specified bucket and region.
+MIGRATE = {
+    "aws_access_key_id": "access_key_id",
+    "aws_secret_access_key": "secret_access_key",
+}
+
+CACHE = {}
+LOCK = threading.Lock()
+
+
+class S3Object:
+    def __init__(self, url: str) -> None:
+        """Initialise an S3Object from a URL.
+
+        Parameters
+        ----------
+        url : str
+            S3 URL (e.g., 's3://bucket/key').
+        """
+        self.url = url
+        try:
+            s3, empty, self.bucket, self.key = url.split("/", 3)
+        except ValueError:
+            raise ValueError(f"Invalid S3 URL: {url}")
+        assert s3 == "s3:"
+        assert empty == ""
+        self.dirname = f"s3://{self.bucket}"
+
+
+def _s3_object(url_or_object: str | S3Object) -> S3Object:
+    """Convert a string or S3Object to S3Object.
 
     Parameters
     ----------
-    bucket : str
-        The name of the S3 bucket.
-    region : str, optional
-        The AWS region of the S3 bucket.
+    url_or_object : str or S3Object
+        S3 URL or S3Object instance.
 
     Returns
     -------
-    Any
-        The S3 client.
+    S3Object
+        S3Object instance.
     """
-    from botocore import UNSIGNED
+    if isinstance(url_or_object, S3Object):
+        return url_or_object
 
-    boto3_config = {}
+    if isinstance(url_or_object, str):
+        return S3Object(url_or_object)
 
-    if region:
-        # This is using AWS
-
-        options = {"region_name": region}
-
-        # Anonymous access
-        if not (
-            os.path.exists(os.path.expanduser("~/.aws/credentials"))
-            or ("AWS_ACCESS_KEY_ID" in os.environ and "AWS_SECRET_ACCESS_KEY" in os.environ)
-        ):
-            boto3_config["signature_version"] = UNSIGNED
-
-    else:
-
-        # We may be accessing a different S3 compatible service
-        # Use anemoi.config to get the configuration
-
-        region = "unknown-region"
-
-        options = {"region_name": region}
-        config = load_config(secrets=SECRETS)
-
-        cfg = config.get("object-storage", {})
-        candidate = None
-        for k, v in cfg.items():
-            if isinstance(v, (str, int, float, bool)):
-                options[k] = v
-
-            if isinstance(v, dict):
-                if fnmatch.fnmatch(bucket, k):
-                    if candidate is not None:
-                        raise ValueError(f"Multiple object storage configurations match {bucket}: {candidate} and {k}")
-                    candidate = k
-
-        if candidate is not None:
-            for k, v in cfg.get(candidate, {}).items():
-                if isinstance(v, (str, int, float, bool)):
-                    options[k] = v
-
-        type = options.pop("type", "s3")
-        if type != "s3":
-            raise ValueError(f"Unsupported object storage type {type}")
-
-        if "config" in options:
-            boto3_config.update(options["config"])
-            del options["config"]
-
-    def _(options):
-
-        def __(k, v):
-            if k in SECRETS:
-                return "***"
-            return v
-
-        if isinstance(options, dict):
-            return {k: __(k, v) for k, v in options.items()}
-
-        if isinstance(options, list):
-            return [_(o) for o in options]
-
-        return options
-
-    LOG.debug(f"Using S3 options: {_(options)}")
-
-    return boto3_config, options
+    raise TypeError(f"Invalid type for S3 object: {type(url_or_object)}")
 
 
-def s3_options(bucket: str, *, region: str = None, service: str = "s3") -> dict:
-    """Get the S3 configuration for the specified bucket and region.
+def _hide_secrets(options: dict | list) -> dict | list:
+    """Hide secret values in options.
 
     Parameters
     ----------
-    bucket : str
-        The name of the S3 bucket.
-    region : str, optional
-        The AWS region of the S3 bucket.
-    service : str, optional
-        The AWS service to use, default is "s3".
+    options : dict or list
+        Options possibly containing secrets.
+
+    Returns
+    -------
+    dict or list
+        Options with secrets hidden.
+    """
+
+    def __(k, v):
+        if k in SECRETS:
+            return "***"
+        return v
+
+    if isinstance(options, dict):
+        return {k: __(k, v) for k, v in options.items()}
+
+    if isinstance(options, list):
+        return [_hide_secrets(o) for o in options]
+
+    return options
+
+
+def _s3_options(obj: str | S3Object) -> dict:
+    """Get S3 options for a given object.
+
+    Parameters
+    ----------
+    obj : str or S3Object
+        S3 URL or S3Object instance.
 
     Returns
     -------
     dict
-        The S3 configuration.
+        S3 connection options.
     """
-    _, options = _s3_config(bucket, region=region)
+
+    obj = _s3_object(obj)
+
+    with LOCK:
+        if obj.dirname in CACHE:
+            return CACHE[obj.dirname]
+
+    options = {}
+
+    # We may be accessing a different S3 compatible service
+    # Use anemoi.config to get the configuration
+
+    config = load_config(secrets=SECRETS)
+
+    cfg = config.get("object-storage", {})
+    candidate = None
+    for k, v in cfg.items():
+        if isinstance(v, (str, int, float, bool)):
+            options[k] = v
+
+        if isinstance(v, dict):
+            if fnmatch.fnmatch(obj.bucket, k):
+                if candidate is not None:
+                    raise ValueError(f"Multiple object storage configurations match {obj.bucket}: {candidate} and {k}")
+                candidate = k
+
+    if candidate is not None:
+        for k, v in cfg.get(candidate, {}).items():
+            if isinstance(v, (str, int, float, bool)):
+                options[k] = v
+
+    type = options.pop("type", "s3")
+    if type != "s3":
+        raise ValueError(f"Unsupported object storage type {type}")
+
+    for k, v in MIGRATE.items():
+        if k in options:
+            LOG.warning(f"Option '{k}' is deprecated, use '{v}' instead")
+            options[v] = options.pop(k)
+
+    LOG.info(f"Using S3 options: {_hide_secrets(options)}")
+
+    with LOCK:
+        CACHE[obj.dirname] = options
+
     return options
 
 
-def s3_client(bucket: str, *, region: str = None, service: str = "s3") -> Any:
-    """Get an S3 client for the specified bucket and region.
+def s3_client(obj: str | S3Object) -> Any:
+    """Create an S3 client for the given URL.
 
     Parameters
     ----------
-    bucket : str
-        The name of the S3 bucket.
-    region : str, optional
-        The AWS region of the S3 bucket.
-    service : str, optional
-        The AWS service to use, default is "s3".
+    obj : str or S3Object
+        S3 URL or S3Object instance.
 
     Returns
     -------
     Any
-        The S3 client.
+        S3 client instance.
     """
-    import boto3
-    from botocore.client import Config
 
-    if not hasattr(thread_local, "s3_clients"):
-        thread_local.s3_clients = {}
+    import obstore
 
-    key = f"{bucket}-{region}-{service}"
-
-    if key in thread_local.s3_clients:
-        return thread_local.s3_clients[key]
-
-    boto3_config, options = _s3_config(bucket, region=region)
-
-    boto3_config.update(
-        dict(
-            max_pool_connections=25,
-            request_checksum_calculation="when_required",
-            response_checksum_validation="when_required",
-        )
-    )
-
-    options["config"] = Config(**boto3_config)
-
-    def _(options):
-
-        def __(k, v):
-            if k in SECRETS:
-                return "***"
-            return v
-
-        if isinstance(options, dict):
-            return {k: __(k, v) for k, v in options.items()}
-
-        if isinstance(options, list):
-            return [_(o) for o in options]
-
-        return options
-
-    LOG.debug(f"Using S3 options: {_(options)}")
-
-    thread_local.s3_clients[key] = boto3.client(service, **options)
-
-    return thread_local.s3_clients[key]
+    obj = _s3_object(obj)
+    options = _s3_options(obj)
+    LOG.debug(f"Using S3 options: {_hide_secrets(options)}")
+    return obstore.store.from_url(obj.dirname, **options)
 
 
-class S3Upload(BaseUpload):
+def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosity: int) -> int:
+    """Upload a file to S3.
 
-    def get_temporary_target(self, target: str, pattern: str) -> str:
-        """Get a temporary target path based on the given pattern.
+    Parameters
+    ----------
+    source : str
+        Local file path to upload.
+    target : str
+        S3 target URL.
+    overwrite : bool
+        Overwrite existing file if True.
+    resume : bool
+        Resume upload if True.
+    verbosity : int
+        Verbosity level.
 
-        Parameters
-        ----------
-        target : str
-            The original target path.
-        pattern : str
-            The pattern to format the temporary path.
+    Returns
+    -------
+    int
+        Number of bytes uploaded.
+    """
 
-        Returns
-        -------
-        str
-            The temporary target path.
-        """
-        return target
+    import obstore
 
-    def rename_target(self, target: str, temporary_target: str) -> None:
-        """Rename the target to a new target path.
+    obj = _s3_object(target)
 
-        Parameters
-        ----------
-        target : str
-            The original target path.
-        temporary_target : str
-            The new target path.
-        """
-        pass
+    s3 = s3_client(obj)
+    size = os.path.getsize(source)
 
-    def delete_target(self, target: str) -> None:
-        """Delete the target path.
+    if verbosity > 0:
+        LOG.info(f"Upload {source} to {target} ({bytes_to_human(size)})")
 
-        Parameters
-        ----------
-        target : str
-            The target path to delete.
-        """
-        pass
-        # delete(target)
+    try:
+        remote_size = object_info(obj)["size"]
+    except FileNotFoundError:
+        remote_size = None
 
-    def _transfer_file(
-        self,
-        source: str,
-        target: str,
-        overwrite: bool,
-        resume: bool,
-        verbosity: int,
-        threads: int,
-        config: dict = None,
-    ) -> int:
-        """Transfer a file to S3.
+    if remote_size is not None:
+        if remote_size != size:
+            LOG.warning(
+                f"{target} already exists, but with different size, re-uploading (remote={remote_size}, local={size})"
+            )
+        elif resume:
+            return size
 
-        Parameters
-        ----------
-        source : str
-            The source file path.
-        target : str
-            The target S3 path.
-        overwrite : bool
-            Whether to overwrite the target if it exists.
-        resume : bool
-            Whether to resume the transfer if possible.
-        verbosity : int
-            The verbosity level.
-        threads : int
-            The number of threads to use.
-        config : dict, optional
-            Additional configuration options.
+    if remote_size is not None and not overwrite and not resume:
+        raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
-        Returns
-        -------
-        int
-            The size of the transferred file.
+    with tqdm.tqdm(
+        desc=obj.key,
+        total=size,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+        leave=verbosity >= 2,
+        delay=0 if verbosity > 0 else 10,
+    ) as pbar:
+        chunk_size = 1024 * 1024 * 10
+        total = size
+        with open(source, "rb") as f:
+            with closing(obstore.open_writer(s3, obj.key, buffer_size=chunk_size)) as g:
+                while total > 0:
+                    chunk = f.read(min(chunk_size, total))
+                    g.write(chunk)
+                    pbar.update(len(chunk))
+                    total -= len(chunk)
 
-        Raises
-        ------
-        ValueError
-            If the target already exists and overwrite or resume is not specified.
-        """
-        from botocore.exceptions import ClientError
+    return size
 
-        assert target.startswith("s3://")
 
-        _, _, bucket, key = target.split("/", 3)
-        s3 = s3_client(bucket)
+def download_file(source: str, target: str, overwrite: bool, resume: bool, verbosity: int) -> int:
+    """Download a file from S3.
 
-        size = os.path.getsize(source)
+    Parameters
+    ----------
+    source : str
+        S3 source URL.
+    target : str
+        Local file path to save.
+    overwrite : bool
+        Overwrite existing file if True.
+    resume : bool
+        Resume download if True.
+    verbosity : int
+        Verbosity level.
 
-        if verbosity > 0:
-            LOG.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
+    Returns
+    -------
+    int
+        Number of bytes downloaded.
+    """
 
-        try:
-            results = s3.head_object(Bucket=bucket, Key=key)
-            remote_size = int(results["ContentLength"])
-        except ClientError as e:
-            if e.response["Error"]["Code"] != "404":
-                raise
-            remote_size = None
+    import obstore
 
-        if remote_size is not None:
-            if remote_size != size:
-                LOG.warning(
-                    f"{target} already exists, but with different size, re-uploading (remote={remote_size}, local={size})"
-                )
-            elif resume:
-                # LOGGER.info(f"{target} already exists, skipping")
+    obj = _s3_object(source)
+
+    s3 = s3_client(obj)
+
+    size = object_info(source)["size"]
+
+    if verbosity > 0:
+        LOG.info(f"Download {source} to {target} ({bytes_to_human(size)})")
+
+    if overwrite:
+        resume = False
+
+    if resume:
+        if os.path.exists(target):
+            local_size = os.path.getsize(target)
+            if local_size != size:
+                LOG.warning(f"{target} already with different size, re-downloading (remote={size}, local={local_size})")
+            else:
                 return size
 
-        if remote_size is not None and not overwrite and not resume:
-            raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
+    if os.path.exists(target) and not overwrite:
+        raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
-        if verbosity > 0:
-            with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3.upload_file(
-                    source,
-                    bucket,
-                    key,
-                    Callback=lambda x: pbar.update(x),
-                    Config=config,
-                )
-        else:
-            s3.upload_file(source, bucket, key, Config=config)
+    with tqdm.tqdm(
+        desc=obj.key,
+        total=size,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+        leave=verbosity >= 2,
+        delay=0 if verbosity > 0 else 10,
+    ) as pbar:
+        chunk_size = 1024 * 1024 * 10
+        total = size
+        with closing(obstore.open_reader(s3, obj.key, buffer_size=chunk_size)) as f:
+            with open(target, "wb") as g:
+                while total > 0:
+                    chunk = f.read(min(chunk_size, total))
+                    g.write(chunk)
+                    pbar.update(len(chunk))
+                    total -= len(chunk)
 
-        return size
-
-
-class S3Download(BaseDownload):
-
-    def copy(self, source: str, target: str, **kwargs) -> None:
-        """Copy a file or folder from S3 to the local filesystem.
-
-        Parameters
-        ----------
-        source : str
-            The source S3 path.
-        target : str
-            The target local path.
-        kwargs : dict
-            Additional arguments for the transfer.
-        """
-        assert source.startswith("s3://")
-
-        if source.endswith("/"):
-            self.transfer_folder(source=source, target=target, **kwargs)
-        else:
-            self.transfer_file(source=source, target=target, **kwargs)
-
-    def list_source(self, source: str) -> Iterable:
-        """List the objects in the source S3 path.
-
-        Parameters
-        ----------
-        source : str
-            The source S3 path.
-
-        Returns
-        -------
-        Iterable
-            An iterable of S3 objects.
-        """
-        yield from _list_objects(source)
-
-    def source_path(self, s3_object: dict, source: str) -> str:
-        """Get the S3 path of the object.
-
-        Parameters
-        ----------
-        s3_object : dict
-            The S3 object.
-        source : str
-            The source S3 path.
-
-        Returns
-        -------
-        str
-            The S3 path of the object.
-        """
-        _, _, bucket, _ = source.split("/", 3)
-        return f"s3://{bucket}/{s3_object['Key']}"
-
-    def target_path(self, s3_object: dict, source: str, target: str) -> str:
-        """Get the local path for the S3 object.
-
-        Parameters
-        ----------
-        s3_object : dict
-            The S3 object.
-        source : str
-            The source S3 path.
-        target : str
-            The target local path.
-
-        Returns
-        -------
-        str
-            The local path for the S3 object.
-        """
-        _, _, _, folder = source.split("/", 3)
-        local_path = os.path.join(target, os.path.relpath(s3_object["Key"], folder))
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        return local_path
-
-    def source_size(self, s3_object: dict) -> int:
-        """Get the size of the S3 object.
-
-        Parameters
-        ----------
-        s3_object : dict
-            The S3 object.
-
-        Returns
-        -------
-        int
-            The size of the S3 object.
-        """
-        return s3_object["Size"]
-
-    def _transfer_file(
-        self,
-        source: str,
-        target: str,
-        overwrite: bool,
-        resume: bool,
-        verbosity: int,
-        threads: int,
-        config: dict = None,
-    ) -> int:
-        """Transfer a file from S3 to the local filesystem.
-
-        Parameters
-        ----------
-        source : str
-            The source S3 path.
-        target : str
-            The target local path.
-        overwrite : bool
-            Whether to overwrite the target if it exists.
-        resume : bool
-            Whether to resume the transfer if possible.
-        verbosity : int
-            The verbosity level.
-        threads : int
-            The number of threads to use.
-        config : dict, optional
-            Additional configuration options.
-
-        Returns
-        -------
-        int
-            The size of the transferred file.
-
-        Raises
-        ------
-        ValueError
-            If the target does not exist on S3.
-        """
-        # from boto3.s3.transfer import TransferConfig
-
-        _, _, bucket, key = source.split("/", 3)
-        s3 = s3_client(bucket)
-
-        if key.endswith("/"):
-            return 0
-
-        try:
-            response = s3.head_object(Bucket=bucket, Key=key)
-        except s3.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == "404":
-                raise ValueError(f"{source} does not exist ({bucket}, {key})")
-            raise
-
-        size = int(response["ContentLength"])
-
-        if verbosity > 0:
-            LOG.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
-
-        if overwrite:
-            resume = False
-
-        if resume:
-            if os.path.exists(target):
-                local_size = os.path.getsize(target)
-                if local_size != size:
-                    LOG.warning(
-                        f"{target} already with different size, re-downloading (remote={size}, local={local_size})"
-                    )
-                else:
-                    # if verbosity > 0:
-                    #     LOGGER.info(f"{target} already exists, skipping")
-                    return size
-
-        if os.path.exists(target) and not overwrite:
-            raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
-
-        if verbosity > 0:
-            with tqdm.tqdm(total=size, unit="B", unit_scale=True, unit_divisor=1024, leave=False) as pbar:
-                s3.download_file(
-                    bucket,
-                    key,
-                    target,
-                    Callback=lambda x: pbar.update(x),
-                    Config=config,
-                )
-        else:
-            s3.download_file(bucket, key, target, Config=config)
-
-        return size
+    return size
 
 
-def _list_objects(target: str, batch: bool = False) -> Iterable:
-    """List the objects in the target S3 path.
+def _list_objects(target: str, batch: bool = False) -> Iterable[list[dict]] | Iterable[dict]:
+
+    import obstore
+
+    """
+    List objects in an S3 folder.
 
     Parameters
     ----------
     target : str
-        The target S3 path.
+        S3 folder URL.
     batch : bool, optional
-        Whether to return objects in batches, by default False.
+        Yield batches if True, else yield individual objects.
 
     Returns
     -------
     Iterable
-        An iterable of S3 objects.
+        Iterable of objects or batches.
     """
-    _, _, bucket, prefix = target.split("/", 3)
-    s3 = s3_client(bucket)
+    obj = _s3_object(target)
 
-    paginator = s3.get_paginator("list_objects_v2")
+    s3 = s3_client(obj)
 
-    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        if "Contents" in page:
-            objects = deepcopy(page["Contents"])
-            if batch:
-                yield objects
-            else:
-                yield from objects
+    for files in obstore.list(s3, obj.key + "/", chunk_size=1024):
+        if batch:
+            yield files
+        else:
+            yield from files
 
 
 def delete_folder(target: str) -> None:
-    """Delete a folder from S3.
+
+    import obstore
+
+    """
+    Delete all objects in an S3 folder.
 
     Parameters
     ----------
     target : str
-        The target S3 folder path.
+        S3 folder URL.
     """
-    _, _, bucket, _ = target.split("/", 3)
-    s3 = s3_client(bucket)
+    obj = _s3_object(target)
+    s3 = s3_client(obj)
 
     total = 0
-    for batch in _list_objects(target, batch=True):
+    for batch in _list_objects(obj, batch=True):
+        paths = [o["path"] for o in batch]
         LOG.info(f"Deleting {len(batch):,} objects from {target}")
-        s3.delete_objects(Bucket=bucket, Delete={"Objects": [{"Key": o["Key"]} for o in batch]})
+        obstore.delete(s3, paths)
         total += len(batch)
         LOG.info(f"Deleted {len(batch):,} objects (total={total:,})")
 
 
 def delete_file(target: str) -> None:
-    """Delete a file from S3.
+    import obstore
 
-    Parameters
-    ----------
-    target : str
-        The target S3 file path.
-    """
-    from botocore.exceptions import ClientError
+    obj = _s3_object(target)
 
-    _, _, bucket, key = target.split("/", 3)
-    s3 = s3_client(bucket)
+    s3 = s3_client(obj)
 
-    try:
-        s3.head_object(Bucket=bucket, Key=key)
-        exits = True
-    except ClientError as e:
-        if e.response["Error"]["Code"] != "404":
-            raise
-        exits = False
-
-    if not exits:
+    if not object_exists(obj):
         LOG.warning(f"{target} does not exist. Did you mean to delete a folder? Then add a trailing '/'")
         return
 
     LOG.info(f"Deleting {target}")
-    s3.delete_object(Bucket=bucket, Key=key)
+    obstore.delete(s3, obj.key)
     LOG.info(f"{target} is deleted")
 
 
 def delete(target: str) -> None:
-    """Delete a file or a folder from S3.
+    """Delete a file or folder from S3.
 
     Parameters
     ----------
     target : str
-        The URL of a file or a folder on S3. The URL should start with 's3://'.
+        S3 URL (file or folder).
     """
-
-    assert target.startswith("s3://")
 
     if target.endswith("/"):
         delete_folder(target)
@@ -622,168 +429,307 @@ def delete(target: str) -> None:
         delete_file(target)
 
 
-def list_folder(folder: str) -> Iterable:
-    """List the subfolders in a folder on S3.
+def list_folder(folder: str) -> Iterable[dict]:
+    """List objects in an S3 folder.
 
     Parameters
     ----------
     folder : str
-        The URL of a folder on S3. The URL should start with 's3://'.
+        S3 folder URL.
 
     Returns
     -------
-    list
-        A list of the subfolder names in the folder.
+    Iterable
+        Iterable of objects.
     """
-
-    assert folder.startswith("s3://")
-    if not folder.endswith("/"):
-        folder += "/"
-
-    _, _, bucket, prefix = folder.split("/", 3)
-
-    s3 = s3_client(bucket)
-    paginator = s3.get_paginator("list_objects_v2")
-
-    for page in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter="/"):
-        if "CommonPrefixes" in page:
-            yield from [folder + _["Prefix"] for _ in page.get("CommonPrefixes") if _["Prefix"] != "/"]
-        if "Contents" in page:
-            yield from [folder + _["Key"] for _ in page.get("Contents")]
+    return _list_objects(folder)
 
 
 def object_info(target: str) -> dict:
-    """Get information about an object on S3.
+    """Get information about an S3 object.
 
     Parameters
     ----------
     target : str
-        The URL of a file or a folder on S3. The URL should start with 's3://'.
+        S3 object URL.
 
     Returns
     -------
     dict
-        A dictionary with information about the object.
+        Object metadata.
     """
-
-    _, _, bucket, key = target.split("/", 3)
-    s3 = s3_client(bucket)
-
-    try:
-        return s3.head_object(Bucket=bucket, Key=key)
-    except s3.exceptions.ClientError as e:
-        if e.response["Error"]["Code"] == "404":
-            raise FileNotFoundError(f"{target} does not exist")
-        raise
+    obj = _s3_object(target)
+    s3 = s3_client(obj)
+    return s3.head(obj.key)
 
 
 def object_exists(target: str) -> bool:
-    """Check if an object exists.
+    """Check if an S3 object exists.
 
     Parameters
     ----------
     target : str
-        The URL of a file or a folder on S3. The URL should start with 's3://'.
+        S3 object URL.
 
     Returns
     -------
     bool
-        True if the object exists, False otherwise.
+        True if object exists, False otherwise.
     """
-
-    _, _, bucket, key = target.split("/", 3)
-    s3 = s3_client(bucket)
+    obj = _s3_object(target)
+    s3 = s3_client(obj)
 
     try:
-        s3.head_object(Bucket=bucket, Key=key)
+        s3.head(obj.key)
         return True
-    except s3.exceptions.ClientError as e:
-        if e.response["Error"]["Code"] == "404":
-            return False
-        raise
+    except FileNotFoundError:
+        return False
 
 
-def object_acl(target: str) -> dict:
-    """Get information about an object's ACL on S3.
+def get_object(target: str) -> bool:
+    """Check if an S3 object exists.
 
     Parameters
     ----------
     target : str
-        The URL of a file or a folder on S3. The URL should start with 's3://'.
+        S3 object URL.
 
     Returns
     -------
-    dict
-        A dictionary with information about the object's ACL.
+    bool
+        True if object exists, False otherwise.
     """
+    obj = _s3_object(target)
+    s3 = s3_client(obj)
 
-    _, _, bucket, key = target.split("/", 3)
-    s3 = s3_client(bucket)
-
-    return s3.get_object_acl(Bucket=bucket, Key=key)
+    return s3.get(obj.key).bytes()
 
 
 def download(source: str, target: str, *args, **kwargs) -> None:
-    """Download a file or folder from S3 to the local filesystem.
+    """Download from S3 using transfer utility.
 
     Parameters
     ----------
     source : str
-        The source S3 path.
+        S3 source URL.
     target : str
-        The target local path.
-    args : tuple
-        Additional positional arguments.
-    kwargs : dict
+        Local target path.
+    *args
+        Additional arguments.
+    **kwargs
         Additional keyword arguments.
     """
-    from . import transfer
 
     assert source.startswith("s3://"), f"source {source} should start with 's3://'"
     return transfer(source, target, *args, **kwargs)
 
 
 def upload(source: str, target: str, *args, **kwargs) -> None:
-    """Upload a file or folder to S3.
+    """Upload to S3 using transfer utility.
 
     Parameters
     ----------
     source : str
-        The source file or folder path.
+        Local source path.
     target : str
-        The target S3 path.
-    args : tuple
-        Additional positional arguments.
-    kwargs : dict
+        S3 target URL.
+    *args
+        Additional arguments.
+    **kwargs
         Additional keyword arguments.
     """
-    from . import transfer
 
     assert target.startswith("s3://"), f"target {target} should start with 's3://'"
     return transfer(source, target, *args, **kwargs)
 
 
-def quotas(target: str) -> dict:
-    """Get the quotas for an S3 bucket.
+##########################
+# Generic transfer classes
+##########################
+class S3Upload(BaseUpload):
 
-    Parameters
-    ----------
-    target : str
-        The URL of a file or a folder on S3. The URL should start with 's3://'.
+    def get_temporary_target(self, target: str, pattern: str) -> str:
+        """Get temporary target path for upload.
 
-    Returns
-    -------
-    dict
-        A dictionary with the quotas for the bucket.
-    """
-    from botocore.exceptions import ClientError
+        Parameters
+        ----------
+        target : str
+            S3 target URL.
+        pattern : str
+            Pattern for temporary naming.
 
-    _, _, bucket, _ = target.split("/", 3)
-    s3 = s3_client(bucket, service="service-quotas")
+        Returns
+        -------
+        str
+            Temporary target path.
+        """
+        return target
 
-    try:
-        return s3.list_service_quotas(ServiceCode="ec2")
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "404":
-            raise ValueError(f"{target} does not exist")
-        raise
+    def rename_target(self, target: str, temporary_target: str) -> None:
+        """Rename temporary target to final target.
+
+        Parameters
+        ----------
+        target : str
+            Final target path.
+        temporary_target : str
+            Temporary target path.
+        """
+        pass
+
+    def delete_target(self, target: str) -> None:
+        """Delete target from S3.
+
+        Parameters
+        ----------
+        target : str
+            S3 target URL.
+        """
+
+        pass
+
+    def _transfer_file(self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, **kwargs) -> int:
+        """Transfer a file to S3.
+
+        Parameters
+        ----------
+        source : str
+            Local source path.
+        target : str
+            S3 target URL.
+        overwrite : bool
+            Overwrite existing file if True.
+        resume : bool
+            Resume upload if True.
+        verbosity : int
+            Verbosity level.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        int
+            Number of bytes uploaded.
+        """
+
+        return upload_file(source, target, overwrite, resume, verbosity)
+
+
+class S3Download(BaseDownload):
+
+    def copy(self, source: str, target: str, **kwargs) -> None:
+        """Copy file or folder from S3.
+
+        Parameters
+        ----------
+        source : str
+            S3 source URL.
+        target : str
+            Local target path.
+        **kwargs
+            Additional keyword arguments.
+        """
+
+        assert source.startswith("s3://")
+
+        if source.endswith("/"):
+            self.transfer_folder(source=source, target=target, **kwargs)
+        else:
+            self.transfer_file(source=source, target=target, **kwargs)
+
+    def list_source(self, source: str) -> Iterable[dict]:
+        """List objects in S3 source folder.
+
+        Parameters
+        ----------
+        source : str
+            S3 source folder URL.
+
+        Returns
+        -------
+        Iterable
+            Iterable of objects.
+        """
+        yield from _list_objects(source)
+
+    def source_path(self, s3_object: dict, source: str) -> str:
+        """Get S3 path for a source object.
+
+        Parameters
+        ----------
+        s3_object : dict
+            S3 object metadata.
+        source : str
+            S3 source folder URL.
+
+        Returns
+        -------
+        str
+            S3 object path.
+        """
+        object = _s3_object(source)
+        return f"s3://{object.bucket}/{s3_object['path']}"
+
+    def target_path(self, s3_object: dict, source: str, target: str) -> str:
+        """Get local target path for an S3 object.
+
+        Parameters
+        ----------
+        s3_object : dict
+            S3 object metadata.
+        source : str
+            S3 source folder URL.
+        target : str
+            Local target folder.
+
+        Returns
+        -------
+        str
+            Local target path.
+        """
+
+        object = _s3_object(source)
+        local_path = os.path.join(target, os.path.relpath(s3_object["path"], object.key))
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        return local_path
+
+    def source_size(self, s3_object: dict) -> int:
+        """Get size of S3 object.
+
+        Parameters
+        ----------
+        s3_object : dict
+            S3 object metadata.
+
+        Returns
+        -------
+        int
+            Size in bytes.
+        """
+        return s3_object["size"]
+
+    def _transfer_file(self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, **kwargs) -> int:
+        """Transfer a file from S3.
+
+        Parameters
+        ----------
+        source : str
+            S3 source URL.
+        target : str
+            Local target path.
+        overwrite : bool
+            Overwrite existing file if True.
+        resume : bool
+            Resume download if True.
+        verbosity : int
+            Verbosity level.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        int
+            Number of bytes downloaded.
+        """
+
+        return download_file(source, target, overwrite, resume, verbosity)

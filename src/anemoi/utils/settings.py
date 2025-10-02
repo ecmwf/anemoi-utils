@@ -21,6 +21,8 @@ from typing import Union
 
 import yaml
 
+from anemoi.utils import ENV
+
 from .config import DotDict
 from .config import load_any_dict_format
 
@@ -221,6 +223,10 @@ def _load_settings(
         check_settings_mode(secret_name, None)
         secret_config = _load_settings(secret_name)
         _merge_dicts(config, secret_config)
+
+    if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
+        override_config = load_any_dict_format(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
+        config = merge_configs(config, override_config)
 
     for env, value in os.environ.items():
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Union
+from typing import Any
 
 import deprecation
 import omegaconf.dictconfig
@@ -87,7 +87,7 @@ class DotDict(omegaconf.dictconfig.DictConfig):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = yaml.safe_load(file)
 
         return cls(data)
@@ -106,7 +106,7 @@ class DotDict(omegaconf.dictconfig.DictConfig):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = json.load(file)
 
         return cls(data)
@@ -125,62 +125,54 @@ class DotDict(omegaconf.dictconfig.DictConfig):
         DotDict
             The created DotDict.
         """
-        with open(path, "r") as file:
+        with open(path) as file:
             data = tomllib.load(file)
         return cls(data)
 
+    def __getattr__(self, attr: str) -> Any:
+        """Get an attribute.
 
-def load_any_dict_format(path: str) -> dict:
-    """Load a configuration file in any supported format: JSON, YAML and TOML.
+        Parameters
+        ----------
+        attr : str
+            The attribute name.
 
-    Parameters
-    ----------
-    path : str
-        The path to the configuration file.
+        Returns
+        -------
+        Any
+            The attribute value.
+        """
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError(attr)
 
-    Returns
-    -------
-    dict
-        The decoded configuration file.
-    """
+    def __setattr__(self, attr: str, value: Any) -> None:
+        """Set an attribute.
 
-    try:
-        if path.endswith(".json"):
-            with open(path, "rb") as f:
-                return json.load(f)
+        Parameters
+        ----------
+        attr : str
+            The attribute name.
+        value : Any
+            The attribute value.
+        """
+        if isinstance(value, dict):
+            value = DotDict(value)
+        self[attr] = value
 
-        if path.endswith(".yaml") or path.endswith(".yml"):
-            with open(path, "rb") as f:
-                return yaml.safe_load(f)
+    def __repr__(self) -> str:
+        """Return a string representation of the DotDict.
 
-        if path.endswith(".toml"):
-            with open(path, "rb") as f:
-                return tomllib.load(f)
-
-        if path == "-":
-            import sys
-
-            config = sys.stdin.read()
-
-            parsers = [(yaml.safe_load, "yaml"), (json.loads, "json"), (tomllib.loads, "toml")]
-
-            for parser, parser_type in parsers:
-                try:
-                    LOG.debug(f"Trying {parser_type} parser for stdin")
-                    return parser(config)
-                except Exception:
-                    pass
-
-            raise ValueError("Failed to parse configuration from stdin")
-
-    except (json.JSONDecodeError, yaml.YAMLError, tomllib.TOMLDecodeError) as e:
-        LOG.warning(f"Failed to parse config file {path}", exc_info=e)
-        raise ValueError(f"Failed to parse config file {path} [{e}]")
-
-    return open(path).read()
+        Returns
+        -------
+        str
+            The string representation.
+        """
+        return f"DotDict({super().__repr__()})"
 
 
-def find(metadata: Union[dict, list], what: str, result: list = None, *, select: callable = None) -> list:
+def find(metadata: dict | list, what: str, result: list = None, *, select: callable = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list with an optional selector.
 
     Parameters

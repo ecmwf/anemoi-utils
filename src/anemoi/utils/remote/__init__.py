@@ -10,9 +10,8 @@ import logging
 import os
 import shutil
 from abc import abstractmethod
+from collections.abc import Iterable
 from typing import Any
-from typing import Dict
-from typing import Iterable
 
 import tqdm
 
@@ -78,13 +77,11 @@ class Loader:
         progress : callable, optional
             A callable for progress reporting, by default None.
         """
-        assert verbosity == 1, verbosity
+        # assert verbosity == 1, verbosity
 
         if progress is None:
             progress = _ignore
 
-        # from boto3.s3.transfer import TransferConfig
-        # config = TransferConfig(use_threads=False)
         config = None
         with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
             try:
@@ -496,7 +493,7 @@ class Transfer:
             if not target:
                 target = os.path.basename(os.path.dirname(source))
 
-        temporary_target: Dict[Any, Any] = {
+        temporary_target: dict[Any, Any] = {
             False: None,
             True: "{dirname}-downloading/{basename}",
             "-tmp/*": "{dirname}-tmp/{basename}",

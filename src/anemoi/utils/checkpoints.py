@@ -17,8 +17,8 @@ import logging
 import os
 import time
 import zipfile
+from collections.abc import Callable
 from tempfile import TemporaryDirectory
-from typing import Callable
 
 import tqdm
 
@@ -214,7 +214,7 @@ def save_metadata(
             zipf.writestr(entry["path"], value.tobytes())
 
 
-def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict = None) -> None:
+def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict | None = None) -> None:
     """Edit metadata in a checkpoint file.
 
     Parameters
@@ -230,41 +230,56 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
     """
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
-    found = False
+    with zipfile.ZipFile(path, "r") as source_zip:
+        file_list = source_zip.namelist()
 
-    directory = None
-    with TemporaryDirectory() as temp_dir:
-        zipfile.ZipFile(path, "r").extractall(temp_dir)
-        total = 0
-        for root, dirs, files in os.walk(temp_dir):
-            for f in files:
-                total += 1
-                full = os.path.join(root, f)
-                if f == name:
-                    found = True
-                    callback(full)
-                    directory = os.path.dirname(full)
+        # Find the target file and its directory
+        target_file = None
+        directory = None
+        for file_path in file_list:
+            if os.path.basename(file_path) == name:
+                target_file = file_path
+                directory = os.path.dirname(file_path)
+                break
 
-        if not found:
+        if target_file is None:
             raise ValueError(f"Could not find '{name}' in {path}")
 
+        # Calculate total files for progress bar
+        total_files = len(file_list)
         if supporting_arrays is not None:
+            total_files += len(supporting_arrays)
 
-            for key, entry in supporting_arrays.items():
-                value = entry.tobytes()
-                fname = os.path.join(directory, f"{key}.numpy")
-                os.makedirs(os.path.dirname(fname), exist_ok=True)
-                with open(fname, "wb") as f:
-                    f.write(value)
-                    total += 1
+        with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
+            with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
 
-        with zipfile.ZipFile(new_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            with tqdm.tqdm(total=total, desc="Rebuilding checkpoint") as pbar:
-                for root, dirs, files in os.walk(temp_dir):
-                    for f in files:
-                        full = os.path.join(root, f)
-                        rel = os.path.relpath(full, temp_dir)
-                        zipf.write(full, rel)
+                # Copy all files except the target file
+                for file_path in file_list:
+                    if file_path != target_file:
+                        with source_zip.open(file_path) as source_file:
+                            data = source_file.read()
+                            new_zip.writestr(file_path, data)
+                        pbar.update(1)
+
+                # Handle the target file with callback
+                with TemporaryDirectory() as temp_dir:
+                    # Extract only the target file
+                    source_zip.extract(target_file, temp_dir)
+                    target_full_path = os.path.join(temp_dir, target_file)
+
+                    # Apply the callback
+                    callback(target_full_path)
+
+                    # Add the modified file to the new zip (if it still exists)
+                    if os.path.exists(target_full_path):
+                        new_zip.write(target_full_path, target_file)
+                    pbar.update(1)
+
+                # Add supporting arrays if provided
+                if supporting_arrays is not None:
+                    for key, entry in supporting_arrays.items():
+                        array_path = os.path.join(directory, f"{key}.numpy") if directory else f"{key}.numpy"
+                        new_zip.writestr(array_path, entry.tobytes())
                         pbar.update(1)
 
     os.rename(new_path, path)
