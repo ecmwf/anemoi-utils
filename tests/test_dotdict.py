@@ -134,7 +134,7 @@ def test_interpolation() -> None:
         }
     )
 
-    assert d.to_dict() == {"plan": "plan A", "plans": {"A": "plan A", "B": "plan B"}, "selected_plan": "A"}
+    assert d.as_dict() == {"plan": "plan A", "plans": {"A": "plan A", "B": "plan B"}, "selected_plan": "A"}
 
 
 def test_cli_arguments() -> None:

@@ -16,7 +16,7 @@ import os
 from typing import Any
 
 import deprecation
-import omegaconf.dictconfig
+import omegaconf
 import yaml
 
 from anemoi.utils._version import __version__
@@ -30,7 +30,7 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
-class DotDict(omegaconf.dictconfig.DictConfig):
+class DotDict(omegaconf.DictConfig):
     """A dictionary that allows access to its keys as attributes.
 
     >>> d = DotDict({"a": 1, "b": {"c": 2}})
@@ -188,7 +188,7 @@ class DotDict(omegaconf.dictconfig.DictConfig):
     def __repr__(self) -> str:
         return f"DotDict({super().__repr__()})"
 
-    def to_dict(self, *, resolve_interpolations: bool = True) -> dict:
+    def as_dict(self, *, resolve_interpolations: bool = True) -> dict:
         """Convert the DotDict to a standard dictionary.
 
         Parameters
