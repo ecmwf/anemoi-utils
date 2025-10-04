@@ -70,7 +70,9 @@ class DotDict(omegaconf.dictconfig.DictConfig):
             Keyword arguments to construct the dictionary.
         """
 
-        d = omegaconf.OmegaConf.create(dict(*args, **kwargs))
+        # Allow non-primitive types like datetime by enabling allow_objects
+
+        d = omegaconf.OmegaConf.create(dict(*args, **kwargs), flags={"allow_objects": True})
 
         if cli_arguments:
             d = omegaconf.OmegaConf.merge(d, omegaconf.OmegaConf.from_cli(cli_arguments))

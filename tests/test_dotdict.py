@@ -162,6 +162,27 @@ def test_cli_arguments() -> None:
     assert d.c.e == 4
 
 
+def test_non_primitive_types() -> None:
+    """Test that DotDict can handle non-primitive types like datetime.
+
+    Tests
+    -----
+    - Assigning and accessing datetime objects in DotDict.
+    """
+    from datetime import datetime
+
+    now = datetime.now()
+    d = DotDict(a=now)
+    assert d.a == now
+
+    d.b = {"time": now}
+    assert d.b.time == now
+
+    d = DotDict()
+    d.c = [1, 2, {"time": now}]
+    assert d.c[2].time == now
+
+
 if __name__ == "__main__":
     """Run all test functions."""
     for name, obj in list(globals().items()):
