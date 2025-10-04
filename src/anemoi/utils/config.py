@@ -10,16 +10,16 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 import os
-import threading
 from typing import Any
 
+import deprecation
+import omegaconf
 import yaml
 
-from anemoi.utils import ENV
+from anemoi.utils._version import __version__
 
 try:
     import tomllib  # Only available since 3.11
@@ -30,7 +30,7 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
-class DotDict(dict):
+class DotDict(omegaconf.DictConfig):
     """A dictionary that allows access to its keys as attributes.
 
     >>> d = DotDict({"a": 1, "b": {"c": 2}})
@@ -49,334 +49,175 @@ class DotDict(dict):
     >>> d = DotDict(a=1, b=2)
     """
 
-    def __init__(self, *args, **kwargs):
-        """Initialize a DotDict instance.
+    def __init__(
+        self,
+        *args: Any,
+        resolve_interpolations: bool = False,
+        cli_arguments: list[str] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialise a DotDict instance.
 
         Parameters
         ----------
-        *args : tuple
-            Positional arguments for the dict constructor.
-        **kwargs : dict
-            Keyword arguments for the dict constructor.
+        *args : Any
+            Arguments to construct the dictionary.
+        resolve_interpolations : bool, optional
+            Whether to resolve interpolations, by default False.
+        cli_arguments : list of str, optional
+            CLI arguments to override values, by default None.
+        **kwargs : Any
+            Keyword arguments to construct the dictionary.
         """
-        super().__init__(*args, **kwargs)
 
-        for k, v in self.items():
-            super().__setitem__(k, self.convert_to_nested_dot_dict(v))
+        # Allow non-primitive types like datetime by enabling allow_objects
 
-    @staticmethod
-    def convert_to_nested_dot_dict(value):
-        if isinstance(value, dict) or is_omegaconf_dict(value):
-            return DotDict(value)
+        d = omegaconf.OmegaConf.create(dict(*args, **kwargs), flags={"allow_objects": True})
 
-        if isinstance(value, list) or is_omegaconf_list(value):
-            return [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in value]
+        if cli_arguments:
+            d = omegaconf.OmegaConf.merge(d, omegaconf.OmegaConf.from_cli(cli_arguments))
 
-        if isinstance(value, tuple):
-            return [DotDict(i) if isinstance(i, dict) or is_omegaconf_dict(i) else i for i in value]
+        if resolve_interpolations:
+            d = omegaconf.OmegaConf.to_container(d, resolve=True)
 
-        return value
+        return super().__init__(d)
 
     @classmethod
-    def from_file(cls, path: str) -> DotDict:
-        """Create a DotDict from a file.
-
-        Parameters
-        ----------
-        path : str
-            The path to the file.
-
-        Returns
-        -------
-        DotDict
-            The created DotDict.
-        """
+    def from_file(
+        cls: type["DotDict"],
+        path: str,
+        *args: Any,
+        resolve_interpolations: bool = False,
+        cli_arguments: list[str] | None = None,
+        **kwargs: Any,
+    ) -> "DotDict":
+        """Create a DotDict from a file."""
         _, ext = os.path.splitext(path)
-        if ext == ".yaml" or ext == ".yml":
-            return cls.from_yaml_file(path)
-        elif ext == ".json":
-            return cls.from_json_file(path)
-        elif ext == ".toml":
-            return cls.from_toml_file(path)
-        else:
-            raise ValueError(f"Unknown file extension {ext}")
+
+        match ext:
+            case ".yaml" | ".yml":
+                return cls.from_yaml_file(
+                    path,
+                    *args,
+                    resolve_interpolations=resolve_interpolations,
+                    cli_arguments=cli_arguments,
+                    **kwargs,
+                )
+            case ".json":
+                return cls.from_json_file(
+                    path,
+                    *args,
+                    resolve_interpolations=resolve_interpolations,
+                    cli_arguments=cli_arguments,
+                    **kwargs,
+                )
+            case ".toml":
+                return cls.from_toml_file(
+                    path,
+                    *args,
+                    resolve_interpolations=resolve_interpolations,
+                    cli_arguments=cli_arguments,
+                    **kwargs,
+                )
+            case _:
+                raise ValueError(f"Unknown file extension {ext}")
 
     @classmethod
-    def from_yaml_file(cls, path: str) -> DotDict:
-        """Create a DotDict from a YAML file.
-
-        Parameters
-        ----------
-        path : str
-            The path to the YAML file.
-
-        Returns
-        -------
-        DotDict
-            The created DotDict.
-        """
+    def from_yaml_file(
+        cls: type["DotDict"],
+        path: str,
+        *args: Any,
+        resolve_interpolations: bool = False,
+        cli_arguments: list[str] | None = None,
+        **kwargs: Any,
+    ) -> "DotDict":
+        """Create a DotDict from a YAML file."""
         with open(path) as file:
             data = yaml.safe_load(file)
 
-        return cls(data)
+        return cls(
+            data,
+            *args,
+            resolve_interpolations=resolve_interpolations,
+            cli_arguments=cli_arguments,
+            **kwargs,
+        )
 
     @classmethod
-    def from_json_file(cls, path: str) -> DotDict:
-        """Create a DotDict from a JSON file.
-
-        Parameters
-        ----------
-        path : str
-            The path to the JSON file.
-
-        Returns
-        -------
-        DotDict
-            The created DotDict.
-        """
+    def from_json_file(
+        cls: type["DotDict"],
+        path: str,
+        *args: Any,
+        resolve_interpolations: bool = False,
+        cli_arguments: list[str] | None = None,
+        **kwargs: Any,
+    ) -> "DotDict":
+        """Create a DotDict from a JSON file."""
         with open(path) as file:
             data = json.load(file)
 
-        return cls(data)
+        return cls(
+            data,
+            *args,
+            resolve_interpolations=resolve_interpolations,
+            cli_arguments=cli_arguments,
+            **kwargs,
+        )
 
     @classmethod
-    def from_toml_file(cls, path: str) -> DotDict:
-        """Create a DotDict from a TOML file.
-
-        Parameters
-        ----------
-        path : str
-            The path to the TOML file.
-
-        Returns
-        -------
-        DotDict
-            The created DotDict.
-        """
+    def from_toml_file(
+        cls: type["DotDict"],
+        path: str,
+        *args: Any,
+        resolve_interpolations: bool = False,
+        cli_arguments: list[str] | None = None,
+        **kwargs: Any,
+    ) -> "DotDict":
+        """Create a DotDict from a TOML file."""
         with open(path) as file:
             data = tomllib.load(file)
-        return cls(data)
 
-    def __getattr__(self, attr: str) -> Any:
-        """Get an attribute.
-
-        Parameters
-        ----------
-        attr : str
-            The attribute name.
-
-        Returns
-        -------
-        Any
-            The attribute value.
-        """
-        try:
-            return self[attr]
-        except KeyError:
-            raise AttributeError(attr)
-
-    def __setattr__(self, attr: str, value: Any) -> None:
-        """Set an attribute.
-
-        Parameters
-        ----------
-        attr : str
-            The attribute name.
-        value : Any
-            The attribute value.
-        """
-
-        value = self.convert_to_nested_dot_dict(value)
-        super().__setitem__(attr, value)
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Set an item in the dictionary.
-
-        Parameters
-        ----------
-        key : str
-            The key to set.
-        value : Any
-            The value to set.
-        """
-        value = self.convert_to_nested_dot_dict(value)
-        super().__setitem__(key, value)
+        return cls(
+            data,
+            *args,
+            resolve_interpolations=resolve_interpolations,
+            cli_arguments=cli_arguments,
+            **kwargs,
+        )
 
     def __repr__(self) -> str:
-        """Return a string representation of the DotDict.
+        return f"DotDict({super().__repr__()})"
+
+    def as_dict(self, *, resolve_interpolations: bool = True) -> dict:
+        """Convert the DotDict to a standard dictionary.
+
+        Parameters
+        ----------
+        resolve_interpolations : bool, optional
+            Whether to resolve any interpolations, by default True.
 
         Returns
         -------
-        str
-            The string representation.
+        dict
+            The converted dictionary.
         """
-        return f"DotDict({super().__repr__()})"
+        """Convert the DotDict to a standard dictionary.
 
+        Parameters
+        ----------
+        resolve : bool, optional
+            Whether to resolve any interpolations, by default False.
 
-def is_omegaconf_dict(value: Any) -> bool:
-    """Check if a value is an OmegaConf DictConfig.
-
-    Parameters
-    ----------
-    value : Any
-        The value to check.
-
-    Returns
-    -------
-    bool
-        True if the value is a DictConfig, False otherwise.
-    """
-    try:
-        from omegaconf import DictConfig
-
-        return isinstance(value, DictConfig)
-    except ImportError:
-        return False
-
-
-def is_omegaconf_list(value: Any) -> bool:
-    """Check if a value is an OmegaConf ListConfig.
-
-    Parameters
-    ----------
-    value : Any
-        The value to check.
-
-    Returns
-    -------
-    bool
-        True if the value is a ListConfig, False otherwise.
-    """
-    try:
-        from omegaconf import ListConfig
-
-        return isinstance(value, ListConfig)
-    except ImportError:
-        return False
-
-
-CONFIG = {}
-CHECKED = {}
-CONFIG_LOCK = threading.RLock()
-QUIET = False
-CONFIG_PATCH = None
-
-
-def _find(config: dict | list, what: str, result: list = None) -> list:
-    """Find all occurrences of a key in a nested dictionary or list.
-
-    Parameters
-    ----------
-    config : dict or list
-        The configuration to search.
-    what : str
-        The key to search for.
-    result : list, optional
-        The list to store results, by default None.
-
-    Returns
-    -------
-    list
-        The list of found values.
-    """
-    if result is None:
-        result = []
-
-    if isinstance(config, list):
-        for i in config:
-            _find(i, what, result)
-        return result
-
-    if isinstance(config, dict):
-        if what in config:
-            result.append(config[what])
-
-        for k, v in config.items():
-            _find(v, what, result)
-
-    return result
-
-
-def _merge_dicts(a: dict, b: dict) -> None:
-    """Merge two dictionaries recursively.
-
-    Parameters
-    ----------
-    a : dict
-        The first dictionary.
-    b : dict
-        The second dictionary.
-    """
-    for k, v in b.items():
-        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
-            _merge_dicts(a[k], v)
-        else:
-            a[k] = v
-
-
-def _set_defaults(a: dict, b: dict) -> None:
-    """Set default values in a dictionary.
-
-    Parameters
-    ----------
-    a : dict
-        The dictionary to set defaults in.
-    b : dict
-        The dictionary with default values.
-    """
-    for k, v in b.items():
-        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
-            _set_defaults(a[k], v)
-        else:
-            a.setdefault(k, v)
-
-
-def config_path(name: str = "settings.toml") -> str:
-    """Get the path to a configuration file.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the configuration file, by default "settings.toml".
-
-    Returns
-    -------
-    str
-        The path to the configuration file.
-    """
-    global QUIET
-
-    if name.startswith("/") or name.startswith("."):
-        return name
-
-    if name.startswith("~"):
-        return os.path.expanduser(name)
-
-    full = os.path.join(os.path.expanduser("~"), ".config", "anemoi", name)
-    os.makedirs(os.path.dirname(full), exist_ok=True)
-
-    if name == "settings.toml":
-        old = os.path.join(os.path.expanduser("~"), ".anemoi.toml")
-        if not os.path.exists(full) and os.path.exists(old):
-            if not QUIET:
-                LOG.warning(
-                    "Configuration file found at ~/.anemoi.toml. Please move it to ~/.config/anemoi/settings.toml"
-                )
-                QUIET = True
-            return old
-        else:
-            if os.path.exists(old):
-                if not QUIET:
-                    LOG.warning(
-                        "Configuration file found at ~/.anemoi.toml and ~/.config/anemoi/settings.toml, ignoring the former"
-                    )
-                    QUIET = True
-
-    return full
+        Returns
+        -------
+        dict
+            The converted dictionary.
+        """
+        return omegaconf.OmegaConf.to_container(self, resolve=resolve_interpolations)
 
 
 def load_any_dict_format(path: str) -> dict:
-    """Load a configuration file in any supported format: JSON, YAML and TOML.
+    """Load a configuration file in any supported format: JSON, YAML, or TOML.
 
     Parameters
     ----------
@@ -425,221 +266,6 @@ def load_any_dict_format(path: str) -> dict:
     return open(path).read()
 
 
-def _load_config(
-    name: str = "settings.toml",
-    secrets: str | list[str] | None = None,
-    defaults: str | dict | None = None,
-) -> DotDict:
-    """Load a configuration file.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the configuration file, by default "settings.toml".
-    secrets : str or list, optional
-        The name of the secrets file, by default None.
-    defaults : str or dict, optional
-        The name of the defaults file, by default None.
-
-    Returns
-    -------
-    DotDict
-        The loaded configuration.
-    """
-    key = json.dumps((name, secrets, defaults), sort_keys=True, default=str)
-    if key in CONFIG:
-        return CONFIG[key]
-
-    path = config_path(name)
-    if os.path.exists(path):
-        config = load_any_dict_format(path)
-    else:
-        config = {}
-
-    if defaults is not None:
-        if isinstance(defaults, str):
-            defaults = load_raw_config(defaults)
-        _set_defaults(config, defaults)
-
-    if secrets is not None:
-        if isinstance(secrets, str):
-            secrets = [secrets]
-
-        base, ext = os.path.splitext(path)
-        secret_name = base + ".secrets" + ext
-
-        found = set()
-        for secret in secrets:
-            if _find(config, secret):
-                found.add(secret)
-
-        if found:
-            check_config_mode(name, secret_name, found)
-
-        check_config_mode(secret_name, None)
-        secret_config = _load_config(secret_name)
-        _merge_dicts(config, secret_config)
-
-    if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
-        override_config = load_any_dict_format(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
-        config = merge_configs(config, override_config)
-
-    for env, value in os.environ.items():
-
-        if not env.startswith("ANEMOI_CONFIG_"):
-            continue
-        rest = env[len("ANEMOI_CONFIG_") :]
-
-        package = rest.split("_")[0]
-        sub = rest[len(package) + 1 :]
-
-        package = package.lower()
-        sub = sub.lower()
-
-        LOG.info(f"Using environment variable {env} to override the anemoi config key '{package}.{sub}'")
-
-        if package not in config:
-            config[package] = {}
-        config[package][sub] = value
-
-    CONFIG[key] = DotDict(config)
-    return CONFIG[key]
-
-
-def _save_config(name: str, data: Any) -> None:
-    """Save a configuration file.
-
-    Parameters
-    ----------
-    name : str
-        The name of the configuration file.
-    data : Any
-        The data to save.
-    """
-    CONFIG.pop(name, None)
-
-    conf = config_path(name)
-
-    if conf.endswith(".json"):
-        with open(conf, "w") as f:
-            json.dump(data, f, indent=4)
-        return
-
-    if conf.endswith(".yaml") or conf.endswith(".yml"):
-        with open(conf, "w") as f:
-            yaml.dump(data, f)
-        return
-
-    if conf.endswith(".toml"):
-        raise NotImplementedError("Saving to TOML is not implemented yet")
-
-    with open(conf, "w") as f:
-        f.write(data)
-
-
-def save_config(name: str, data: Any) -> None:
-    """Save a configuration file.
-
-    Parameters
-    ----------
-    name : str
-        The name of the configuration file to save.
-
-    data : Any
-        The data to save.
-    """
-    with CONFIG_LOCK:
-        _save_config(name, data)
-
-
-def load_config(
-    name: str = "settings.toml",
-    secrets: str | list[str] | None = None,
-    defaults: str | dict | None = None,
-) -> DotDict | str:
-    """Read a configuration file.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the config file to read, by default "settings.toml"
-    secrets : str or list, optional
-        The name of the secrets file, by default None
-    defaults : str or dict, optional
-        The name of the defaults file, by default None
-
-    Returns
-    -------
-    DotDict or str
-        Return DotDict if it is a dictionary, otherwise the raw data
-    """
-
-    with CONFIG_LOCK:
-        config = _load_config(name, secrets, defaults)
-        if CONFIG_PATCH is not None:
-            config = CONFIG_PATCH(config)
-        return config
-
-
-def load_raw_config(name: str, default: Any = None) -> DotDict | str:
-    """Load a raw configuration file.
-
-    Parameters
-    ----------
-    name : str
-        The name of the configuration file.
-    default : Any, optional
-        The default value if the file does not exist, by default None.
-
-    Returns
-    -------
-    DotDict or str
-        The loaded configuration or the default value.
-    """
-    path = config_path(name)
-    if os.path.exists(path):
-        return load_any_dict_format(path)
-
-    return default
-
-
-def check_config_mode(name: str = "settings.toml", secrets_name: str = None, secrets: list[str] = None) -> None:
-    """Check that a configuration file is secure.
-
-    Parameters
-    ----------
-    name : str, optional
-        The name of the configuration file, by default "settings.toml"
-    secrets_name : str, optional
-        The name of the secrets file, by default None
-    secrets : list, optional
-        The list of secrets to check, by default None
-
-    Raises
-    ------
-    SystemError
-        If the configuration file is not secure.
-    """
-    with CONFIG_LOCK:
-        if name in CHECKED:
-            return
-
-        conf = config_path(name)
-        if not os.path.exists(conf):
-            return
-        mode = os.stat(conf).st_mode
-        if mode & 0o777 != 0o600:
-            if secrets_name:
-                secret_path = config_path(secrets_name)
-                raise SystemError(
-                    f"Configuration file {conf} should not hold entries {secrets}.\n"
-                    f"Please move them to {secret_path}."
-                )
-            raise SystemError(f"Configuration file {conf} is not secure.\n" f"Please run `chmod 600 {conf}`.")
-
-        CHECKED[name] = True
-
-
 def find(metadata: dict | list, what: str, result: list = None, *, select: callable = None) -> list:
     """Find all occurrences of a key in a nested dictionary or list with an optional selector.
 
@@ -678,39 +304,123 @@ def find(metadata: dict | list, what: str, result: list = None, *, select: calla
     return result
 
 
-def merge_configs(*configs: dict) -> dict:
-    """Merge multiple configuration dictionaries.
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.temporary_settings instead.",
+)
+def temporary_config(*args, **kwargs) -> None:
+    """Deprecated. Use anemoi.utils.settings.temporary_settings instead.
 
     Parameters
     ----------
-    *configs : dict
-        The configuration dictionaries to merge.
+    *args : Any
+        Arguments to pass to temporary_settings.
+    **kwargs : Any
+        Keyword arguments to pass to temporary_settings.
+    """
+    from .settings import temporary_settings
+
+    return temporary_settings(*args, **kwargs)
+
+
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.load_settings instead.",
+)
+def load_config(*args, **kwargs) -> DotDict | str:
+    """Deprecated. Use anemoi.utils.settings.load_settings instead.
+
+    Parameters
+    ----------
+    *args : Any
+        Arguments to pass to load_settings.
+    **kwargs : Any
+        Keyword arguments to pass to load_settings.
 
     Returns
     -------
-    dict
-        The merged configuration dictionary.
+    DotDict or str
+        The loaded configuration.
     """
-    result = {}
-    for config in configs:
-        _merge_dicts(result, config)
+    from .settings import load_settings
 
-    return result
+    return load_settings(*args, **kwargs)
 
 
-@contextlib.contextmanager
-def temporary_config(tmp: dict) -> None:
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.settings_path instead.",
+)
+def config_path(*args, **kwargs) -> str:
+    """Deprecated. Use anemoi.utils.settings.settings_path instead.
 
-    global CONFIG_PATCH
+    Parameters
+    ----------
+    *args : Any
+        Arguments to pass to settings_path.
+    **kwargs : Any
+        Keyword arguments to pass to settings_path.
 
-    def patch_config(config: dict) -> dict:
-        return merge_configs(config, tmp)
+    Returns
+    -------
+    str
+        The settings path.
+    """
+    from .settings import settings_path
 
-    with CONFIG_LOCK:
+    return settings_path(*args, **kwargs)
 
-        CONFIG_PATCH = patch_config
 
-        try:
-            yield
-        finally:
-            CONFIG_PATCH = None
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.save_settings instead.",
+)
+def save_config(*args, **kwargs) -> None:
+    """Deprecated. Use anemoi.utils.settings.save_settings instead.
+
+    Parameters
+    ----------
+    *args : Any
+        Arguments to pass to save_settings.
+    **kwargs : Any
+        Keyword arguments to pass to save_settings.
+    """
+    from .settings import save_settings
+
+    save_settings(*args, **kwargs)
+
+
+@deprecation.deprecated(
+    deprecated_in="0.4.30",
+    removed_in="0.5.0",
+    current_version=__version__,
+    details="Use anemoi.utils.settings.load_settings instead.",
+)
+def check_config_mode(*args, **kwargs) -> None:
+    """Deprecated. Use anemoi.utils.settings.check_settings_mode instead.
+
+    Parameters
+    ----------
+    *args : Any
+        Arguments to pass to check_settings_mode.
+    **kwargs : Any
+        Keyword arguments to pass to check_settings_mode.
+    """
+    from .settings import check_settings_mode
+
+    check_settings_mode(*args, **kwargs)
+
+
+if __name__ == "__main__":
+    a = DotDict({"a": 1, "b": {"c": 2}, "user": "${oc.env:HOME}"})
+    print(a)
+    print(a.a)
+    print(a.user)

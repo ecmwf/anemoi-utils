@@ -29,11 +29,11 @@ from pydantic import field_validator
 from pydantic import model_validator
 from requests.exceptions import HTTPError
 
-from ..config import CONFIG_LOCK
-from ..config import config_path
-from ..config import load_raw_config
-from ..config import save_config
 from ..remote import robust
+from ..settings import SETTINGS_LOCK
+from ..settings import load_raw_settings
+from ..settings import save_settings
+from ..settings import settings_path
 from ..timer import Timer
 
 REFRESH_EXPIRE_DAYS = 29
@@ -189,17 +189,17 @@ class TokenAuth(AuthBase):
     @staticmethod
     def _get_store() -> ServerStore:
         """Read the server store from disk."""
-        with CONFIG_LOCK:
+        with SETTINGS_LOCK:
             file = TokenAuth._config_file
-            path = config_path(file)
+            path = settings_path(file)
 
             if not os.path.exists(path):
-                save_config(file, {})
+                save_settings(file, {})
 
             if os.path.exists(path) and os.stat(path).st_mode & 0o777 != 0o600:
                 os.chmod(path, 0o600)
 
-            return ServerStore(**load_raw_config(file))
+            return ServerStore(**load_raw_settings(file))
 
     @staticmethod
     def get_servers() -> list[tuple[str, int]]:
@@ -337,10 +337,10 @@ class TokenAuth(AuthBase):
             refresh_expires=self.refresh_expires,
         )
 
-        with CONFIG_LOCK:
+        with SETTINGS_LOCK:
             store = self._get_store()
             store.update(self.url, server_config)
-            save_config(self._config_file, store.model_dump())
+            save_settings(self._config_file, store.model_dump())
 
         expire_date = datetime.fromtimestamp(self.refresh_expires, tz=timezone.utc)
         self.log.info(
