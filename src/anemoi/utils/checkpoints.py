@@ -189,21 +189,22 @@ def save_metadata(
         LOG.info("Saving metadata to %s/%s/%s", directory, folder, name)
 
         metadata = metadata.copy()
+        def create_supporting_array_entry(key: str, value) -> dict:
+            return dict(path=f"{directory}/{folder}/{key}.numpy", shape=value.shape, dtype=str(value.dtype))
+
+        metadata["supporting_arrays_paths"] = supporting_arrays_ = {}
         if supporting_arrays is not None:
-            metadata["supporting_arrays_paths"] = {
-                key: dict(path=f"{directory}/{folder}/{key}.numpy", shape=value.shape, dtype=str(value.dtype))
-                for key, value in supporting_arrays.items()
-            }
-        else:
-            metadata["supporting_arrays_paths"] = {}
+            for key, value in supporting_arrays.items():
+                if isinstance(value, dict):
+                    supporting_arrays_[key] = {}
+                    for subkey, subvalue in value.items():
+                        supporting_arrays_[key][subkey] = create_supporting_array_entry(f"{key}/{subkey}", subvalue)
+                else:
+                    supporting_arrays_[key] = create_supporting_array_entry(key, value)
 
-        zipf.writestr(
-            f"{directory}/{folder}/{name}",
-            json.dumps(metadata),
-        )
-
-        for name, entry in metadata["supporting_arrays_paths"].items():
-            value = supporting_arrays[name]
+        zipf.writestr(f"{directory}/{folder}/{name}", json.dumps(metadata))
+        
+        def save_supporting_array(name: str, entry: dict, value) -> None:
             LOG.info(
                 "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
                 name,
@@ -212,6 +213,15 @@ def save_metadata(
                 entry["dtype"],
             )
             zipf.writestr(entry["path"], value.tobytes())
+
+        for name, entry in metadata["supporting_arrays_paths"].items():
+            if isinstance(entry, dict):
+                for subname, subentry in entry.items():
+                    subvalue = supporting_arrays[name][subname]
+                    save_supporting_array(f"{name}/{subname}", subentry, subvalue)
+            else:
+                value = supporting_arrays[name]
+                save_supporting_array(name, entry, value)
 
 
 def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict | None = None) -> None:
