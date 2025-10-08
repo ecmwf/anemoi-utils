@@ -189,6 +189,7 @@ def save_metadata(
         LOG.info("Saving metadata to %s/%s/%s", directory, folder, name)
 
         metadata = metadata.copy()
+
         def create_supporting_array_entry(key: str, value) -> dict:
             return dict(path=f"{directory}/{folder}/{key}.numpy", shape=value.shape, dtype=str(value.dtype))
 
@@ -203,7 +204,7 @@ def save_metadata(
                     supporting_arrays_[key] = create_supporting_array_entry(key, value)
 
         zipf.writestr(f"{directory}/{folder}/{name}", json.dumps(metadata))
-        
+
         def save_supporting_array(name: str, entry: dict, value) -> None:
             LOG.info(
                 "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
