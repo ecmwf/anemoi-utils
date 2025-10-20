@@ -15,12 +15,12 @@ are zip archives containing the model weights.
 import json
 import logging
 import os
-import numpy as np
 import time
 import zipfile
 from collections.abc import Callable
 from tempfile import TemporaryDirectory
 
+import numpy as np
 import tqdm
 
 LOG = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ def _get_supporting_arrays_paths(directory: str, folder: str, supporting_arrays:
             new_key: _get_supporting_arrays_paths(f"{directory}/{folder}", new_key, new_value)
             for new_key, new_value in supporting_arrays.items()
         }
-    
+
     return dict(
         path=f"{directory}/{folder}.numpy",
         shape=supporting_arrays.shape,
@@ -172,7 +172,7 @@ def _write_array_to_bytes(array: dict | np.ndarray, name: str, entry: dict, zipf
         for sub_name, sub_array in array.items():
             _write_array_to_bytes(sub_array, sub_name, entry[sub_name], zipf)
         return None
-    
+
     LOG.info(
         "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
         name,
