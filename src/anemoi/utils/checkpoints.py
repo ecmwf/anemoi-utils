@@ -15,6 +15,7 @@ are zip archives containing the model weights.
 import json
 import logging
 import os
+import numpy as np
 import time
 import zipfile
 from collections.abc import Callable
@@ -147,6 +148,41 @@ def load_supporting_arrays(zipf: zipfile.ZipFile, entries: dict) -> dict:
     return supporting_arrays
 
 
+def _get_supporting_arrays_paths(directory: str, folder: str, supporting_arrays: dict | np.ndarray) -> dict:
+    """Get the paths of supporting arrays."""
+    if supporting_arrays is None:
+        return {}
+
+    if isinstance(supporting_arrays, dict):
+        return {
+            new_key: _get_supporting_arrays_paths(f"{directory}/{folder}", new_key, new_value)
+            for new_key, new_value in supporting_arrays.items()
+        }
+    
+    return dict(
+        path=f"{directory}/{folder}.numpy",
+        shape=supporting_arrays.shape,
+        dtype=str(supporting_arrays.dtype),
+    )
+
+
+def _write_array_to_bytes(array: dict | np.ndarray, name: str, entry: dict, zipf: zipfile.ZipFile) -> None:
+    """Write a supporting array to bytes in a zip file."""
+    if isinstance(array, dict):
+        for sub_name, sub_array in array.items():
+            _write_array_to_bytes(sub_array, sub_name, entry[sub_name], zipf)
+        return None
+    
+    LOG.info(
+        "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
+        name,
+        entry["path"],
+        entry["shape"],
+        entry["dtype"],
+    )
+    zipf.writestr(entry["path"], array.tobytes())
+
+
 def save_metadata(
     path: str, metadata: dict, *, supporting_arrays: dict = None, name: str = DEFAULT_NAME, folder: str = DEFAULT_FOLDER
 ) -> None:
@@ -189,29 +225,14 @@ def save_metadata(
         LOG.info("Saving metadata to %s/%s/%s", directory, folder, name)
 
         metadata = metadata.copy()
-        if supporting_arrays is not None:
-            metadata["supporting_arrays_paths"] = {
-                key: dict(path=f"{directory}/{folder}/{key}.numpy", shape=value.shape, dtype=str(value.dtype))
-                for key, value in supporting_arrays.items()
-            }
-        else:
-            metadata["supporting_arrays_paths"] = {}
+        metadata["supporting_arrays_paths"] = _get_supporting_arrays_paths(directory, folder, supporting_arrays)
 
         zipf.writestr(
             f"{directory}/{folder}/{name}",
             json.dumps(metadata),
         )
 
-        for name, entry in metadata["supporting_arrays_paths"].items():
-            value = supporting_arrays[name]
-            LOG.info(
-                "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
-                name,
-                entry["path"],
-                entry["shape"],
-                entry["dtype"],
-            )
-            zipf.writestr(entry["path"], value.tobytes())
+        _write_array_to_bytes(supporting_arrays, "", metadata["supporting_arrays_paths"], zipf)
 
 
 def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict | None = None) -> None:
