@@ -114,7 +114,7 @@ class GetTestData:
 
         LOG.info(f"Downloading test data from {url} to {target}")
 
-        download(url, target)
+        download(url, target, maximum_retries=5, retry_after=60)
 
         if gzipped:
             import gzip
