@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.38](https://github.com/ecmwf/anemoi-utils/compare/0.4.37...0.4.38) (2025-10-22)
+
+
+### Features
+
+* **testing:** Add download timeout ([#230](https://github.com/ecmwf/anemoi-utils/issues/230)) ([721d114](https://github.com/ecmwf/anemoi-utils/commit/721d114f2702985d9fbabf68f384f7ccedb7cfb3))
+* **testing:** Sane test data download retries ([#227](https://github.com/ecmwf/anemoi-utils/issues/227)) ([1e08996](https://github.com/ecmwf/anemoi-utils/commit/1e089962b14f05f4aa56eb66a884bfe50ce60dcc))
+
+
+### Bug Fixes
+
+* Fix frequency_to_string outputing 108000s ([#216](https://github.com/ecmwf/anemoi-utils/issues/216)) ([5806a0c](https://github.com/ecmwf/anemoi-utils/commit/5806a0c996235fb3a19d34eeb25813280c5c989f))
+* Support dicts of supporting_arrays ([#229](https://github.com/ecmwf/anemoi-utils/issues/229)) ([9badbad](https://github.com/ecmwf/anemoi-utils/commit/9badbad360609d254717e0d32c6171beb903eb21))
+
 ## [0.4.37](https://github.com/ecmwf/anemoi-utils/compare/0.4.36...0.4.37) (2025-09-30)
 
 
