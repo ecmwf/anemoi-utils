@@ -45,6 +45,7 @@ dependencies = [
   "importlib-metadata; python_version<'3.10'",
   "multiurl",
   "numpy",
+  "omegaconf",
   "pydantic>=2.9",
   "python-dateutil",
   "pyyaml",
