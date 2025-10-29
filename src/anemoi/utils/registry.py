@@ -19,6 +19,7 @@ from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
+from typing import overload
 
 import entrypoints
 
@@ -119,6 +120,15 @@ class Registry(Generic[T]):
             The registry if found, otherwise None.
         """
         return _BY_KIND.get(kind)
+
+    @overload
+    def register(
+        self, name: str, factory: Callable[..., T], source: Any | None = None, aliases: list[str] | None = None
+    ) -> None: ...
+    @overload
+    def register(
+        self, name: str, factory: None = None, source: Any | None = None, aliases: list[str] | None = None
+    ) -> Wrapper: ...
 
     def register(
         self, name: str, factory: Callable | None = None, source: Any | None = None, aliases: list[str] | None = None
