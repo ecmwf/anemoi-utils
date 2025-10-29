@@ -27,8 +27,10 @@ LOG = logging.getLogger(__name__)
 
 DEBUG_ANEMOI_REGISTRY = int(os.environ.get("DEBUG_ANEMOI_REGISTRY", "0"))
 
+T = TypeVar("T", bound=Callable[..., Any])
 
-class Wrapper:
+
+class Wrapper(Generic[T]):
     """A wrapper for the registry.
 
     Parameters
@@ -43,7 +45,7 @@ class Wrapper:
         self.name = name
         self.registry = registry
 
-    def __call__(self, factory: Callable) -> Callable:
+    def __call__(self, factory: T) -> T:
         """Register a factory with the registry.
 
         Parameters
