@@ -175,6 +175,27 @@ def _s3_options(obj: str | S3Object) -> dict:
             LOG.warning(f"Option '{k}' is deprecated, use '{v}' instead")
             options[v] = options.pop(k)
 
+    for key in ("endpoint_url", "access_key_id", "secret_access_key"):
+        """
+        This allows one of the bucket entry to reset these keys from the global settings
+
+        [object-storage]
+        endpoint_url = "https://..."
+        access_key_id = "...."
+        secret_access_key = "...."
+
+        [object-storage.some-public-bucket-on-aws]
+        endpoint_url = ""             <--- resets to 'undefined'
+        access_key_id = ""
+        secret_access_key = ""
+        region = "eu-north-1"
+        skip_signature=true
+        """
+
+        if options.get(key) in (None, ""):
+            print(f"Removing {key} from S3 options for {obj.dirname}")
+            options.pop(key, None)
+
     LOG.info(f"Using S3 options: {_hide_secrets(options)}")
 
     with LOCK:
