@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.40](https://github.com/ecmwf/anemoi-utils/compare/0.4.39...0.4.40) (2025-12-02)
+
+
+### Bug Fixes
+
+* Don't skip tests marked as [@skip](https://github.com/skip)_if_offline when running CIs ([#244](https://github.com/ecmwf/anemoi-utils/issues/244)) ([9b89d33](https://github.com/ecmwf/anemoi-utils/commit/9b89d33fda792aaf81106f75bb233623becf3c2c))
+* Missing bool check of resume in download ([#242](https://github.com/ecmwf/anemoi-utils/issues/242)) ([a3a7ed2](https://github.com/ecmwf/anemoi-utils/commit/a3a7ed2b7ed0a3dc384e2e4e55ec5a95fbe20974))
+
 ## [0.4.39](https://github.com/ecmwf/anemoi-utils/compare/0.4.38...0.4.39) (2025-11-17)
 
 
