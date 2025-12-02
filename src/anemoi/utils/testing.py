@@ -246,8 +246,16 @@ def _offline() -> bool:
     from urllib import request
     from urllib.error import URLError
 
+    # We consider ourselves online in CI environments, so that tests can run there
+    # even if the website is not reachable. This ensure that we don't skip tests
+    # unexpectedly in CI.
+
+    IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("IN_CI_HPC") is not None)
+    if IN_CI:
+        return False
+
     try:
-        request.urlopen("https://anemoi.ecmwf.int", timeout=1)
+        request.urlopen("https://anemoi.ecmwf.int/status", timeout=10)
         return False
     except URLError:
         return True
