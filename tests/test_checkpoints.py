@@ -187,21 +187,32 @@ class TestEditMetadataIntegration:
 
         assert not has_metadata(sample_checkpoint, name="metadata.json")
 
-    def test_metadata_with_arrays_roundtrip(self, sample_checkpoint):
+    @pytest.mark.parametrize(
+        "arrays",
+        [
+            {"test_array": np.array([1, 2, 3, 4, 5])},
+            {
+                "test_array": {"test_array": np.array([10, 20, 30])},
+            },
+        ],
+    )
+    def test_metadata_with_arrays_roundtrip(self, sample_checkpoint, arrays):
         """Test complete roundtrip with supporting arrays."""
         # First remove existing metadata
         remove_metadata(sample_checkpoint, name="metadata.json")
 
         # Add metadata with arrays
         metadata = {"version": "1.0", "test": True}
-        arrays = {"test_array": np.array([1, 2, 3, 4, 5])}
 
         save_metadata(sample_checkpoint, metadata, supporting_arrays=arrays, name="metadata.json")
 
         # Load and verify
         loaded_metadata, loaded_arrays = load_metadata(sample_checkpoint, supporting_arrays=True, name="metadata.json")
         assert loaded_metadata["test"] is True
-        np.testing.assert_array_equal(loaded_arrays["test_array"], arrays["test_array"])
+        if isinstance(loaded_arrays["test_array"], dict):
+            np.testing.assert_array_equal(loaded_arrays["test_array"]["test_array"], arrays["test_array"]["test_array"])
+        else:
+            np.testing.assert_array_equal(loaded_arrays["test_array"], arrays["test_array"])
 
         # Edit with _edit_metadata
         def update_callback(file_path):
@@ -217,4 +228,31 @@ class TestEditMetadataIntegration:
         final_metadata, final_arrays = load_metadata(sample_checkpoint, supporting_arrays=True, name="metadata.json")
         assert final_metadata["edited"] is True
         assert final_metadata["test"] is True
-        np.testing.assert_array_equal(final_arrays["test_array"], arrays["test_array"])
+        if isinstance(loaded_arrays["test_array"], dict):
+            np.testing.assert_array_equal(final_arrays["test_array"]["test_array"], arrays["test_array"]["test_array"])
+        else:
+            np.testing.assert_array_equal(final_arrays["test_array"], arrays["test_array"])
+
+    def test_metadata_no_arrays(self, sample_checkpoint):
+        """Test without supporting arrays."""
+        # First remove existing metadata
+        remove_metadata(sample_checkpoint, name="metadata.json")
+
+        # Add metadata with arrays
+        metadata = {"version": "1.0", "test": True}
+
+        save_metadata(sample_checkpoint, metadata, supporting_arrays=None, name="metadata.json")
+
+        # Load and verify
+        loaded_metadata = load_metadata(sample_checkpoint, supporting_arrays=None, name="metadata.json")
+        assert loaded_metadata["test"] is True
+
+        # Edit with _edit_metadata
+        def update_callback(file_path):
+            with open(file_path, "r") as f:
+                data = json.load(f)
+            data["edited"] = True
+            with open(file_path, "w") as f:
+                json.dump(data, f)
+
+        _edit_metadata(sample_checkpoint, "metadata.json", update_callback)

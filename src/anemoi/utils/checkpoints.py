@@ -141,10 +141,13 @@ def load_supporting_arrays(zipf: zipfile.ZipFile, entries: dict) -> dict:
 
     supporting_arrays = {}
     for key, entry in entries.items():
-        supporting_arrays[key] = np.frombuffer(
-            zipf.read(entry["path"]),
-            dtype=entry["dtype"],
-        ).reshape(entry["shape"])
+        if isinstance(entry, dict) and not set(entry.keys()) == set(["path", "shape", "dtype"]):
+            supporting_arrays[key] = load_supporting_arrays(zipf, entry)
+        else:
+            supporting_arrays[key] = np.frombuffer(
+                zipf.read(entry["path"]),
+                dtype=entry["dtype"],
+            ).reshape(entry["shape"])
     return supporting_arrays
 
 
@@ -168,11 +171,14 @@ def _get_supporting_arrays_paths(directory: str, folder: str, supporting_arrays:
 
 def _write_array_to_bytes(array: dict | np.ndarray, name: str, entry: dict, zipf: zipfile.ZipFile) -> None:
     """Write a supporting array to bytes in a zip file."""
+    if array is None:
+        return
+
     if isinstance(array, dict):
         for sub_name, sub_array in array.items():
-            _write_array_to_bytes(sub_array, sub_name, entry[sub_name], zipf)
-        return None
-
+            sub_entry = entry.get(sub_name, {})
+            _write_array_to_bytes(sub_array, sub_name, sub_entry, zipf)
+        return
     LOG.info(
         "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
         name,
