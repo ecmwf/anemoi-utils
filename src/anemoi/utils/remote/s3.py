@@ -340,7 +340,7 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
             else:
                 return size
 
-    if os.path.exists(target) and not overwrite:
+    if os.path.exists(target) and not overwrite and not resume:
         raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
     with tqdm.tqdm(
