@@ -141,10 +141,13 @@ def load_supporting_arrays(zipf: zipfile.ZipFile, entries: dict) -> dict:
 
     supporting_arrays = {}
     for key, entry in entries.items():
-        supporting_arrays[key] = np.frombuffer(
-            zipf.read(entry["path"]),
-            dtype=entry["dtype"],
-        ).reshape(entry["shape"])
+        if isinstance(entry, dict) and not set(entry.keys()) == set(["path", "shape", "dtype"]):
+            supporting_arrays[key] = load_supporting_arrays(zipf, entry)
+        else:
+            supporting_arrays[key] = np.frombuffer(
+                zipf.read(entry["path"]),
+                dtype=entry["dtype"],
+            ).reshape(entry["shape"])
     return supporting_arrays
 
 
