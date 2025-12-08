@@ -92,9 +92,9 @@ def test_transfer_find_ssh_upload(source: str, target: str) -> None:
     target : str
         The target path
     """
-    from anemoi.utils.remote.ssh import RsyncUpload
+    from anemoi.utils.remote.ssh import SshUpload
 
-    assert _find_transfer_class(source, target) == RsyncUpload
+    assert _find_transfer_class(source, target) == SshUpload
 
 
 @pytest.mark.parametrize("source", S3 + SSH)
