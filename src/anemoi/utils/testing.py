@@ -60,13 +60,16 @@ def temporary_directory_for_test_data(tmp_path_factory: pytest.TempPathFactory) 
     return TemporaryDirectoryForTestData(base_dir)
 
 
-def url_for_test_data(path: str) -> str:
+def url_for_test_data(path: str, version: str | None = None) -> str:
     """Generate the URL for the test data based on the given path.
 
     Parameters
     ----------
     path : str
         The relative path to the test data.
+    version : str | None, optional
+        The version of the test data, by default None.
+        If not given, collapses the version part of the URL.
 
     Returns
     -------
@@ -75,19 +78,22 @@ def url_for_test_data(path: str) -> str:
     """
     _check_path(path)
 
-    return f"{TEST_DATA_URL}{path}"
+    return f"{TEST_DATA_URL}{version + '/' if version else ''}{path}"
 
 
 class GetTestData:
     def __init__(self, temporary_directory_for_test_data: TemporaryDirectoryForTestData) -> None:
         self.temporary_directory_for_test_data = temporary_directory_for_test_data
 
-    def __call__(self, path: str, gzipped: bool = False) -> str:
+    def __call__(self, path: str, version: str | None = None, gzipped: bool = False) -> str:
         """Download the test data to a temporary directory and return the local path.
         Parameters
         ----------
         path : str
             The relative path to the test data.
+        version : str | None, optional
+            The version of the test data, by default None.
+            If not given, collapses the version part of the URL.
         gzipped : bool, optional
             Flag indicating if the remote file is gzipped, by default False. The local file will be gunzipped.
 
@@ -106,7 +112,7 @@ class GetTestData:
             return target
 
         os.makedirs(os.path.dirname(target), exist_ok=True)
-        url = url_for_test_data(path)
+        url = url_for_test_data(path, version=version)
 
         if gzipped:
             url += ".gz"
