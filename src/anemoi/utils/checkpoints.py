@@ -16,7 +16,6 @@ import json
 import logging
 import os
 import time
-import warnings
 import zipfile
 from collections.abc import Callable
 from tempfile import TemporaryDirectory
@@ -88,9 +87,10 @@ def _support_metadata_name_deprecation(path: str, name: str) -> str:
     """Support deprecated metadata name, automatically switching if needed and logging a warning."""
     if name == DEFAULT_NAME and not has_metadata(path, name=DEFAULT_NAME):
         if has_metadata(path, name=DEPRECATED_NAME):
-            warnings.warn(
-                f"The metadata file '{DEPRECATED_NAME}' is deprecated. Please update your checkpoints to use '{DEFAULT_NAME}' instead.",
-                DeprecationWarning,
+            LOG.warning(
+                "The metadata file '%s' is deprecated. Please update your checkpoints to use '%s' instead.",
+                DEPRECATED_NAME,
+                DEFAULT_NAME,
             )
             name = DEPRECATED_NAME
     return name

@@ -262,6 +262,5 @@ class TestEditMetadataIntegration:
     def test_automatic_deprecation_handling(self, sample_checkpoint: str):
         """Test that deprecated metadata name is handled automatically."""
         save_metadata(sample_checkpoint, {"version": "1.0", "test": "Deprecation"}, name=DEPRECATED_NAME)
-        with pytest.warns(DeprecationWarning, match=f"The metadata file '{DEPRECATED_NAME}' is deprecated. .*"):
-            metadata = load_metadata(sample_checkpoint, name=DEFAULT_NAME)  # Should auto-switch and log warning
-            assert metadata["test"] == "Deprecation"
+        metadata = load_metadata(sample_checkpoint, name=DEFAULT_NAME)  # Should auto-switch and log warning
+        assert metadata["test"] == "Deprecation"
