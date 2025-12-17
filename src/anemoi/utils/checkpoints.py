@@ -88,7 +88,7 @@ def _support_metadata_name_deprecation(path: str, name: str) -> str:
     if name == DEFAULT_NAME and not has_metadata(path, name=DEFAULT_NAME):
         if has_metadata(path, name=DEPRECATED_NAME):
             LOG.warning(
-                "The metadata file '%s' is deprecated. Please update your checkpoints to use '%s' instead.",
+                "The metadata file '%s' is deprecated. New versions of checkpoints will write to '%s' instead.",
                 DEPRECATED_NAME,
                 DEFAULT_NAME,
             )
