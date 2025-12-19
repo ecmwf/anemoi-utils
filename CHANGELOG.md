@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.41](https://github.com/ecmwf/anemoi-utils/compare/0.4.40...0.4.41) (2025-12-19)
+
+
+### Bug Fixes
+
+* Further improve typing on registry ([#249](https://github.com/ecmwf/anemoi-utils/issues/249)) ([97c8874](https://github.com/ecmwf/anemoi-utils/commit/97c887421097e34fcdad7d661d8561efca841085))
+* Save_metadata to support both multiple datasets with many arrays and old set up with no arrays ([#239](https://github.com/ecmwf/anemoi-utils/issues/239)) ([b22444f](https://github.com/ecmwf/anemoi-utils/commit/b22444f37a127aea950ae2777a880db1e5911820))
+
 ## [0.4.40](https://github.com/ecmwf/anemoi-utils/compare/0.4.39...0.4.40) (2025-12-02)
 
 
