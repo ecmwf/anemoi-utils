@@ -612,9 +612,9 @@ def _find_transfer_class(source: str, target: str) -> type:
     assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
 
     if from_local and into_ssh:  # local -> ssh
-        from .ssh import RsyncUpload
+        from .ssh import SshUpload
 
-        return RsyncUpload
+        return SshUpload
 
     if from_s3 and into_local:  # local <- S3
         from .s3 import S3Download
