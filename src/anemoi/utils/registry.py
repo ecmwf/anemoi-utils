@@ -19,6 +19,7 @@ from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
+from typing import overload
 
 import entrypoints
 
@@ -26,8 +27,10 @@ LOG = logging.getLogger(__name__)
 
 DEBUG_ANEMOI_REGISTRY = int(os.environ.get("DEBUG_ANEMOI_REGISTRY", "0"))
 
+T = TypeVar("T", bound=Callable[..., Any])
 
-class Wrapper:
+
+class Wrapper(Generic[T]):
     """A wrapper for the registry.
 
     Parameters
@@ -42,7 +45,7 @@ class Wrapper:
         self.name = name
         self.registry = registry
 
-    def __call__(self, factory: Callable) -> Callable:
+    def __call__(self, factory: T) -> T:
         """Register a factory with the registry.
 
         Parameters
@@ -119,6 +122,15 @@ class Registry(Generic[T]):
             The registry if found, otherwise None.
         """
         return _BY_KIND.get(kind)
+
+    @overload
+    def register(
+        self, name: str, factory: Callable[..., T], source: Any | None = None, aliases: list[str] | None = None
+    ) -> None: ...
+    @overload
+    def register(
+        self, name: str, factory: None = None, source: Any | None = None, aliases: list[str] | None = None
+    ) -> Wrapper: ...
 
     def register(
         self, name: str, factory: Callable | None = None, source: Any | None = None, aliases: list[str] | None = None
@@ -218,7 +230,7 @@ class Registry(Generic[T]):
                 LOG.info(f"Registered: {e} ({self._sources.get(e)})")
         return ok
 
-    def lookup(self, name: str, *, return_none: bool = False) -> Callable | None:
+    def lookup(self, name: str, *, return_none: bool = False) -> type[T] | None:
         """Lookup a factory by name.
 
         Parameters
@@ -252,7 +264,7 @@ class Registry(Generic[T]):
         return factory
 
     @cached_property
-    def factories(self) -> dict[str, Callable]:
+    def factories(self) -> dict[str, type[T]]:
 
         directory = sys.modules[self.package].__path__[0]
 

@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.40](https://github.com/ecmwf/anemoi-utils/compare/0.4.39...0.4.40) (2025-12-02)
+
+
+### Bug Fixes
+
+* Don't skip tests marked as [@skip](https://github.com/skip)_if_offline when running CIs ([#244](https://github.com/ecmwf/anemoi-utils/issues/244)) ([9b89d33](https://github.com/ecmwf/anemoi-utils/commit/9b89d33fda792aaf81106f75bb233623becf3c2c))
+* Missing bool check of resume in download ([#242](https://github.com/ecmwf/anemoi-utils/issues/242)) ([a3a7ed2](https://github.com/ecmwf/anemoi-utils/commit/a3a7ed2b7ed0a3dc384e2e4e55ec5a95fbe20974))
+
+## [0.4.39](https://github.com/ecmwf/anemoi-utils/compare/0.4.38...0.4.39) (2025-11-17)
+
+
+### Features
+
+* Resetting of s3 options ([#233](https://github.com/ecmwf/anemoi-utils/issues/233)) ([6081072](https://github.com/ecmwf/anemoi-utils/commit/60810729204d94bd5c75ba84ca33f8f4259fba06))
+
+
+### Bug Fixes
+
+* Improve typing on registry methods ([#232](https://github.com/ecmwf/anemoi-utils/issues/232)) ([66e4ec6](https://github.com/ecmwf/anemoi-utils/commit/66e4ec6cba626c18232fbf9151ea4827cdc59a07))
+* Reraise exceptions in CLI-mode if run in debugger ([#225](https://github.com/ecmwf/anemoi-utils/issues/225)) ([33c0f8e](https://github.com/ecmwf/anemoi-utils/commit/33c0f8e125d6acc88fa907727cdf97f5a7bce858))
+* Update README to reflect project maturity status ([#234](https://github.com/ecmwf/anemoi-utils/issues/234)) ([ab769c4](https://github.com/ecmwf/anemoi-utils/commit/ab769c473f44e00b8a1091feb813d9ec364232f0))
+
 ## [0.4.38](https://github.com/ecmwf/anemoi-utils/compare/0.4.37...0.4.38) (2025-10-22)
 
 
