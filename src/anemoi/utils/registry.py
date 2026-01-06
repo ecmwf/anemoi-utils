@@ -230,7 +230,7 @@ class Registry(Generic[T]):
                 LOG.info(f"Registered: {e} ({self._sources.get(e)})")
         return ok
 
-    def lookup(self, name: str, *, return_none: bool = False) -> Callable | None:
+    def lookup(self, name: str, *, return_none: bool = False) -> type[T] | None:
         """Lookup a factory by name.
 
         Parameters
@@ -264,7 +264,7 @@ class Registry(Generic[T]):
         return factory
 
     @cached_property
-    def factories(self) -> dict[str, Callable]:
+    def factories(self) -> dict[str, type[T]]:
 
         directory = sys.modules[self.package].__path__[0]
 
