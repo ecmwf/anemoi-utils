@@ -47,12 +47,15 @@ class Transfer(Command):
             action="store_true",
             help="If the data is already on S3 it will not be uploaded, unless the remote file has a different size.",
         )
-        command_parser.add_argument("--verbosity", default=1, help="The level of verbosity, by default 1.")
+        command_parser.add_argument("--verbosity", type=int, default=1, help="The level of verbosity, by default 1.")
         command_parser.add_argument(
             "--progress", default=None, help="A callable that will be called with the number of files."
         )
         command_parser.add_argument(
-            "--threads", default=1, help="The number of threads to use when uploading a directory, by default 1."
+            "--threads",
+            type=int,
+            default=1,
+            help="The number of threads to use when uploading a directory, by default 1.",
         )
 
     def run(self, args: Namespace) -> None:
