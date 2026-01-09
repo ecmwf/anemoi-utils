@@ -413,7 +413,7 @@ def when(
     return "on %s %d %s %d" % (
         DOW[then.weekday()],
         then.day,
-        MONTH[then.month],
+        MONTH[then.month - 1],
         then.year,
     )
 
