@@ -6,6 +6,8 @@ import zipfile
 import numpy as np
 import pytest
 
+from anemoi.utils.checkpoints import DEFAULT_NAME
+from anemoi.utils.checkpoints import DEPRECATED_NAME
 from anemoi.utils.checkpoints import _edit_metadata
 from anemoi.utils.checkpoints import has_metadata
 from anemoi.utils.checkpoints import load_metadata
@@ -149,7 +151,7 @@ class TestEditMetadata:
         def dummy_callback(file_path):
             pass
 
-        with pytest.raises(ValueError, match="Could not find 'nonexistent.json'"):
+        with pytest.raises(FileNotFoundError, match="Could not find 'nonexistent.json'"):
             _edit_metadata(sample_checkpoint, "nonexistent.json", dummy_callback)
 
     def test_edit_metadata_callback_exception_handling(self, sample_checkpoint):
@@ -244,7 +246,7 @@ class TestEditMetadataIntegration:
         save_metadata(sample_checkpoint, metadata, supporting_arrays=None, name="metadata.json")
 
         # Load and verify
-        loaded_metadata = load_metadata(sample_checkpoint, supporting_arrays=None, name="metadata.json")
+        loaded_metadata = load_metadata(sample_checkpoint, supporting_arrays=False, name="metadata.json")
         assert loaded_metadata["test"] is True
 
         # Edit with _edit_metadata
@@ -256,3 +258,9 @@ class TestEditMetadataIntegration:
                 json.dump(data, f)
 
         _edit_metadata(sample_checkpoint, "metadata.json", update_callback)
+
+    def test_automatic_deprecation_handling(self, sample_checkpoint: str):
+        """Test that deprecated metadata name is handled automatically."""
+        save_metadata(sample_checkpoint, {"version": "1.0", "test": "Deprecation"}, name=DEPRECATED_NAME)
+        metadata = load_metadata(sample_checkpoint, name=DEFAULT_NAME)  # Should auto-switch and log warning
+        assert metadata["test"] == "Deprecation"
