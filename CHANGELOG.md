@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.43](https://github.com/ecmwf/anemoi-utils/compare/0.4.42...0.4.43) (2026-01-21)
+
+
+### Features
+
+* Deprecate `ai-models.json` in favour of `anemoi.json` ([#247](https://github.com/ecmwf/anemoi-utils/issues/247)) ([b5b1437](https://github.com/ecmwf/anemoi-utils/commit/b5b14375831f68bf7877350470e2ea62084a25e9))
+
+
+### Bug Fixes
+
+* Review provenance information ([#250](https://github.com/ecmwf/anemoi-utils/issues/250)) ([0c23efe](https://github.com/ecmwf/anemoi-utils/commit/0c23efe1811bd8cebb30d03b44d0c863c35bf583))
+
 ## [0.4.42](https://github.com/ecmwf/anemoi-utils/compare/0.4.41...0.4.42) (2026-01-09)
 
 
