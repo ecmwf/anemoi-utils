@@ -106,106 +106,43 @@ def _check_for_git(paths: list[tuple[str, str]], full: bool) -> dict[str, Any]:
     return versions
 
 
-def version(
-    versions: dict[str, Any], name: str, module: Any, roots: dict[str, str], namespaces: set, paths: set, full: bool
-) -> None:
-    """Collect version information for a module.
+def _package_version(name: str) -> str | None:
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version
 
-    Parameters
-    ----------
-    versions : dict
-        The dictionary to store the version information.
-    name : str
-        The name of the module.
-    module : Any
-        The module to collect information for.
-    roots : dict
-        The dictionary of root paths.
-    namespaces : set
-        The set of namespaces.
-    paths : set
-        The set of paths.
-    full : bool
-        Whether to collect full information.
-    """
-    path = None
-
-    if hasattr(module, "__file__"):
-        path = module.__file__
-        if path is not None:
-            for k, v in roots.items():
-                path = path.replace(k, f"<{v}>")
-
-            if path.startswith("/"):
-                paths.add((name, path))
-
+    # This the recommended way to get the version of a package
     try:
-        versions[name] = str(module.__version__)
-        return
-    except AttributeError:
-        pass
-
-    try:
-        if path is None:
-            namespaces.add(name)
-            return
-
-        # For now, don't report on stdlib modules
-        if path.startswith("<stdlib>"):
-            return
-
-        if full:
-            versions[name] = path
-        else:
-            if not path.startswith("<"):
-                versions[name] = os.path.join("...", os.path.basename(path))
-        return
-    except AttributeError:
-        pass
-
-    if name in sys.builtin_module_names:
-        return
-
-    versions[name] = str(module)
+        return version(name)
+    except PackageNotFoundError:
+        return None
 
 
-def _module_versions(full: bool) -> tuple[dict[str, Any], set]:
+def _module_versions() -> tuple[dict[str, Any], set]:
     """Collect version information for all loaded modules.
-
-    Parameters
-    ----------
-    full : bool
-        Whether to collect full information.
 
     Returns
     -------
     tuple of dict and set
         The version information and the set of paths.
     """
-    # https://docs.python.org/3/library/sysconfig.html
 
-    roots = {}
-    for name, path in sysconfig.get_paths().items():
-        path = os.path.realpath(path)
-        if path not in roots:
-            roots[path] = name
-
-    # Sort by length of path, so that we get the most specific first
-    roots = {path: name for path, name in sorted(roots.items(), key=lambda x: len(x[0]), reverse=True)}
+    SKIP = set(sys.stdlib_module_names) | set(sys.builtin_module_names)
 
     paths = set()
 
     versions = {}
-    namespaces = set()
-    for k, v in sorted(sys.modules.copy().items()):
-        if "." not in k:
-            version(versions, k, v, roots, namespaces, paths, full)
 
-    # Catter for modules like "earthkit.meteo"
-    for k, v in sorted(sys.modules.copy().items()):
-        bits = k.split(".")
-        if len(bits) == 2 and bits[0] in namespaces:
-            version(versions, k, v, roots, namespaces, paths, full)
+    for name, module in sorted(sys.modules.items()):
+        if name in SKIP:
+            continue
+
+        version = _package_version(name)
+        if version is None:
+            continue
+
+        versions[name] = version
+        if hasattr(module, "__file__") and module.__file__ is not None:
+            paths.add((name, os.path.realpath(module.__file__)))
 
     return versions, paths
 
@@ -222,10 +159,6 @@ def package_distributions() -> dict[str, list[str]]:
     # Takes a significant amount of time to run
     # so cache the result
     from importlib import metadata
-
-    # For python 3.9 support
-    if not hasattr(metadata, "packages_distributions"):
-        import importlib_metadata as metadata
 
     return metadata.packages_distributions()
 
@@ -274,7 +207,7 @@ def module_versions(full: bool) -> tuple[dict[str, Any], dict[str, Any]]:
     tuple of dict and dict
         The version information and the git information.
     """
-    versions, paths = _module_versions(full)
+    versions, paths = _module_versions()
     git_versions = _check_for_git(paths, full)
     return versions, git_versions
 
