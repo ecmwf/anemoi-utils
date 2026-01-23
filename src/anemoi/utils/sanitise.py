@@ -24,8 +24,23 @@ RE2 = re.compile(r"\(([^}]*)\)")  # (*)
 
 
 def sanitise(obj: Any, level=1) -> Any:
-    """Sanitise an object by replacing all full paths with shortened versions and URL credentials with '***'."""
+    """Sanitise an object by replacing all full paths with shortened versions and URL credentials with '***'.
 
+    Parameters
+    ----------
+    obj : Any
+        The object to sanitise.
+    level : int, optional
+        The level of sanitation. The higher levels will also apply the levels below it.
+        - 1: Shorten file paths to file name and hide credentials in URLs (default).
+        - 2: Hide hostnames in URLs.
+        - 3: Hide full file paths and URLs.
+
+    Returns
+    -------
+    Any
+        The sanitised object.
+    """
     assert level in (1, 2, 3), "level must be 1, 2 or 3"
 
     if isinstance(obj, dict):
