@@ -8,6 +8,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.43](https://github.com/ecmwf/anemoi-utils/compare/0.4.42...0.4.43) (2026-01-21)
+
+
+### Features
+
+* Deprecate `ai-models.json` in favour of `anemoi.json` ([#247](https://github.com/ecmwf/anemoi-utils/issues/247)) ([b5b1437](https://github.com/ecmwf/anemoi-utils/commit/b5b14375831f68bf7877350470e2ea62084a25e9))
+
+
+### Bug Fixes
+
+* Review provenance information ([#250](https://github.com/ecmwf/anemoi-utils/issues/250)) ([0c23efe](https://github.com/ecmwf/anemoi-utils/commit/0c23efe1811bd8cebb30d03b44d0c863c35bf583))
+
+## [0.4.42](https://github.com/ecmwf/anemoi-utils/compare/0.4.41...0.4.42) (2026-01-09)
+
+
+### Features
+
+* Bugfix ([#254](https://github.com/ecmwf/anemoi-utils/issues/254)) ([aa35fc6](https://github.com/ecmwf/anemoi-utils/commit/aa35fc636883c6f08e18ab17601fdea38529a295))
+
+## [0.4.41](https://github.com/ecmwf/anemoi-utils/compare/0.4.40...0.4.41) (2026-01-08)
+
+
+### Features
+
+* Fix argument type for transfer tool ([#253](https://github.com/ecmwf/anemoi-utils/issues/253)) ([7d020d1](https://github.com/ecmwf/anemoi-utils/commit/7d020d1e6d9791f8a34394515e59a90b5c83ca17))
+
+
+### Bug Fixes
+
+* Further improve typing on registry ([#249](https://github.com/ecmwf/anemoi-utils/issues/249)) ([97c8874](https://github.com/ecmwf/anemoi-utils/commit/97c887421097e34fcdad7d661d8561efca841085))
+* Save_metadata to support both multiple datasets with many arrays and old set up with no arrays ([#239](https://github.com/ecmwf/anemoi-utils/issues/239)) ([b22444f](https://github.com/ecmwf/anemoi-utils/commit/b22444f37a127aea950ae2777a880db1e5911820))
+
 ## [0.4.40](https://github.com/ecmwf/anemoi-utils/compare/0.4.39...0.4.40) (2025-12-02)
 
 
