@@ -41,6 +41,7 @@ dependencies = [
   "aniso8601",
   "deprecation",
   "entrypoints",
+  "filelock",
   "importlib-metadata; python_version<'3.10'",
   "multiurl",
   "numpy",
