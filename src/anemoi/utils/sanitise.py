@@ -41,7 +41,6 @@ def sanitise(obj: Any, level=1) -> Any:
     Any
         The sanitised object.
     """
-
     assert level in (1, 2, 3), "level must be 1, 2 or 3"
 
     if isinstance(obj, dict):
