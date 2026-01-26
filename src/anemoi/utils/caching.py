@@ -128,9 +128,6 @@ class Cacher:
 
         lock_file = os.path.join(path, f"{m}.lock")
         with FileLock(lock_file):
-            if m in CACHE:
-                return CACHE[m]
-
             filename = os.path.join(path, m) + self.ext
             if os.path.exists(filename):
                 data = self.load(filename)
