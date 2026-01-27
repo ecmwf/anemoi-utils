@@ -40,6 +40,7 @@ dependencies = [
   "aniso8601",
   "deprecation",
   "entrypoints",
+  "filelock",
   "multiurl",
   "numpy",
   "pydantic>=2.9",
