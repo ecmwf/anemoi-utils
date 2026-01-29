@@ -17,6 +17,7 @@ from threading import Lock
 from typing import Any
 
 import numpy as np
+from filelock import FileLock
 
 LOCK = Lock()
 CACHE = {}
@@ -40,6 +41,8 @@ def _get_cache_path(collection: str) -> str:
 
 def clean_cache(collection: str = "default") -> None:
     """Clean the cache for a collection.
+
+    This removes all cached data files and their associated lock files.
 
     Parameters
     ----------
@@ -121,25 +124,27 @@ class Cacher:
             return CACHE[m]
 
         path = _get_cache_path(self.collection)
-
-        filename = os.path.join(path, m) + self.ext
-        if os.path.exists(filename):
-            data = self.load(filename)
-            if self.expires is None or data["expires"] > time.time():
-                if data["key"] == key:
-                    return data["value"]
-
-        value = proc()
-        data = {"key": key, "value": value}
-        if self.expires is not None:
-            data["expires"] = time.time() + self.expires
-
         os.makedirs(path, exist_ok=True)
-        temp_filename = self.save(filename, data)
-        os.rename(temp_filename, filename)
 
-        CACHE[m] = value
-        return value
+        lock_file = os.path.join(path, f"{m}.lock")
+        with FileLock(lock_file):
+            filename = os.path.join(path, m) + self.ext
+            if os.path.exists(filename):
+                data = self.load(filename)
+                if self.expires is None or data["expires"] > time.time():
+                    if data["key"] == key:
+                        return data["value"]
+
+            value = proc()
+            data = {"key": key, "value": value}
+            if self.expires is not None:
+                data["expires"] = time.time() + self.expires
+
+            temp_filename = self.save(filename, data)
+            os.rename(temp_filename, filename)
+
+            CACHE[m] = value
+            return value
 
 
 class JsonCacher(Cacher):

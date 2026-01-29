@@ -41,6 +41,7 @@ dependencies = [
   "aniso8601",
   "deprecation",
   "entrypoints",
+  "filelock",
   "multiurl",
   "numpy",
   "pydantic>=2.9",
@@ -74,7 +75,7 @@ optional-dependencies.s3 = [
   "obstore",
 ]
 
-optional-dependencies.tests = [ "anemoi-utils[mlflow]", "pytest", "pytest-mock>=3" ]
+optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance]", "pytest", "pytest-mock>=3" ]
 
 optional-dependencies.text = [ "termcolor", "wcwidth" ]
 
