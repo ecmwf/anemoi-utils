@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.0](https://github.com/ecmwf/anemoi-utils/compare/0.4.43...0.5.0) (2026-01-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* Update pyproject remove python 3.10 ([#259](https://github.com/ecmwf/anemoi-utils/issues/259))
+
+### Features
+
+* Update pyproject remove python 3.10 ([#259](https://github.com/ecmwf/anemoi-utils/issues/259)) ([93a1c61](https://github.com/ecmwf/anemoi-utils/commit/93a1c61ac0ce0d99f2138440b5d14152d8dca437))
+
+
+### Bug Fixes
+
+* Add Filelock to cache ([#262](https://github.com/ecmwf/anemoi-utils/issues/262)) ([20664f0](https://github.com/ecmwf/anemoi-utils/commit/20664f0818985d7da6af934f32b62bf389990023))
+* Add provenance to tests deps ([#265](https://github.com/ecmwf/anemoi-utils/issues/265)) ([942936b](https://github.com/ecmwf/anemoi-utils/commit/942936b035db3606c51c7099e5983ee510e8ec6d))
+
 ## [0.4.43](https://github.com/ecmwf/anemoi-utils/compare/0.4.42...0.4.43) (2026-01-21)
 
 
