@@ -44,6 +44,7 @@ dependencies = [
   "filelock",
   "multiurl",
   "numpy",
+  "omegaconf",
   "pydantic>=2.9",
   "python-dateutil",
   "pyyaml",

@@ -12,17 +12,13 @@ import json
 from argparse import ArgumentParser
 from argparse import Namespace
 
-import deprecation
-
-from anemoi.utils._version import __version__
-
 from ..settings import load_settings
 from ..settings import settings_path
 from . import Command
 
 
-class Config(Command):
-    """Handle configuration related commands."""
+class Settings(Command):
+    """Handle settings related commands."""
 
     def add_arguments(self, command_parser: ArgumentParser) -> None:
         """Add arguments to the command parser.
@@ -34,12 +30,6 @@ class Config(Command):
         """
         command_parser.add_argument("--path", help="Print path to config file")
 
-    @deprecation.deprecated(
-        deprecated_in="0.1.0",
-        removed_in="0.2.0",
-        current_version=__version__,
-        details="Use `anemoi settings` instead.",
-    )
     def run(self, args: Namespace) -> None:
         """Execute the command with the provided arguments.
 
@@ -54,4 +44,4 @@ class Config(Command):
             print(json.dumps(load_settings(), indent=4))
 
 
-command = Config
+command = Settings

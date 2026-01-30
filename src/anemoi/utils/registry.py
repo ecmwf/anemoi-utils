@@ -362,11 +362,17 @@ class Registry(Generic[T]):
         Any
             The created instance.
         """
+        import omegaconf
+
         if isinstance(config, str):
             config = {config: {}}
 
+        if isinstance(config, omegaconf.DictConfig):
+            # Allow DotDict and OmegaConf objects
+            config = omegaconf.OmegaConf.to_container(config, resolve=True)
+
         if not isinstance(config, dict):
-            raise ValueError(f"Invalid config: {config}")
+            raise ValueError(f"Invalid config: {config} (type {type(config)})")
 
         if self.key in config:
             config = config.copy()
