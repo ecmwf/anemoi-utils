@@ -35,7 +35,7 @@ def health_check(tracking_uri: str) -> None:
         timeout=60,
     )
 
-    if response.text == "OK":
+    if response.status_code == 200:
         return
 
     error_msg = f"Could not connect to MLflow server at {tracking_uri}. "
