@@ -17,6 +17,12 @@ from . import BaseUpload
 LOGGER = logging.getLogger(__name__)
 
 
+def _is_program_on_path(program_name):
+    import shutil
+
+    return shutil.which(program_name) is not None
+
+
 def call_process(*args: str) -> str:
     """Execute a subprocess with the given arguments and return its output.
 
@@ -131,6 +137,82 @@ class SshBaseUpload(BaseUpload):
         # hostname, path = self._parse_target(target)
         # LOGGER.info(f"Deleting {target}")
         # call_process("ssh", hostname, "rm", "-rf", shlex.quote(path))
+
+
+class MscpUpload(SshBaseUpload):
+
+    def copy(self, source: str, target: str, **kwargs) -> None:
+        """Copy a file or a folder from the source to the target location.
+
+        Parameters
+        ----------
+        source : str
+            The source location.
+        target : str
+            The target location.
+        kwargs : dict
+            Additional arguments for the transfer.
+        """
+        self.transfer_file(source=source, target=target, **kwargs)
+
+    def _transfer_file(
+        self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
+    ) -> int:
+        """Transfer a file using mscp.
+
+        Parameters
+        ----------
+        source : str
+            The source file path.
+        target : str
+            The target file path.
+        overwrite : bool
+            Whether to overwrite the target if it exists.
+        resume : bool
+            Whether to resume the transfer if possible.
+        verbosity : int
+            The verbosity level.
+        threads : int
+            The number of threads to use.
+        config : dict, optional
+            Additional configuration options.
+
+        Returns
+        -------
+        int
+            The size of the transferred file.
+        """
+        hostname, path = self._parse_target(target)
+
+        size = os.path.getsize(source)
+
+        # remove dataset name from dest path if its included
+        # mscp will add it regardless, so we dont want it twice
+        _, src_basename = os.path.split(source)
+        if src_basename in target:
+            LOGGER.debug(f"Removing {src_basename} from {target}")
+            target = target.strip(src_basename)
+        LOGGER.debug(f"Copying {source} to {target} with Mscp")
+
+        if verbosity > 0:
+            LOGGER.info(f"{self.action} {source} to {target} ({bytes_to_human(size)})")
+
+        call_process("ssh", hostname, "mkdir", "-p", shlex.quote(os.path.dirname(path)))
+        if threads > 1:
+            call_process(
+                "mscp",
+                "-n",
+                str(threads),
+                source,
+                f"{hostname}:{path}",
+            )
+        else:  # if threads not specified, use the default number of cores from mscp "floor(log(#cores)) + 1"
+            call_process(
+                "mscp",
+                source,
+                f"{hostname}:{path}",
+            )
+        return size
 
 
 class RsyncUpload(SshBaseUpload):
@@ -249,6 +331,29 @@ class ScpUpload(SshBaseUpload):
         return size
 
 
+def _pick_transfer_tool():
+    tools = {"mscp": MscpUpload, "rsync": RsyncUpload, "scp": ScpUpload}
+
+    from anemoi.utils.config import load_config
+
+    tool = load_config().get("utils", {}).get("transfer_tool", None)
+    if tool is not None:
+        # check if the tool listed in the config can be found
+        if tool in tools and _is_program_on_path(tool):
+            LOGGER.info(f"Using {tool} to transfer as specified in the anemoi utils config")
+            return tools[tool]
+
+    # Loops through this list in order until it finds a tool
+    for tool in tools:
+        if _is_program_on_path(tool):
+            LOGGER.info(f"Using {tool} to transfer")
+            return tools[tool]
+    raise RuntimeError(f"No suitable transfer tool found. Looked for the following: {tools}")
+
+
+SshUpload = _pick_transfer_tool()
+
+
 def upload(source: str, target: str, **kwargs) -> None:
     """Upload a file or folder to the target location using rsync.
 
@@ -261,9 +366,6 @@ def upload(source: str, target: str, **kwargs) -> None:
     kwargs : dict
         Additional arguments for the transfer.
     """
-    uploader = RsyncUpload()
+    uploader = SshUpload()
 
-    if os.path.isdir(source):
-        uploader.transfer_folder(source=source, target=target, **kwargs)
-    else:
-        uploader.transfer_file(source=source, target=target, **kwargs)
+    uploader.copy(source=source, target=target, **kwargs)
