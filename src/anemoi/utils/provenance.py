@@ -24,6 +24,8 @@ import subprocess
 import sys
 import sysconfig
 from functools import cache
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import distribution
 from typing import Any
 
 LOG = logging.getLogger(__name__)
@@ -117,8 +119,49 @@ def _package_version(name: str) -> str | None:
         return None
 
 
-def _module_versions() -> tuple[dict[str, Any], set]:
+def _get_package_source_url(package_name: str) -> dict[str, Any] | None:
+    """Extract the source URL from package metadata if installed from git or other VCS. This reads PEP 610 direct_url.json files created by pip when installing from git URLs.
+
+    Parameters
+    ----------
+    package_name : str
+        The name of the package to check.
+
+    Returns
+    -------
+    dict or None
+        Dictionary with 'url' and optionally 'vcs_info' (commit hash, branch, etc.) if available.
+    """
+    try:
+        dist = distribution(package_name)
+
+        try:
+            direct_url_text = dist.read_text("direct_url.json")
+            if direct_url_text:
+                direct_url = json.loads(direct_url_text)
+                result = {"url": direct_url.get("url")}
+
+                # Add VCS info if available (commit hash, requested revision, etc.)
+                if "vcs_info" in direct_url:
+                    result["vcs_info"] = direct_url["vcs_info"]
+
+                # Add subdirectory info if present (e.g., for monorepos)
+                if "subdirectory" in direct_url:
+                    result["subdirectory"] = direct_url["subdirectory"]
+
+                return result
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+
+    except (PackageNotFoundError, Exception) as e:
+        LOG.debug(f"Could not get source URL for {package_name}: {e}")
+
+    return None
+
+
+def _module_versions() -> tuple[dict[str, Any], list[tuple[str, str]]]:
     """Collect version information for all loaded modules.
+       Include source URL information from PEP 610 direct_url.json files.
 
     Returns
     -------
@@ -140,11 +183,19 @@ def _module_versions() -> tuple[dict[str, Any], set]:
         if version is None:
             continue
 
-        versions[name] = version
+        # Store dict with source info
+        source_url = _get_package_source_url(name)
+        if source_url:
+            # Package installed from git/VCS - store detailed info
+            versions[name] = {"version": version, "source": source_url}
+        else:
+            # Regular package - just store version string
+            versions[name] = version
+
         if hasattr(module, "__file__") and module.__file__ is not None:
             paths.add((name, os.path.realpath(module.__file__)))
 
-    return versions, paths
+    return versions, list(paths)
 
 
 @cache
@@ -248,7 +299,7 @@ def _paths(path_or_object: None | str | list[str] | tuple[str] | Any) -> list[tu
         The list of paths.
     """
     if path_or_object is None:
-        _, paths = _module_versions(full=False)
+        _, paths = _module_versions()
         return paths
 
     if isinstance(path_or_object, (list, tuple, set)):
@@ -463,7 +514,7 @@ def gather_provenance_info(assets: list[str] = [], full: bool = False) -> dict[s
             time=datetime.datetime.utcnow().isoformat(),
             python=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             module_versions=versions,
-            distribution_names=import_name_to_distribution_name(versions.keys()),
+            distribution_names=import_name_to_distribution_name(list(versions.keys())),
             git_versions=git_versions,
         )
     else:
@@ -474,7 +525,7 @@ def gather_provenance_info(assets: list[str] = [], full: bool = False) -> dict[s
             python_path=sys.path,
             config_paths=sysconfig.get_paths(),
             module_versions=versions,
-            distribution_names=import_name_to_distribution_name(versions.keys()),
+            distribution_names=import_name_to_distribution_name(list(versions.keys())),
             git_versions=git_versions,
             platform=platform_info(),
             gpus=gpu_info(),
