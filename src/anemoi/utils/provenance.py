@@ -415,7 +415,7 @@ def assets_info(paths: list[str]) -> dict[str, Any]:
 
     for path in paths:
         try:
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(path)  # noqa: F841
+            mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime = os.stat(path)  # noqa: F841
             md5 = path_md5(path)
         except Exception as e:
             result[path] = str(e)
