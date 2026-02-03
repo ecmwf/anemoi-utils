@@ -189,7 +189,7 @@ def _module_versions() -> tuple[dict[str, Any], list[tuple[str, str]]]:
         # Store dict with source info
         source_url = _get_package_source_url(name)
         versions[name] = {"version": version}
-        if source_url:  # Package installed from VCS, store more info
+        if source_url:  # Package contains source info
             versions[name]["source"] = source_url
 
         if hasattr(module, "__file__") and module.__file__ is not None:
