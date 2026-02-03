@@ -134,29 +134,32 @@ def _get_package_source_url(package_name: str) -> dict[str, Any] | None:
     """
     try:
         dist = distribution(package_name)
-
-        try:
-            direct_url_text = dist.read_text("direct_url.json")
-            if direct_url_text:
-                direct_url = json.loads(direct_url_text)
-                result = {"url": direct_url.get("url")}
-
-                # Add VCS info if available (commit hash, requested revision, etc.)
-                if "vcs_info" in direct_url:
-                    result["vcs_info"] = direct_url["vcs_info"]
-
-                # Add subdirectory info if present (e.g., for monorepos)
-                if "subdirectory" in direct_url:
-                    result["subdirectory"] = direct_url["subdirectory"]
-
-                return result
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
-
-    except (PackageNotFoundError, Exception) as e:
+    except PackageNotFoundError as e:
         LOG.debug(f"Could not get source URL for {package_name}: {e}")
+        return None
 
-    return None
+    try:
+        direct_url_text = dist.read_text("direct_url.json")
+    except FileNotFoundError as e:
+        LOG.debug(f"No direct_url.json found for {package_name}: {e}")
+        return None
+
+    try:
+        direct_url = json.loads(str(direct_url_text))
+        result = {"url": direct_url.get("url")}
+    except json.JSONDecodeError as e:
+        LOG.debug(f"Invalid direct_url.json for {package_name}: {e}")
+        return None
+
+    # Add VCS info if available (commit hash, requested revision, etc.)
+    if "vcs_info" in direct_url:
+        result["vcs_info"] = direct_url["vcs_info"]
+
+    # Add subdirectory info if present (e.g., for monorepos)
+    if "subdirectory" in direct_url:
+        result["subdirectory"] = direct_url["subdirectory"]
+
+    return result
 
 
 def _module_versions() -> tuple[dict[str, Any], list[tuple[str, str]]]:
@@ -185,12 +188,9 @@ def _module_versions() -> tuple[dict[str, Any], list[tuple[str, str]]]:
 
         # Store dict with source info
         source_url = _get_package_source_url(name)
-        if source_url:
-            # Package installed from git/VCS - store detailed info
+        versions[name] = {"version": version}
+        if source_url:  # Package installed from git/VCS - store detailed info
             versions[name] = {"version": version, "source": source_url}
-        else:
-            # Regular package - just store version string
-            versions[name] = version
 
         if hasattr(module, "__file__") and module.__file__ is not None:
             paths.add((name, os.path.realpath(module.__file__)))
