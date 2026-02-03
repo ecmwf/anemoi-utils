@@ -190,7 +190,7 @@ def _module_versions() -> tuple[dict[str, Any], list[tuple[str, str]]]:
         source_url = _get_package_source_url(name)
         versions[name] = {"version": version}
         if source_url:  # Package installed from VCS, store more info
-            versions[name] = {"version": version, "source": source_url}
+            versions[name]["source"] = source_url
 
         if hasattr(module, "__file__") and module.__file__ is not None:
             paths.add((name, os.path.realpath(module.__file__)))
