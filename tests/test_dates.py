@@ -36,41 +36,35 @@ def _(txt: str) -> datetimes_factory:
 
 def test_date_1() -> None:
     """Test datetimes_factory with a list of dates."""
-    d = _(
-        """
+    d = _("""
           - 2023-01-01
           - 2023-01-02
           - 2023-01-03
-    """
-    )
+    """)
     assert len(list(d)) == 3
 
 
 def test_date_2() -> None:
     """Test datetimes_factory with a date range and frequency."""
-    d = _(
-        """
+    d = _("""
         start: 2023-01-01
         end: 2023-01-07
         frequency: 12
         day_of_week: [monday, friday]
-    """
-    )
+    """)
     assert len(list(d)) == 4
 
 
 def test_date_3() -> None:
     """Test datetimes_factory with multiple date ranges and frequencies."""
-    d = _(
-        """
+    d = _("""
         - start: 2023-01-01
           end: 2023-01-03
           frequency: 24
         - start: 2024-01-01T06:00:00
           end: 2024-01-02T18:00:00
           frequency: 6h
-    """
-    )
+    """)
     assert datetime.datetime(2023, 1, 1, 0) in d
     assert datetime.datetime(2023, 1, 2, 0) in d
     assert datetime.datetime(2023, 1, 3, 0) in d
@@ -86,16 +80,14 @@ def test_date_3() -> None:
 
 def test_date_hindcast_1() -> None:
     """Test datetimes_factory with hindcast configuration."""
-    d = _(
-        """
+    d = _("""
         - name: hindcast
           reference_dates:
             start: 2023-01-01
             end: 2023-01-03
             frequency: 24
           years: 20
-    """
-    )
+    """)
     assert len(list(d)) == 60
 
 
