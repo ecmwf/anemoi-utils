@@ -162,7 +162,7 @@ def _get_package_source_url(package_name: str) -> dict[str, Any] | None:
     return result
 
 
-def _module_versions() -> tuple[dict[str, Any], list[tuple[str, str]]]:
+def _module_versions() -> tuple[dict[str, Any], set]:
     """Collect version information for all loaded modules.
        Include source URL information from PEP 610 direct_url.json files.
 
@@ -195,7 +195,7 @@ def _module_versions() -> tuple[dict[str, Any], list[tuple[str, str]]]:
         if hasattr(module, "__file__") and module.__file__ is not None:
             paths.add((name, os.path.realpath(module.__file__)))
 
-    return versions, list(paths)
+    return versions, paths
 
 
 @cache
