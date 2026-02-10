@@ -65,7 +65,19 @@ class DotDict(dict):
             super().__setitem__(k, self.convert_to_nested_dot_dict(v))
 
     @staticmethod
-    def convert_to_nested_dot_dict(value):
+    def convert_to_nested_dot_dict(value: Any) -> Any:
+        """Convert nested dicts to DotDict recursively.
+
+        Parameters
+        ----------
+        value : Any
+            The value to convert
+
+        Returns
+        -------
+        Any
+            Converted value with nested dicts as DotDict
+        """
         if isinstance(value, dict) or is_omegaconf_dict(value):
             return DotDict(value)
 

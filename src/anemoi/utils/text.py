@@ -18,7 +18,7 @@ from typing import Optional
 # https://en.wikipedia.org/wiki/Box-drawing_character
 
 
-def dotted_line(width=84) -> str:
+def dotted_line(width: int = 84) -> str:
     """Return a dotted line using '┈'.
 
     >>> dotted_line(40)
@@ -165,7 +165,7 @@ def boxed(text: str, min_width: int = 80, max_width: int = 80) -> str:
 
     if max_width is not None:
 
-        def shorten_line(line, max_width):
+        def shorten_line(line: list, max_width: int) -> list:
             if visual_len(line) > max_width:
                 while visual_len(line) >= max_width:
                     line = line[:-1]
@@ -175,7 +175,7 @@ def boxed(text: str, min_width: int = 80, max_width: int = 80) -> str:
         width = min(width, max_width)
         lines = [shorten_line(line, max_width) for line in lines]
 
-    def pad_line(line, width):
+    def pad_line(line: list, width: int) -> list:
         line = line + [" "] * (width - visual_len(line))
         return line
 

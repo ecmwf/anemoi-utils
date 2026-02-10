@@ -337,7 +337,7 @@ def when(
 
     if now is None:
         if use_utc:
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.UTC)
         else:
             now = datetime.datetime.now()
 
@@ -352,7 +352,7 @@ def when(
     if diff == 0:
         return "right now"
 
-    def _(x):
+    def _(x: str) -> str:
         if last == "last":
             return f"{x} ago"
         else:
@@ -376,46 +376,38 @@ def when(
     jthen = then.toordinal()
 
     if jnow == jthen:
-        return "today at %02d:%02d" % (then.hour, then.minute)
+        return f"today at {then.hour:02d}:{then.minute:02d}"
 
     if jnow == jthen + 1:
-        return "yesterday at %02d:%02d" % (then.hour, then.minute)
+        return f"yesterday at {then.hour:02d}:{then.minute:02d}"
 
     if jnow == jthen - 1:
-        return "tomorrow at %02d:%02d" % (then.hour, then.minute)
+        return f"tomorrow at {then.hour:02d}:{then.minute:02d}"
 
     if abs(jnow - jthen) <= 7:
         if last == "next":
             last = "this"
-        return "{} {}".format(
-            last,
-            DOW[then.weekday()],
-        )
+        return f"{last} {DOW[then.weekday()]}"
 
     if abs(jnow - jthen) < 32 and now.month == then.month:
-        return "the %d%s of this month" % (then.day, __(then.day))
+        return f"the {then.day}{__(then.day)} of this month"
 
     if abs(jnow - jthen) < 64 and now.month == then.month + 1:
-        return "the %d%s of %s month" % (then.day, __(then.day), last)
+        return f"the {then.day}{__(then.day)} of {last} month"
 
     if short:
         years = int(abs(jnow - jthen) / 365.25 + 0.5)
         if years == 1:
-            return "%s year" % last
+            return f"{last} year"
 
         if years > 1:
-            return _("%d years" % (years,))
+            return _(f"{years} years")
 
         delta = abs(now - then)
         if delta.days > 1 and delta.days < 30:
-            return _("%d days" % (delta.days,))
+            return _(f"{delta.days} days")
 
-    return "on %s %d %s %d" % (
-        DOW[then.weekday()],
-        then.day,
-        MONTH[then.month - 1],
-        then.year,
-    )
+    return f"on {DOW[then.weekday()]} {then.day} {MONTH[then.month - 1]} {then.year}"
 
 
 def string_distance(s: str, t: str) -> int:
@@ -439,8 +431,8 @@ def string_distance(s: str, t: str) -> int:
     n = len(t)
     d = np.zeros((m + 1, n + 1), dtype=int)
 
-    one = int(1)
-    zero = int(0)
+    one = 1
+    zero = 0
 
     d[:, 0] = np.arange(m + 1)
     d[0, :] = np.arange(n + 1)
