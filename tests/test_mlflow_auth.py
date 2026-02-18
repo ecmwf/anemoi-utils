@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import os
 import time
 
@@ -18,6 +20,7 @@ from anemoi.utils.mlflow.auth import NoAuth
 from anemoi.utils.mlflow.auth import ServerConfig
 from anemoi.utils.mlflow.auth import ServerStore
 from anemoi.utils.mlflow.auth import TokenAuth
+from anemoi.utils.mlflow.auth import UserInfo
 
 
 def mocks(
@@ -286,3 +289,32 @@ def test_utils_interface():
     from anemoi.utils.config import CONFIG_LOCK
 
     assert isinstance(CONFIG_LOCK, type(RLock()))
+
+
+def test_user_info(mocker: pytest.MockerFixture) -> None:
+    payload = {
+        "name": "John Anemoi",
+        "preferred_username": "anemoi1234",
+        "email": "john.anemoi@example.com",
+        # some extra fields that are present in a real payload that should be ignored
+        "exp": 1773999223,
+        "email_verified": True,
+    }
+    request = {"access_token": f"e30.{base64.b64encode(json.dumps(payload).encode()).decode()}.e30"}
+    mocks(mocker, token_request=request)
+
+    # auth enabled
+    auth = TokenAuth("https://test.url")
+    for info in (auth.user_info(), UserInfo.from_jwt(request["access_token"])):
+        assert info
+        assert info.name == payload["name"]
+        assert info.email == payload["email"]
+        assert info.username == payload["preferred_username"]
+
+    # auth disabled
+    auth = TokenAuth("https://test.url", enabled=False)
+    for info in (auth.user_info(), UserInfo()):
+        assert not info
+        assert info.name is None
+        assert info.email is None
+        assert info.username is None

@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import logging
 import os
 import time
@@ -24,6 +26,7 @@ from typing import TYPE_CHECKING
 
 import requests
 from pydantic import BaseModel
+from pydantic import Field
 from pydantic import RootModel
 from pydantic import field_validator
 from pydantic import model_validator
@@ -41,6 +44,27 @@ REFRESH_EXPIRE_DAYS = 29
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+class UserInfo(BaseModel):
+    """User info associated with a token."""
+
+    name: str | None = None
+    email: str | None = None
+    username: str | None = Field(default=None, validation_alias="preferred_username")
+
+    @classmethod
+    def from_jwt(cls, token: str) -> "UserInfo":
+        """Create a UserInfo object from a JWT. The token payload must contain the user info fields."""
+        payload = token.split(".")[1]
+        padded = payload + "=" * (-len(payload) % 4)
+        decoded = base64.b64decode(padded).decode("utf-8")
+        data = json.loads(decoded)
+        return cls(**data)
+
+    def __bool__(self) -> bool:
+        """A UserInfo object evaluates to True if at least one of its fields is not None."""
+        return any(getattr(self, field) is not None for field in UserInfo.model_fields)
 
 
 class ServerConfig(BaseModel):
@@ -112,6 +136,10 @@ class AuthBase(ABC):
     def authenticate(self, **kwargs):
         pass
 
+    @abstractmethod
+    def user_info(self) -> UserInfo:
+        pass
+
 
 class NoAuth(AuthBase):
     """No-op authentication class."""
@@ -127,6 +155,9 @@ class NoAuth(AuthBase):
 
     def authenticate(self, **kwargs):
         pass
+
+    def user_info(self) -> UserInfo:
+        return UserInfo()
 
 
 class TokenAuth(AuthBase):
@@ -167,7 +198,7 @@ class TokenAuth(AuthBase):
             self._refresh_token = None
             self.refresh_expires = 0
 
-        self.access_token = None
+        self.access_token: str | None = None
         self.access_expires = 0
 
         # the command line tool adds a default handler to the root logger on runtime,
@@ -347,6 +378,19 @@ class TokenAuth(AuthBase):
             "Your MLflow login token is valid until %s UTC",
             expire_date.strftime("%Y-%m-%d %H:%M:%S"),
         )
+
+    def user_info(self) -> UserInfo:
+        """Get user info embedded in the access token."""
+        self.authenticate()
+
+        if not self.access_token:
+            return UserInfo()
+
+        try:
+            return UserInfo.from_jwt(self.access_token)
+        except Exception as e:
+            self.log.exception("Failed to decode access token.", exc_info=e)
+            return UserInfo()
 
     def _token_request(
         self,
