@@ -19,6 +19,7 @@ from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
+from typing import overload
 
 import entrypoints
 
@@ -26,8 +27,10 @@ LOG = logging.getLogger(__name__)
 
 DEBUG_ANEMOI_REGISTRY = int(os.environ.get("DEBUG_ANEMOI_REGISTRY", "0"))
 
+T = TypeVar("T", bound=Callable[..., Any])
 
-class Wrapper:
+
+class Wrapper(Generic[T]):
     """A wrapper for the registry.
 
     Parameters
@@ -42,7 +45,7 @@ class Wrapper:
         self.name = name
         self.registry = registry
 
-    def __call__(self, factory: Callable) -> Callable:
+    def __call__(self, factory: T) -> T:
         """Register a factory with the registry.
 
         Parameters
@@ -97,6 +100,8 @@ class Registry(Generic[T]):
         self.package = package
         self.__registered = {}
         self._sources = {}
+        self._aliases = {}
+        self._warnings = set()
         self.kind = package.split(".")[-1]
         self.key = key
         self.api_version = api_version
@@ -118,7 +123,18 @@ class Registry(Generic[T]):
         """
         return _BY_KIND.get(kind)
 
-    def register(self, name: str, factory: Callable | None = None, source: Any | None = None) -> Wrapper | None:
+    @overload
+    def register(
+        self, name: str, factory: Callable[..., T], source: Any | None = None, aliases: list[str] | None = None
+    ) -> None: ...
+    @overload
+    def register(
+        self, name: str, factory: None = None, source: Any | None = None, aliases: list[str] | None = None
+    ) -> Wrapper: ...
+
+    def register(
+        self, name: str, factory: Callable | None = None, source: Any | None = None, aliases: list[str] | None = None
+    ) -> Wrapper | None:
         """Register a factory with the registry.
 
         Parameters
@@ -129,6 +145,8 @@ class Registry(Generic[T]):
             The factory to register, by default None.
         source : Any, optional
             The source of the factory, by default None.
+        aliases : list of str, optional
+            Aliases for the factory, by default None.
 
         Returns
         -------
@@ -136,7 +154,13 @@ class Registry(Generic[T]):
             A wrapper if the factory is None, otherwise None.
         """
 
+        aliases = aliases or []
+
         name = name.replace("_", "-")
+        assert (
+            name not in self._aliases
+        ), f"'{name}' is already registered for '{self._aliases[name]}' in {self.package}"
+        assert name not in aliases, f"'{name}' cannot be an alias for itself in {self.package}"
 
         if factory is None:
             # This happens when the @register decorator is used
@@ -149,6 +173,15 @@ class Registry(Generic[T]):
             warnings.warn(f"Factory '{name}' is already registered in {self.package}")
             warnings.warn(f"Existing: {self._sources[name]}")
             warnings.warn(f"New: {source}")
+
+        for alias in aliases:
+            assert (
+                alias not in self.__registered
+            ), f"Alias '{alias}' is already registered as a factory in {self.package}"
+            alias = alias.replace("_", "-")
+            if alias in self._aliases:
+                warnings.warn(f"Alias '{alias}' is already registered for '{self._aliases[alias]}' in {self.package}")
+            self._aliases[alias] = name
 
         self.__registered[name] = factory
         self._sources[name] = source
@@ -188,6 +221,7 @@ class Registry(Generic[T]):
         """
 
         name = name.replace("_", "-")
+        name = self._unalias(name)
 
         ok = name in self.factories
         if not ok:
@@ -196,7 +230,7 @@ class Registry(Generic[T]):
                 LOG.info(f"Registered: {e} ({self._sources.get(e)})")
         return ok
 
-    def lookup(self, name: str, *, return_none: bool = False) -> Callable | None:
+    def lookup(self, name: str, *, return_none: bool = False) -> type[T] | None:
         """Lookup a factory by name.
 
         Parameters
@@ -213,6 +247,7 @@ class Registry(Generic[T]):
         """
 
         name = name.replace("_", "-")
+        name = self._unalias(name)
 
         if return_none:
             return self.factories.get(name)
@@ -229,7 +264,7 @@ class Registry(Generic[T]):
         return factory
 
     @cached_property
-    def factories(self) -> dict[str, Callable]:
+    def factories(self) -> dict[str, type[T]]:
 
         directory = sys.modules[self.package].__path__[0]
 
@@ -305,6 +340,7 @@ class Registry(Generic[T]):
         """
 
         name = name.replace("_", "-")
+        name = self._unalias(name)
 
         factory = self.lookup(name)
         return factory(*args, **kwargs)
@@ -352,3 +388,33 @@ class Registry(Generic[T]):
         raise ValueError(
             f"Entry '{config}' must either be a string, a dictionary with a single entry, or a dictionary with a '{self.key}' key"
         )
+
+    def _unalias(self, name: str) -> str:
+        """Resolve an alias to its canonical name.
+
+        Parameters
+        ----------
+        name : str
+            The name to resolve.
+
+        Returns
+        -------
+        str
+            The canonical name.
+        """
+        canonical = self._aliases.get(name, name)
+        if canonical != name:
+            warnings.warn(
+                f"Alias '{name}' for '{canonical}' in {self.package} is deprecated and will be removed in a future version.",
+                category=DeprecationWarning,
+                # stacklevel=2,
+            )
+
+        return canonical
+
+    def aliases(self):
+        """Get the aliases."""
+        result = {}
+        for alias, name in self._aliases.items():
+            result.setdefault(name, []).append(alias)
+        return result

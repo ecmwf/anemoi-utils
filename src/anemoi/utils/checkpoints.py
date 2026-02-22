@@ -1,4 +1,4 @@
-# (C) Copyright 2024 Anemoi contributors.
+# (C) Copyright 2024- Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -19,13 +19,18 @@ import time
 import zipfile
 from collections.abc import Callable
 from tempfile import TemporaryDirectory
+from typing import Literal
+from typing import overload
 
+import numpy as np
 import tqdm
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_NAME = "ai-models.json"
+DEFAULT_NAME = "anemoi.json"
 DEFAULT_FOLDER = "anemoi-metadata"
+
+DEPRECATED_NAME = "ai-models.json"
 
 
 def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
@@ -44,14 +49,11 @@ def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
         True if the metadata file is found
     """
     with zipfile.ZipFile(path, "r") as f:
-        for b in f.namelist():
-            if os.path.basename(b) == name:
-                return True
-    return False
+        return any(os.path.basename(b) == name for b in f.namelist())
 
 
-def metadata_root(path: str, *, name: str = DEFAULT_NAME) -> str:
-    """Get the root directory of the metadata file.
+def get_metadata_path(path: str, *, name: str = DEFAULT_NAME) -> str:
+    """Get the full path of the metadata file in the checkpoint.
 
     Parameters
     ----------
@@ -63,21 +65,50 @@ def metadata_root(path: str, *, name: str = DEFAULT_NAME) -> str:
     Returns
     -------
     str
-        The root directory of the metadata file
+        The full path of the metadata file in the zip archive
 
     Raises
     ------
-    ValueError
+    FileNotFoundError
         If the metadata file is not found
+    ValueError
+        If multiple metadata files are found
     """
     with zipfile.ZipFile(path, "r") as f:
-        for b in f.namelist():
-            if os.path.basename(b) == name:
-                return os.path.dirname(b)
-    raise ValueError(f"Could not find '{name}' in {path}.")
+        metadata_file = list(filter(lambda b: os.path.basename(b) == name, f.namelist()))
+        if len(metadata_file) == 0:
+            raise FileNotFoundError(f"Could not find '{name}' in {path}.")
+        if len(metadata_file) > 1:
+            raise ValueError(f"Found two or more '{name}' in {path}.")
+        return metadata_file[0]
 
 
-def load_metadata(path: str, *, supporting_arrays: bool = False, name: str = DEFAULT_NAME) -> dict:
+def _support_metadata_name_deprecation(path: str, name: str) -> str:
+    """Support deprecated metadata name, automatically switching if needed and logging a warning."""
+    if name == DEFAULT_NAME and not has_metadata(path, name=DEFAULT_NAME):
+        if has_metadata(path, name=DEPRECATED_NAME):
+            LOG.warning(
+                "The metadata file '%s' is deprecated. New versions of checkpoints will write to '%s' instead.",
+                DEPRECATED_NAME,
+                DEFAULT_NAME,
+            )
+            name = DEPRECATED_NAME
+    return name
+
+
+# TODO: Refactor this function to reduce complexity
+@overload
+def load_metadata(path: str, *, supporting_arrays: Literal[False] = False, name: str = DEFAULT_NAME) -> dict:  # type: ignore[reportOverlappingOverload]
+    ...
+
+
+@overload
+def load_metadata(
+    path: str, *, supporting_arrays: Literal[True] = True, name: str = DEFAULT_NAME
+) -> tuple[dict, dict]: ...
+
+
+def load_metadata(path: str, *, supporting_arrays: bool = False, name: str = DEFAULT_NAME) -> dict | tuple[dict, dict]:
     """Load metadata from a checkpoint file.
 
     Parameters
@@ -101,24 +132,15 @@ def load_metadata(path: str, *, supporting_arrays: bool = False, name: str = DEF
     ValueError
         If the metadata file is not found
     """
+    name = _support_metadata_name_deprecation(path, name)
+    metadata = get_metadata_path(path, name=name)
+
     with zipfile.ZipFile(path, "r") as f:
-        metadata = None
-        for b in f.namelist():
-            if os.path.basename(b) == name:
-                if metadata is not None:
-                    raise ValueError(f"Found two or more '{name}' in {path}.")
-                metadata = b
-
-    if metadata is not None:
-        with zipfile.ZipFile(path, "r") as f:
-            metadata = json.load(f.open(metadata, "r"))
-            if supporting_arrays:
-                arrays = load_supporting_arrays(f, metadata.get("supporting_arrays_paths", {}))
-                return metadata, arrays
-
-            return metadata
-    else:
-        raise ValueError(f"Could not find '{name}' in {path}.")
+        metadata = json.load(f.open(metadata, "r"))
+        if supporting_arrays:
+            arrays = load_supporting_arrays(f, metadata.get("supporting_arrays_paths", {}))
+            return metadata, arrays
+        return metadata
 
 
 def load_supporting_arrays(zipf: zipfile.ZipFile, entries: dict) -> dict:
@@ -140,15 +162,61 @@ def load_supporting_arrays(zipf: zipfile.ZipFile, entries: dict) -> dict:
 
     supporting_arrays = {}
     for key, entry in entries.items():
-        supporting_arrays[key] = np.frombuffer(
-            zipf.read(entry["path"]),
-            dtype=entry["dtype"],
-        ).reshape(entry["shape"])
+        if isinstance(entry, dict) and not set(entry.keys()) == set(["path", "shape", "dtype"]):
+            supporting_arrays[key] = load_supporting_arrays(zipf, entry)
+        else:
+            supporting_arrays[key] = np.frombuffer(
+                zipf.read(entry["path"]),
+                dtype=entry["dtype"],
+            ).reshape(entry["shape"])
     return supporting_arrays
 
 
+def _get_supporting_arrays_paths(directory: str, folder: str, supporting_arrays: dict | np.ndarray) -> dict:
+    """Get the paths of supporting arrays."""
+    if supporting_arrays is None:
+        return {}
+
+    if isinstance(supporting_arrays, dict):
+        return {
+            new_key: _get_supporting_arrays_paths(f"{directory}/{folder}", new_key, new_value)
+            for new_key, new_value in supporting_arrays.items()
+        }
+
+    return dict(
+        path=f"{directory}/{folder}.numpy",
+        shape=supporting_arrays.shape,
+        dtype=str(supporting_arrays.dtype),
+    )
+
+
+def _write_array_to_bytes(array: dict | np.ndarray, name: str, entry: dict, zipf: zipfile.ZipFile) -> None:
+    """Write a supporting array to bytes in a zip file."""
+    if array is None:
+        return
+
+    if isinstance(array, dict):
+        for sub_name, sub_array in array.items():
+            sub_entry = entry.get(sub_name, {})
+            _write_array_to_bytes(sub_array, sub_name, sub_entry, zipf)
+        return
+    LOG.info(
+        "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
+        name,
+        entry["path"],
+        entry["shape"],
+        entry["dtype"],
+    )
+    zipf.writestr(entry["path"], array.tobytes())
+
+
 def save_metadata(
-    path: str, metadata: dict, *, supporting_arrays: dict = None, name: str = DEFAULT_NAME, folder: str = DEFAULT_FOLDER
+    path: str,
+    metadata: dict,
+    *,
+    supporting_arrays: dict | None = None,
+    name: str = DEFAULT_NAME,
+    folder: str = DEFAULT_FOLDER,
 ) -> None:
     """Save metadata to a checkpoint file.
 
@@ -158,7 +226,7 @@ def save_metadata(
         The path to the checkpoint file
     metadata : dict
         A JSON serializable object
-    supporting_arrays : dict, optional
+    supporting_arrays : dict | None, optional
         A dictionary of supporting NumPy arrays
     name : str, optional
         The name of the metadata file in the zip archive
@@ -189,32 +257,17 @@ def save_metadata(
         LOG.info("Saving metadata to %s/%s/%s", directory, folder, name)
 
         metadata = metadata.copy()
-        if supporting_arrays is not None:
-            metadata["supporting_arrays_paths"] = {
-                key: dict(path=f"{directory}/{folder}/{key}.numpy", shape=value.shape, dtype=str(value.dtype))
-                for key, value in supporting_arrays.items()
-            }
-        else:
-            metadata["supporting_arrays_paths"] = {}
+        metadata["supporting_arrays_paths"] = _get_supporting_arrays_paths(directory, folder, supporting_arrays)
 
         zipf.writestr(
             f"{directory}/{folder}/{name}",
             json.dumps(metadata),
         )
 
-        for name, entry in metadata["supporting_arrays_paths"].items():
-            value = supporting_arrays[name]
-            LOG.info(
-                "Saving supporting array `%s` to %s (shape=%s, dtype=%s)",
-                name,
-                entry["path"],
-                entry["shape"],
-                entry["dtype"],
-            )
-            zipf.writestr(entry["path"], value.tobytes())
+        _write_array_to_bytes(supporting_arrays, "", metadata["supporting_arrays_paths"], zipf)
 
 
-def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict = None) -> None:
+def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict | None = None) -> None:
     """Edit metadata in a checkpoint file.
 
     Parameters
@@ -230,48 +283,59 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
     """
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
-    found = False
+    target_file = get_metadata_path(path, name=name)
+    if target_file is None:
+        raise FileNotFoundError(f"Could not find '{name}' in {path}")
 
-    directory = None
-    with TemporaryDirectory() as temp_dir:
-        zipfile.ZipFile(path, "r").extractall(temp_dir)
-        total = 0
-        for root, dirs, files in os.walk(temp_dir):
-            for f in files:
-                total += 1
-                full = os.path.join(root, f)
-                if f == name:
-                    found = True
-                    callback(full)
-                    directory = os.path.dirname(full)
+    directory = os.path.dirname(target_file)
 
-        if not found:
-            raise ValueError(f"Could not find '{name}' in {path}")
+    with zipfile.ZipFile(path, "r") as source_zip:
+        file_list = source_zip.namelist()
 
+        # Calculate total files for progress bar
+        total_files = len(file_list)
         if supporting_arrays is not None:
+            total_files += len(supporting_arrays)
 
-            for key, entry in supporting_arrays.items():
-                value = entry.tobytes()
-                fname = os.path.join(directory, f"{key}.numpy")
-                os.makedirs(os.path.dirname(fname), exist_ok=True)
-                with open(fname, "wb") as f:
-                    f.write(value)
-                    total += 1
+        with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
+            with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
 
-        with zipfile.ZipFile(new_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            with tqdm.tqdm(total=total, desc="Rebuilding checkpoint") as pbar:
-                for root, dirs, files in os.walk(temp_dir):
-                    for f in files:
-                        full = os.path.join(root, f)
-                        rel = os.path.relpath(full, temp_dir)
-                        zipf.write(full, rel)
+                # Copy all files except the target file
+                for file_path in file_list:
+                    if file_path != target_file:
+                        with source_zip.open(file_path) as source_file:
+                            data = source_file.read()
+                            new_zip.writestr(file_path, data)
+                        pbar.update(1)
+
+                # Handle the target file with callback
+                with TemporaryDirectory() as temp_dir:
+                    # Extract only the target file
+                    source_zip.extract(target_file, temp_dir)
+                    target_full_path = os.path.join(temp_dir, target_file)
+
+                    # Apply the callback
+                    callback(target_full_path)
+
+                    # Add the modified file to the new zip (if it still exists)
+                    if os.path.exists(target_full_path):
+                        new_zip.write(target_full_path, target_file)
+                    pbar.update(1)
+
+                # Add supporting arrays if provided
+                if supporting_arrays is not None:
+                    for key, entry in supporting_arrays.items():
+                        array_path = os.path.join(directory, f"{key}.numpy") if directory else f"{key}.numpy"
+                        new_zip.writestr(array_path, entry.tobytes())
                         pbar.update(1)
 
     os.rename(new_path, path)
     LOG.info("Updated metadata in %s", path)
 
 
-def replace_metadata(path: str, metadata: dict, supporting_arrays: dict = None, *, name: str = DEFAULT_NAME) -> None:
+def replace_metadata(
+    path: str, metadata: dict, supporting_arrays: dict | None = None, *, name: str = DEFAULT_NAME
+) -> None:
     """Replace metadata in a checkpoint file.
 
     Parameters
@@ -295,6 +359,7 @@ def replace_metadata(path: str, metadata: dict, supporting_arrays: dict = None, 
         with open(full, "w") as f:
             json.dump(metadata, f)
 
+    name = _support_metadata_name_deprecation(path, name)
     return _edit_metadata(path, name, callback, supporting_arrays)
 
 
@@ -308,6 +373,7 @@ def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
     name : str, optional
         The name of the metadata file in the zip archive
     """
+    name = _support_metadata_name_deprecation(path, name)
 
     def callback(full):
         os.remove(full)

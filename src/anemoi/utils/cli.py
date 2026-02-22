@@ -265,8 +265,11 @@ def cli_main(
         else:
             cmd.run(args)
     except ValueError as e:
-
         if test_arguments:
+            raise
+
+        if sys.excepthook is not sys.__excepthook__:
+            # re-raise exception if non-default excepthook is set (e.g. in pdb)
             raise
 
         traceback.print_exc()

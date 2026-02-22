@@ -24,6 +24,8 @@ import subprocess
 import sys
 import sysconfig
 from functools import cache
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import distribution
 from typing import Any
 
 LOG = logging.getLogger(__name__)
@@ -106,106 +108,92 @@ def _check_for_git(paths: list[tuple[str, str]], full: bool) -> dict[str, Any]:
     return versions
 
 
-def version(
-    versions: dict[str, Any], name: str, module: Any, roots: dict[str, str], namespaces: set, paths: set, full: bool
-) -> None:
-    """Collect version information for a module.
+def _package_version(name: str) -> str | None:
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version
+
+    # This the recommended way to get the version of a package
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return None
+
+
+def _get_package_source_url(package_name: str) -> dict[str, Any] | None:
+    """Extract the source URL from package metadata if installed from git or other VCS. This reads PEP 610 direct_url.json files created by pip when installing from git URLs.
 
     Parameters
     ----------
-    versions : dict
-        The dictionary to store the version information.
-    name : str
-        The name of the module.
-    module : Any
-        The module to collect information for.
-    roots : dict
-        The dictionary of root paths.
-    namespaces : set
-        The set of namespaces.
-    paths : set
-        The set of paths.
-    full : bool
-        Whether to collect full information.
+    package_name : str
+        The name of the package to check.
+
+    Returns
+    -------
+    dict or None
+        Dictionary with 'url' and optionally 'vcs_info' (commit hash, branch, etc.) if available.
     """
-    path = None
-
-    if hasattr(module, "__file__"):
-        path = module.__file__
-        if path is not None:
-            for k, v in roots.items():
-                path = path.replace(k, f"<{v}>")
-
-            if path.startswith("/"):
-                paths.add((name, path))
+    try:
+        dist = distribution(package_name)
+    except PackageNotFoundError as e:
+        LOG.debug(f"Could not get source URL for {package_name}: {e}")
+        return None
 
     try:
-        versions[name] = str(module.__version__)
-        return
-    except AttributeError:
-        pass
+        direct_url_text = dist.read_text("direct_url.json")
+    except FileNotFoundError as e:
+        LOG.debug(f"No direct_url.json found for {package_name}: {e}")
+        return None
 
     try:
-        if path is None:
-            namespaces.add(name)
-            return
+        direct_url = json.loads(str(direct_url_text))
+        result = {"url": direct_url.get("url")}
+    except json.JSONDecodeError as e:
+        LOG.debug(f"Invalid direct_url.json for {package_name}: {e}")
+        return None
 
-        # For now, don't report on stdlib modules
-        if path.startswith("<stdlib>"):
-            return
+    # Add VCS info if available (commit hash, requested revision, etc.)
+    if "vcs_info" in direct_url:
+        result["vcs_info"] = direct_url["vcs_info"]
 
-        if full:
-            versions[name] = path
-        else:
-            if not path.startswith("<"):
-                versions[name] = os.path.join("...", os.path.basename(path))
-        return
-    except AttributeError:
-        pass
+    # Add subdirectory info if present (e.g., for monorepos)
+    if "subdirectory" in direct_url:
+        result["subdirectory"] = direct_url["subdirectory"]
 
-    if name in sys.builtin_module_names:
-        return
-
-    versions[name] = str(module)
+    return result
 
 
-def _module_versions(full: bool) -> tuple[dict[str, Any], set]:
+def _module_versions() -> tuple[dict[str, Any], set]:
     """Collect version information for all loaded modules.
-
-    Parameters
-    ----------
-    full : bool
-        Whether to collect full information.
+       Include source URL information from PEP 610 direct_url.json files.
 
     Returns
     -------
     tuple of dict and set
         The version information and the set of paths.
     """
-    # https://docs.python.org/3/library/sysconfig.html
 
-    roots = {}
-    for name, path in sysconfig.get_paths().items():
-        path = os.path.realpath(path)
-        if path not in roots:
-            roots[path] = name
-
-    # Sort by length of path, so that we get the most specific first
-    roots = {path: name for path, name in sorted(roots.items(), key=lambda x: len(x[0]), reverse=True)}
+    SKIP = set(sys.stdlib_module_names) | set(sys.builtin_module_names)
 
     paths = set()
 
     versions = {}
-    namespaces = set()
-    for k, v in sorted(sys.modules.copy().items()):
-        if "." not in k:
-            version(versions, k, v, roots, namespaces, paths, full)
 
-    # Catter for modules like "earthkit.meteo"
-    for k, v in sorted(sys.modules.copy().items()):
-        bits = k.split(".")
-        if len(bits) == 2 and bits[0] in namespaces:
-            version(versions, k, v, roots, namespaces, paths, full)
+    for name, module in sorted(sys.modules.items()):
+        if name in SKIP:
+            continue
+
+        version = _package_version(name)
+        if version is None:
+            continue
+
+        # Store dict with source info
+        source_url = _get_package_source_url(name)
+        versions[name] = {"version": version}
+        if source_url:  # Package contains source info
+            versions[name]["source"] = source_url
+
+        if hasattr(module, "__file__") and module.__file__ is not None:
+            paths.add((name, os.path.realpath(module.__file__)))
 
     return versions, paths
 
@@ -222,10 +210,6 @@ def package_distributions() -> dict[str, list[str]]:
     # Takes a significant amount of time to run
     # so cache the result
     from importlib import metadata
-
-    # For python 3.9 support
-    if not hasattr(metadata, "packages_distributions"):
-        import importlib_metadata as metadata
 
     return metadata.packages_distributions()
 
@@ -274,7 +258,7 @@ def module_versions(full: bool) -> tuple[dict[str, Any], dict[str, Any]]:
     tuple of dict and dict
         The version information and the git information.
     """
-    versions, paths = _module_versions(full)
+    versions, paths = _module_versions()
     git_versions = _check_for_git(paths, full)
     return versions, git_versions
 
@@ -315,7 +299,7 @@ def _paths(path_or_object: None | str | list[str] | tuple[str] | Any) -> list[tu
         The list of paths.
     """
     if path_or_object is None:
-        _, paths = _module_versions(full=False)
+        _, paths = _module_versions()
         return paths
 
     if isinstance(path_or_object, (list, tuple, set)):
@@ -482,7 +466,7 @@ def assets_info(paths: list[str]) -> dict[str, Any]:
 
     for path in paths:
         try:
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(path)  # noqa: F841
+            mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime = os.stat(path)  # noqa: F841
             md5 = path_md5(path)
         except Exception as e:
             result[path] = str(e)
@@ -530,7 +514,7 @@ def gather_provenance_info(assets: list[str] = [], full: bool = False) -> dict[s
             time=datetime.datetime.utcnow().isoformat(),
             python=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             module_versions=versions,
-            distribution_names=import_name_to_distribution_name(versions.keys()),
+            distribution_names=import_name_to_distribution_name(list(versions.keys())),
             git_versions=git_versions,
         )
     else:
@@ -541,7 +525,7 @@ def gather_provenance_info(assets: list[str] = [], full: bool = False) -> dict[s
             python_path=sys.path,
             config_paths=sysconfig.get_paths(),
             module_versions=versions,
-            distribution_names=import_name_to_distribution_name(versions.keys()),
+            distribution_names=import_name_to_distribution_name(list(versions.keys())),
             git_versions=git_versions,
             platform=platform_info(),
             gpus=gpu_info(),

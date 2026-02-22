@@ -63,7 +63,10 @@ class S3Object:
             S3 URL (e.g., 's3://bucket/key').
         """
         self.url = url
-        s3, empty, self.bucket, self.key = url.split("/", 3)
+        try:
+            s3, empty, self.bucket, self.key = url.split("/", 3)
+        except ValueError:
+            raise ValueError(f"Invalid S3 URL: {url}")
         assert s3 == "s3:"
         assert empty == ""
         self.dirname = f"s3://{self.bucket}"
@@ -172,6 +175,27 @@ def _s3_options(obj: str | S3Object) -> dict:
             LOG.warning(f"Option '{k}' is deprecated, use '{v}' instead")
             options[v] = options.pop(k)
 
+    for key in ("endpoint_url", "access_key_id", "secret_access_key"):
+        """
+        This allows one of the bucket entry to reset these keys from the global settings
+
+        [object-storage]
+        endpoint_url = "https://..."
+        access_key_id = "...."
+        secret_access_key = "...."
+
+        [object-storage.some-public-bucket-on-aws]
+        endpoint_url = ""             <--- resets to 'undefined'
+        access_key_id = ""
+        secret_access_key = ""
+        region = "eu-north-1"
+        skip_signature=true
+        """
+
+        if options.get(key) in (None, ""):
+            print(f"Removing {key} from S3 options for {obj.dirname}")
+            options.pop(key, None)
+
     LOG.info(f"Using S3 options: {_hide_secrets(options)}")
 
     with LOCK:
@@ -259,7 +283,7 @@ def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosi
         leave=verbosity >= 2,
         delay=0 if verbosity > 0 else 10,
     ) as pbar:
-        chunk_size = 1024 * 1024
+        chunk_size = 1024 * 1024 * 10
         total = size
         with open(source, "rb") as f:
             with closing(obstore.open_writer(s3, obj.key, buffer_size=chunk_size)) as g:
@@ -316,7 +340,7 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
             else:
                 return size
 
-    if os.path.exists(target) and not overwrite:
+    if os.path.exists(target) and not overwrite and not resume:
         raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
     with tqdm.tqdm(
@@ -328,7 +352,7 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
         leave=verbosity >= 2,
         delay=0 if verbosity > 0 else 10,
     ) as pbar:
-        chunk_size = 1024 * 1024
+        chunk_size = 1024 * 1024 * 10
         total = size
         with closing(obstore.open_reader(s3, obj.key, buffer_size=chunk_size)) as f:
             with open(target, "wb") as g:
@@ -481,6 +505,25 @@ def object_exists(target: str) -> bool:
         return True
     except FileNotFoundError:
         return False
+
+
+def get_object(target: str) -> bool:
+    """Check if an S3 object exists.
+
+    Parameters
+    ----------
+    target : str
+        S3 object URL.
+
+    Returns
+    -------
+    bool
+        True if object exists, False otherwise.
+    """
+    obj = _s3_object(target)
+    s3 = s3_client(obj)
+
+    return s3.get(obj.key).bytes()
 
 
 def download(source: str, target: str, *args, **kwargs) -> None:

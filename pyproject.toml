@@ -21,7 +21,7 @@ authors = [
   { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" },
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11,<3.14"
 
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -29,7 +29,6 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -41,18 +40,18 @@ dynamic = [ "version" ]
 dependencies = [
   "aniso8601",
   "deprecation",
-  "importlib-metadata; python_version<'3.10'",
+  "entrypoints",
+  "filelock",
   "multiurl",
   "numpy",
   "pydantic>=2.9",
   "python-dateutil",
   "pyyaml",
   "rich",
-  "tomli; python_version<'3.11'",
   "tqdm",
 ]
 
-optional-dependencies.all = [ "anemoi-utils[grib,provenance,text,s3,mlflow]" ]
+optional-dependencies.all = [ "anemoi-utils[grib,mlflow,provenance,s3,text]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 
 optional-dependencies.docs = [
@@ -76,7 +75,7 @@ optional-dependencies.s3 = [
   "obstore",
 ]
 
-optional-dependencies.tests = [ "anemoi-utils[mlflow]", "pytest", "pytest-mock>=3" ]
+optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance]", "pytest", "pytest-mock>=3" ]
 
 optional-dependencies.text = [ "termcolor", "wcwidth" ]
 

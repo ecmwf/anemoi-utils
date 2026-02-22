@@ -8,6 +8,123 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.0](https://github.com/ecmwf/anemoi-utils/compare/0.4.43...0.5.0) (2026-02-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **utils:** store vcs info in metadata ([#268](https://github.com/ecmwf/anemoi-utils/issues/268))
+* Update pyproject remove python 3.10 ([#259](https://github.com/ecmwf/anemoi-utils/issues/259))
+
+### Features
+
+* Update pyproject remove python 3.10 ([#259](https://github.com/ecmwf/anemoi-utils/issues/259)) ([93a1c61](https://github.com/ecmwf/anemoi-utils/commit/93a1c61ac0ce0d99f2138440b5d14152d8dca437))
+* **utils:** Store vcs info in metadata ([#268](https://github.com/ecmwf/anemoi-utils/issues/268)) ([b28a62b](https://github.com/ecmwf/anemoi-utils/commit/b28a62b3a0da6382449362132cdc000efc39ce5d))
+
+
+### Bug Fixes
+
+* Add Filelock to cache ([#262](https://github.com/ecmwf/anemoi-utils/issues/262)) ([20664f0](https://github.com/ecmwf/anemoi-utils/commit/20664f0818985d7da6af934f32b62bf389990023))
+* Add provenance to tests deps ([#265](https://github.com/ecmwf/anemoi-utils/issues/265)) ([942936b](https://github.com/ecmwf/anemoi-utils/commit/942936b035db3606c51c7099e5983ee510e8ec6d))
+
+## [0.4.43](https://github.com/ecmwf/anemoi-utils/compare/0.4.42...0.4.43) (2026-01-21)
+
+
+### Features
+
+* Deprecate `ai-models.json` in favour of `anemoi.json` ([#247](https://github.com/ecmwf/anemoi-utils/issues/247)) ([b5b1437](https://github.com/ecmwf/anemoi-utils/commit/b5b14375831f68bf7877350470e2ea62084a25e9))
+
+
+### Bug Fixes
+
+* Review provenance information ([#250](https://github.com/ecmwf/anemoi-utils/issues/250)) ([0c23efe](https://github.com/ecmwf/anemoi-utils/commit/0c23efe1811bd8cebb30d03b44d0c863c35bf583))
+
+## [0.4.42](https://github.com/ecmwf/anemoi-utils/compare/0.4.41...0.4.42) (2026-01-09)
+
+
+### Features
+
+* Bugfix ([#254](https://github.com/ecmwf/anemoi-utils/issues/254)) ([aa35fc6](https://github.com/ecmwf/anemoi-utils/commit/aa35fc636883c6f08e18ab17601fdea38529a295))
+
+## [0.4.41](https://github.com/ecmwf/anemoi-utils/compare/0.4.40...0.4.41) (2026-01-08)
+
+
+### Features
+
+* Fix argument type for transfer tool ([#253](https://github.com/ecmwf/anemoi-utils/issues/253)) ([7d020d1](https://github.com/ecmwf/anemoi-utils/commit/7d020d1e6d9791f8a34394515e59a90b5c83ca17))
+
+
+### Bug Fixes
+
+* Further improve typing on registry ([#249](https://github.com/ecmwf/anemoi-utils/issues/249)) ([97c8874](https://github.com/ecmwf/anemoi-utils/commit/97c887421097e34fcdad7d661d8561efca841085))
+* Save_metadata to support both multiple datasets with many arrays and old set up with no arrays ([#239](https://github.com/ecmwf/anemoi-utils/issues/239)) ([b22444f](https://github.com/ecmwf/anemoi-utils/commit/b22444f37a127aea950ae2777a880db1e5911820))
+
+## [0.4.40](https://github.com/ecmwf/anemoi-utils/compare/0.4.39...0.4.40) (2025-12-02)
+
+
+### Bug Fixes
+
+* Don't skip tests marked as [@skip](https://github.com/skip)_if_offline when running CIs ([#244](https://github.com/ecmwf/anemoi-utils/issues/244)) ([9b89d33](https://github.com/ecmwf/anemoi-utils/commit/9b89d33fda792aaf81106f75bb233623becf3c2c))
+* Missing bool check of resume in download ([#242](https://github.com/ecmwf/anemoi-utils/issues/242)) ([a3a7ed2](https://github.com/ecmwf/anemoi-utils/commit/a3a7ed2b7ed0a3dc384e2e4e55ec5a95fbe20974))
+
+## [0.4.39](https://github.com/ecmwf/anemoi-utils/compare/0.4.38...0.4.39) (2025-11-17)
+
+
+### Features
+
+* Resetting of s3 options ([#233](https://github.com/ecmwf/anemoi-utils/issues/233)) ([6081072](https://github.com/ecmwf/anemoi-utils/commit/60810729204d94bd5c75ba84ca33f8f4259fba06))
+
+
+### Bug Fixes
+
+* Improve typing on registry methods ([#232](https://github.com/ecmwf/anemoi-utils/issues/232)) ([66e4ec6](https://github.com/ecmwf/anemoi-utils/commit/66e4ec6cba626c18232fbf9151ea4827cdc59a07))
+* Reraise exceptions in CLI-mode if run in debugger ([#225](https://github.com/ecmwf/anemoi-utils/issues/225)) ([33c0f8e](https://github.com/ecmwf/anemoi-utils/commit/33c0f8e125d6acc88fa907727cdf97f5a7bce858))
+* Update README to reflect project maturity status ([#234](https://github.com/ecmwf/anemoi-utils/issues/234)) ([ab769c4](https://github.com/ecmwf/anemoi-utils/commit/ab769c473f44e00b8a1091feb813d9ec364232f0))
+
+## [0.4.38](https://github.com/ecmwf/anemoi-utils/compare/0.4.37...0.4.38) (2025-10-22)
+
+
+### Features
+
+* **testing:** Add download timeout ([#230](https://github.com/ecmwf/anemoi-utils/issues/230)) ([721d114](https://github.com/ecmwf/anemoi-utils/commit/721d114f2702985d9fbabf68f384f7ccedb7cfb3))
+* **testing:** Sane test data download retries ([#227](https://github.com/ecmwf/anemoi-utils/issues/227)) ([1e08996](https://github.com/ecmwf/anemoi-utils/commit/1e089962b14f05f4aa56eb66a884bfe50ce60dcc))
+
+
+### Bug Fixes
+
+* Fix frequency_to_string outputing 108000s ([#216](https://github.com/ecmwf/anemoi-utils/issues/216)) ([5806a0c](https://github.com/ecmwf/anemoi-utils/commit/5806a0c996235fb3a19d34eeb25813280c5c989f))
+* Support dicts of supporting_arrays ([#229](https://github.com/ecmwf/anemoi-utils/issues/229)) ([9badbad](https://github.com/ecmwf/anemoi-utils/commit/9badbad360609d254717e0d32c6171beb903eb21))
+
+## [0.4.37](https://github.com/ecmwf/anemoi-utils/compare/0.4.36...0.4.37) (2025-09-30)
+
+
+### Features
+
+* **mlflow auth:** Support for multiple servers ([#217](https://github.com/ecmwf/anemoi-utils/issues/217)) ([8ccfb1a](https://github.com/ecmwf/anemoi-utils/commit/8ccfb1ab063cccfec5852c386580036286b097c6))
+
+
+### Bug Fixes
+
+* Update s3 chunk size to 10 MB ([#220](https://github.com/ecmwf/anemoi-utils/issues/220)) ([aa20fa8](https://github.com/ecmwf/anemoi-utils/commit/aa20fa8b0b572fb6fa510b2f28c2b8b8a2f76d7c))
+* Use `yaml` and `json` flag in metadata get command ([#222](https://github.com/ecmwf/anemoi-utils/issues/222)) ([6af46c4](https://github.com/ecmwf/anemoi-utils/commit/6af46c4e715fc55aca374d2112976aa7d1bac589))
+
+## [0.4.36](https://github.com/ecmwf/anemoi-utils/compare/0.4.35...0.4.36) (2025-09-22)
+
+
+### Features
+
+* Add aliases to registry ([#219](https://github.com/ecmwf/anemoi-utils/issues/219)) ([37267b5](https://github.com/ecmwf/anemoi-utils/commit/37267b548556a796a01b43abb908011eeec85454))
+* Debug imports ([#182](https://github.com/ecmwf/anemoi-utils/issues/182)) ([1eaa615](https://github.com/ecmwf/anemoi-utils/commit/1eaa61540dc9ac3d5fe82f2c91b7fc98c8bb10af))
+* NoAuth for AML mlflow Logging ([#200](https://github.com/ecmwf/anemoi-utils/issues/200)) ([732182e](https://github.com/ecmwf/anemoi-utils/commit/732182ea5d255ba69ea2ed0a23b307d6f64aaf84))
+* Rich logging ([#209](https://github.com/ecmwf/anemoi-utils/issues/209)) ([3c762a5](https://github.com/ecmwf/anemoi-utils/commit/3c762a593ba2dc734becc54b92984d6dc62967ac))
+* Speedup checkpoint editing - remove compression ([#218](https://github.com/ecmwf/anemoi-utils/issues/218)) ([b49120f](https://github.com/ecmwf/anemoi-utils/commit/b49120f763b0b6ee10c805bab2aa7b973047f963))
+* Use obstore to access s3 buckets ([#210](https://github.com/ecmwf/anemoi-utils/issues/210)) ([da380be](https://github.com/ecmwf/anemoi-utils/commit/da380be71d78274d72bd0a3859ef00b1c80e9469))
+
+
+### Bug Fixes
+
+* Add missing s3 function used by datasets ([#212](https://github.com/ecmwf/anemoi-utils/issues/212)) ([30589e8](https://github.com/ecmwf/anemoi-utils/commit/30589e891fbdb1cff205f0350c63e93a725c7242))
+
 ## [0.4.35](https://github.com/ecmwf/anemoi-utils/compare/0.4.34...0.4.35) (2025-08-12)
 
 
