@@ -9,6 +9,7 @@ import os
 import shutil
 import sys
 import uuid
+from unittest.mock import patch
 
 import pytest
 
@@ -60,7 +61,7 @@ def test_transfer_find_s3_upload(source: str, target: str) -> None:
     """
     from anemoi.utils.remote.s3 import S3Upload
 
-    assert _find_transfer_class(source, target) == S3Upload
+    assert isinstance(_find_transfer_class(source, target), S3Upload)
 
 
 @pytest.mark.parametrize("source", S3)
@@ -77,24 +78,7 @@ def test_transfer_find_s3_download(source: str, target: str) -> None:
     """
     from anemoi.utils.remote.s3 import S3Download
 
-    assert _find_transfer_class(source, target) == S3Download
-
-
-@pytest.mark.parametrize("source", LOCAL)
-@pytest.mark.parametrize("target", SSH)
-def test_transfer_find_ssh_upload(source: str, target: str) -> None:
-    """Test finding the SSH upload transfer class.
-
-    Parameters
-    ----------
-    source : str
-        The source path
-    target : str
-        The target path
-    """
-    from anemoi.utils.remote.ssh import SshUpload
-
-    assert _find_transfer_class(source, target) == SshUpload
+    assert isinstance(_find_transfer_class(source, target), S3Download)
 
 
 @pytest.mark.parametrize("source", S3 + SSH)
@@ -111,6 +95,110 @@ def test_transfer_find_none(source: str, target: str) -> None:
     """
     with pytest.raises(TransferMethodNotImplementedError):
         assert _find_transfer_class(source, target)
+
+
+@pytest.mark.parametrize("source", LOCAL)
+@pytest.mark.parametrize("target", SSH)
+def test_transfer_find_ssh_default(source: str, target: str) -> None:
+    """Test that the default SSH tool (scp) is selected when no tool is specified.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
+    from anemoi.utils.remote.ssh import ScpUpload
+
+    with patch("anemoi.utils.config.load_config", return_value={}):
+        result = _find_transfer_class(source, target)
+    assert isinstance(result, ScpUpload)
+    assert result._tool == "scp"
+
+
+@pytest.mark.parametrize("source", LOCAL)
+@pytest.mark.parametrize("target", SSH)
+@pytest.mark.parametrize(
+    "tool_name, expected_class",
+    [
+        ("scp", "ScpUpload"),
+        ("rsync", "RsyncUpload"),
+        ("mscp", "MscpUpload"),
+    ],
+)
+def test_transfer_find_ssh_named_tool(source: str, target: str, tool_name: str, expected_class: str) -> None:
+    """Test that the correct SSH upload class is returned for named tools.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    tool_name : str
+        The tool name to use
+    expected_class : str
+        The expected class name
+    """
+
+    with patch("shutil.which", return_value=f"/usr/bin/{tool_name}"):
+        result = _find_transfer_class(source, target, tool=tool_name)
+    assert type(result).__name__ == expected_class
+    assert result._tool == tool_name
+
+
+@pytest.mark.parametrize("source", LOCAL)
+@pytest.mark.parametrize("target", SSH)
+def test_transfer_find_ssh_unknown_tool_raises(source: str, target: str) -> None:
+    """Test that an unknown SSH tool name raises ValueError.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
+    with pytest.raises(ValueError, match="Unknown transfer tool"):
+        _find_transfer_class(source, target, tool="sftp")
+
+
+@pytest.mark.parametrize("source", LOCAL)
+@pytest.mark.parametrize("target", SSH)
+def test_transfer_find_ssh_absolute_path_tool(source: str, target: str) -> None:
+    """Test that an absolute path to an SSH tool is resolved correctly.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
+    from anemoi.utils.remote.ssh import ScpUpload
+
+    with patch("os.access", return_value=True):
+        result = _find_transfer_class(source, target, tool="/opt/bin/scp")
+    assert isinstance(result, ScpUpload)
+    assert result._tool == "/opt/bin/scp"
+
+
+@pytest.mark.parametrize("source", LOCAL)
+@pytest.mark.parametrize("target", SSH)
+def test_transfer_find_ssh_absolute_path_not_executable_raises(source: str, target: str) -> None:
+    """Test that a non-executable absolute path raises RuntimeError.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
+    with patch("os.access", return_value=False):
+        with pytest.raises(RuntimeError, match="not found or not executable"):
+            _find_transfer_class(source, target, tool="/opt/bin/scp")
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")

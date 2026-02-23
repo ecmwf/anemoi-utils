@@ -82,7 +82,7 @@ class Loader:
         if progress is None:
             progress = _ignore
 
-        config = None
+        checkpoint = self.prepare_checkpoint(source, target)
         with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
             try:
                 if verbosity > 0:
@@ -102,7 +102,7 @@ class Loader:
                             overwrite=overwrite,
                             resume=resume,
                             verbosity=verbosity - 1,
-                            config=config,
+                            checkpoint=checkpoint,
                         )
                     )
                     total_size += self.source_size(name)
@@ -152,7 +152,7 @@ class Loader:
         verbosity: int,
         threads: int = 1,
         progress: callable = None,
-        config: dict = None,
+        checkpoint: dict = None,
     ) -> int:
         """Transfer a file from the source to the target location.
 
@@ -172,8 +172,8 @@ class Loader:
             The number of threads to use, by default 1.
         progress : callable, optional
             A callable for progress reporting, by default None.
-        config : dict, optional
-            Additional configuration options, by default None.
+        checkpoint : dict, optional
+            Pre-fetched remote file sizes from :meth:`prepare_checkpoint`, by default None.
 
         Returns
         -------
@@ -186,11 +186,16 @@ class Loader:
             If an error occurs during the transfer.
         """
         try:
-            return self._transfer_file(source, target, overwrite, resume, verbosity, threads=threads, config=config)
+            return self._transfer_file(
+                source, target, overwrite, resume, verbosity, threads=threads, checkpoint=checkpoint
+            )
         except Exception as e:
             LOGGER.exception(f"Error transferring {source} to {target}")
             LOGGER.error(e)
             raise
+
+    def prepare_checkpoint(self, _source: str, _target: str) -> dict | None:
+        return None
 
     @abstractmethod
     def list_source(self, source: str) -> Iterable:
@@ -472,7 +477,7 @@ class TransferMethodNotImplementedError(NotImplementedError):
 
 
 class Transfer:
-    """This is the internal API and should not be used directly. Use the transfer function instead."""
+    """This is the internal API and should not be used directly outside of anemoi packages. Use the transfer function instead."""
 
     TransferMethodNotImplementedError = TransferMethodNotImplementedError
 
@@ -487,6 +492,7 @@ class Transfer:
         threads: int = 1,
         progress: callable = None,
         temporary_target: bool = False,
+        tool: str = None,
     ):
         if target == ".":
             target = os.path.basename(source)
@@ -510,9 +516,9 @@ class Transfer:
         self.threads = threads
         self.progress = progress
         self.temporary_target = temporary_target
+        self.tool = tool
 
-        cls = _find_transfer_class(self.source, self.target)
-        self.loader = cls()
+        self.loader = _find_transfer_class(self.source, self.target, self.tool)
 
     def run(self) -> "Transfer":
         """Execute the transfer process.
@@ -578,8 +584,8 @@ class Transfer:
         return self.loader.delete_target(target)
 
 
-def _find_transfer_class(source: str, target: str) -> type:
-    """Find the appropriate transfer class based on the source and target locations.
+def _find_transfer_class(source: str, target: str, tool: str = None) -> "Loader":
+    """Find and instantiate the appropriate loader for the given source and target.
 
     Parameters
     ----------
@@ -587,11 +593,15 @@ def _find_transfer_class(source: str, target: str) -> type:
         The source location.
     target : str
         The target location.
+    tool : str, optional
+        Override the SSH transfer tool. Either a tool name (``'mscp'``, ``'rsync'``,
+        ``'scp'``) or an absolute path to the binary. If ``None``, the config key
+        ``utils.transfer.ssh.tool`` is consulted; otherwise ``scp`` is used.
 
     Returns
     -------
-    type
-        The transfer class.
+    Loader
+        An instantiated loader.
 
     Raises
     ------
@@ -612,26 +622,70 @@ def _find_transfer_class(source: str, target: str) -> type:
     assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
 
     if from_local and into_ssh:  # local -> ssh
-        from .ssh import SshUpload
+        from .ssh import MscpUpload
+        from .ssh import RsyncUpload
+        from .ssh import ScpUpload
 
-        return SshUpload
+        known_tools = {"mscp": MscpUpload, "rsync": RsyncUpload, "scp": ScpUpload}
+
+        if tool is None:
+            from anemoi.utils.config import load_config
+
+            tool = load_config().get("utils", {}).get("transfer", {}).get("ssh", {}).get("tool", None)
+
+        if tool is None:
+            LOGGER.info("Using scp to transfer (default)")
+            return ScpUpload(tool="scp")
+
+        if "/" in tool:
+            # absolute path (possibly followed by extra options): infer the class from the binary name
+            binary_path = tool.split()[0]
+            binary_name = os.path.basename(binary_path)
+            if binary_name not in known_tools:
+                raise ValueError(f"Unknown transfer tool: {binary_name!r}. Known tools: {list(known_tools)}")
+            if not os.access(binary_path, os.X_OK):
+                raise RuntimeError(f"Transfer tool not found or not executable: {binary_path!r}")
+            LOGGER.info(f"Using {tool} to transfer")
+            return known_tools[binary_name](tool=tool)
+
+        # tool name: must be on PATH
+        if tool not in known_tools:
+            raise ValueError(f"Unknown transfer tool: {tool!r}. Known tools: {list(known_tools)}")
+        if shutil.which(tool) is None:
+            raise RuntimeError(f"Transfer tool {tool!r} not found on PATH")
+        LOGGER.info(f"Using {tool} to transfer")
+        return known_tools[tool](tool=tool)
+
+    if tool is not None:
+        raise ValueError(
+            f"Transfer tool {tool!r} specified but not supported for this transfer type. Only for local -> SSH transfers."
+        )
 
     if from_s3 and into_local:  # local <- S3
         from .s3 import S3Download
 
-        return S3Download
+        return S3Download()
 
     if from_local and into_s3:  # local -> S3
         from .s3 import S3Upload
 
-        return S3Upload
+        return S3Upload()
 
     raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
 
 # This function is the main entry point for the transfer mechanism for the other anemoi packages
 def transfer(
-    source, target, *, overwrite=False, resume=False, verbosity=1, progress=None, threads=1, temporary_target=False
+    source,
+    target,
+    *,
+    overwrite=False,
+    resume=False,
+    verbosity=1,
+    progress=None,
+    threads=1,
+    temporary_target=False,
+    tool=None,
 ) -> Loader:
     """Transfer files or folders from the source to the target location.
 
@@ -662,6 +716,11 @@ def transfer(
         If True and if the target location supports it, the data will be uploaded to a temporary location
         then renamed to the final location. Supported by SSH and local targets, not supported by S3.
         By default False.
+    tool : str, optional
+        Override the SSH transfer tool. Either a tool name (``'mscp'``, ``'rsync'``, ``'scp'``) or an
+        absolute path to the binary (e.g. ``'/opt/bin/mscp'``). Ignored for non-SSH transfers.
+        If not set, the config key ``utils.transfer.ssh.tool`` is consulted; otherwise ``scp`` is used.
+        By default None.
 
     Returns
     -------
@@ -677,6 +736,7 @@ def transfer(
         progress=progress,
         threads=threads,
         temporary_target=temporary_target,
+        tool=tool,
     )
     copier.run()
     return copier

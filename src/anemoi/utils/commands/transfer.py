@@ -45,7 +45,10 @@ class Transfer(Command):
         command_parser.add_argument(
             "--resume",
             action="store_true",
-            help="If the data is already on S3 it will not be uploaded, unless the remote file has a different size.",
+            help=(
+                "If the data is already at the target location it will not be uploaded, "
+                "unless the remote file has a different size. Not supported when using mscp."
+            ),
         )
         command_parser.add_argument("--verbosity", type=int, default=1, help="The level of verbosity, by default 1.")
         command_parser.add_argument(
@@ -56,6 +59,16 @@ class Transfer(Command):
             type=int,
             default=1,
             help="The number of threads to use when uploading a directory, by default 1.",
+        )
+        command_parser.add_argument(
+            "--tool",
+            default=None,
+            help=(
+                "SSH transfer tool: a name ('mscp', 'rsync', 'scp'), an absolute path to the binary, "
+                "or a path with extra options (e.g. '/path/to/mscp -n 64 -c aes128-gcm@openssh.com'). "
+                "The value is split on spaces; the first token is the binary and the rest are prepended as options. "
+                "Default: scp."
+            ),
         )
 
     def run(self, args: Namespace) -> None:
@@ -75,6 +88,7 @@ class Transfer(Command):
             progress=args.progress,
             threads=args.threads,
             temporary_target=False,
+            tool=args.tool,
         )
 
 
