@@ -358,8 +358,9 @@ def test_transfer_local_to_ssh(path: str, temporary_target: bool) -> None:
 
     remote = "ssh://localhost:" + remote_path
 
-    transfer(local, remote, temporary_target=temporary_target)
-    transfer(local, remote, temporary_target=temporary_target)
+    with patch("anemoi.utils.config.load_config", return_value={}):
+        transfer(local, remote, temporary_target=temporary_target)
+        transfer(local, remote, temporary_target=temporary_target)
 
     compare(local, remote_path)
 
