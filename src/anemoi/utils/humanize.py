@@ -335,11 +335,16 @@ def when(
     """
     last = "last"
 
-    if now is None:
-        if use_utc:
+    if use_utc:
+        if now is None:
             now = datetime.datetime.now(datetime.UTC)
-        else:
+        if then.tzinfo is None:
+            then = then.replace(tzinfo=datetime.UTC)
+    else:
+        if now is None:
             now = datetime.datetime.now()
+        if then.tzinfo is not None:
+            then = then.replace(tzinfo=None)
 
     diff = (now - then).total_seconds()
 
