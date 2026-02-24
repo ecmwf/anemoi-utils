@@ -114,7 +114,7 @@ def test_transfer_find_ssh_default(source: str, target: str) -> None:
     with patch("anemoi.utils.config.load_config", return_value={}):
         result = _find_transfer_class(source, target)
     assert isinstance(result, ScpUpload)
-    assert result._tool == "scp"
+    assert result._tool == ["scp"]
 
 
 @pytest.mark.parametrize("source", LOCAL)
@@ -145,7 +145,7 @@ def test_transfer_find_ssh_named_tool(source: str, target: str, tool_name: str, 
     with patch("shutil.which", return_value=f"/usr/bin/{tool_name}"):
         result = _find_transfer_class(source, target, tool=tool_name)
     assert type(result).__name__ == expected_class
-    assert result._tool == tool_name
+    assert result._tool == [tool_name]
 
 
 @pytest.mark.parametrize("source", LOCAL)
@@ -181,7 +181,7 @@ def test_transfer_find_ssh_absolute_path_tool(source: str, target: str) -> None:
     with patch("os.access", return_value=True):
         result = _find_transfer_class(source, target, tool="/opt/bin/scp")
     assert isinstance(result, ScpUpload)
-    assert result._tool == "/opt/bin/scp"
+    assert result._tool == ["/opt/bin/scp"]
 
 
 @pytest.mark.parametrize("source", LOCAL)
