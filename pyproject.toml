@@ -12,17 +12,13 @@ requires = [ "setuptools>=60", "setuptools-scm>=8" ]
 
 [project]
 name = "anemoi-utils"
-
 description = "A package to hold various functions to support training of ML models on ECMWF data."
 keywords = [ "ai", "tools" ]
-
 license = { file = "LICENSE" }
 authors = [
   { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" },
 ]
-
 requires-python = ">=3.11,<3.14"
-
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -35,7 +31,6 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-
 dynamic = [ "version" ]
 dependencies = [
   "aniso8601",
@@ -50,10 +45,8 @@ dependencies = [
   "rich",
   "tqdm",
 ]
-
 optional-dependencies.all = [ "anemoi-utils[grib,mlflow,provenance,s3,text]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
-
 optional-dependencies.docs = [
   "anemoi-utils[all]",
   "nbsphinx",
@@ -64,36 +57,28 @@ optional-dependencies.docs = [
   "sphinx-rtd-theme",
   "termcolor",
 ]
-
 optional-dependencies.grib = [ "requests" ]
-
 optional-dependencies.mlflow = [ "mlflow-skinny>=2.11.1", "requests" ]
-
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
-
 optional-dependencies.s3 = [
   "obstore",
 ]
-
 optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance]", "pytest", "pytest-mock>=3" ]
-
 optional-dependencies.text = [ "termcolor", "wcwidth" ]
-
 urls.Documentation = "https://anemoi-utils.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/anemoi-utils/"
 urls.Issues = "https://github.com/ecmwf/anemoi-utils/issues"
 urls.Repository = "https://github.com/ecmwf/anemoi-utils/"
-
 scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
-[tool.setuptools.package-data]
-"anemoi.utils.mars" = [ "*.yaml" ]
+[tool.setuptools]
+package-data."anemoi.utils.mars" = [ "*.yaml" ]
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
 
-[tool.pytest.ini_options]
-markers = [
+[tool.pytest]
+ini_options.markers = [
   "skip_on_hpc: mark a test that should not be run on HPC",
 ]
 
