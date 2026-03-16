@@ -63,9 +63,9 @@ def test_registry() -> None:
 def test_registry_with_lazy_import_alias_first():
     from .dummy_registry import registry
 
-    # if alias lookup is first from a lazily imported factory, the registry will raise
-    with pytest.raises(ValueError, match="Cannot find 'test-alias'"):
-        assert registry.lookup("test-alias")
+    # regression test: previously if alias lookup was the first access from a lazily imported factory,
+    # the registry would raise
+    assert registry.lookup("test-alias")() == "success"
 
 
 if __name__ == "__main__":
