@@ -247,12 +247,14 @@ class Registry(Generic[T]):
         """
 
         name = name.replace("_", "-")
+        # call self.factories to ensure loading before unaliasing
+        factories = self.factories
         name = self._unalias(name)
 
         if return_none:
-            return self.factories.get(name)
+            return factories.get(name)
 
-        factory = self.factories.get(name)
+        factory = factories.get(name)
         if factory is None:
 
             LOG.error(f"Cannot find '{name}' in {self.package}")
