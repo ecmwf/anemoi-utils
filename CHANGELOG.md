@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.1](https://github.com/ecmwf/anemoi-utils/compare/0.5.0...0.5.1) (2026-03-17)
+
+
+### Features
+
+* Fix humanise corner cases for dates with timezone ([#274](https://github.com/ecmwf/anemoi-utils/issues/274)) ([0a82016](https://github.com/ecmwf/anemoi-utils/commit/0a820165107881a2347705a4e4fba1b2cdb71bad))
+* **mlflow auth:** Add method to get user info from access token ([#273](https://github.com/ecmwf/anemoi-utils/issues/273)) ([0e77c63](https://github.com/ecmwf/anemoi-utils/commit/0e77c638901a55608e271e0d3a38b80161721ee0))
+
+
+### Bug Fixes
+
+* Adjust due to deprecations and add typing ([#271](https://github.com/ecmwf/anemoi-utils/issues/271)) ([b52788e](https://github.com/ecmwf/anemoi-utils/commit/b52788eff7c642cfeea17de179fb981341bc3594))
+* First-time alias lookup for lazy factories ([#278](https://github.com/ecmwf/anemoi-utils/issues/278)) ([682f4e8](https://github.com/ecmwf/anemoi-utils/commit/682f4e8c1684ff3a3482d1c529fc31c516b17920))
+
 ## [0.5.0](https://github.com/ecmwf/anemoi-utils/compare/0.4.43...0.5.0) (2026-02-09)
 
 
