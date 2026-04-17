@@ -34,58 +34,34 @@ LOG = logging.getLogger(__name__)
 
 
 def is_editable_install(init_path: str | Path) -> bool:
-    """Determine if a package is an editable install given its __init__.py path.
-
-    Returns True if the package appears to be an editable (development) install.
-
-    Parameters
-    ----------
-    init_path : str | Path
-        The path to the __init__.py file of the package.
-
-    Returns
-    -------
-    bool
-        True if the package appears to be an editable (development) install, False otherwise.
-
-    """
+    """Determine if the given path corresponds to an editable install."""
     init_path = Path(init_path).resolve()
-    package_dir = init_path.parent
 
-    # Find the matching distribution by comparing install paths
     for dist in importlib.metadata.distributions():
         try:
             direct_url_text = dist.read_text("direct_url.json")
-            if direct_url_text:
-                import json
+            if not direct_url_text:
+                continue
 
-                info = json.loads(direct_url_text)
-                # PEP 610: editable installs have {"dir_info": {"editable": true}}
-                if info.get("dir_info", {}).get("editable"):
-                    # Verify this dist actually corresponds to our package
-                    dist_top_level = _get_top_level_dir(dist)
-                    if dist_top_level and package_dir.is_relative_to(dist_top_level):
-                        return True
+            import json
+
+            info = json.loads(direct_url_text)
+            if not info.get("dir_info", {}).get("editable"):
+                continue
+
+            # The URL is the source directory of the editable install
+            url = info.get("url", "")
+            if not url.startswith("file://"):
+                continue
+
+            source_dir = Path(url[len("file://") :]).resolve()
+            if init_path.is_relative_to(source_dir):
+                return True
+
         except Exception:
             continue
 
     return False
-
-
-def _get_top_level_dir(dist) -> Path | None:
-    """Resolve the top-level source directory for a distribution."""
-    # Try top_level.txt first (older tooling like setuptools writes this)
-    top_level = dist.read_text("top_level.txt")
-    if top_level:
-        name = top_level.strip().splitlines()[0]
-        loc = dist.locate_file(name)
-        return Path(loc).resolve()
-
-    # Fall back to the dist's own location
-    if dist._path:
-        return Path(dist._path).parent.resolve()
-
-    return None
 
 
 def lookup_git_repo(path: str) -> Any | None:
