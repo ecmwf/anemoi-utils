@@ -33,33 +33,51 @@ from typing import Any
 LOG = logging.getLogger(__name__)
 
 
-def is_editable_install(init_path: str | Path) -> bool:
-    """Determine if the given path corresponds to an editable install."""
-    init_path = Path(init_path).resolve()
+@cache
+def editable_installs() -> dict[str, Path]:
+    """Return a dictionary of editable installs.
 
+    The check relies on how editable installs are handled based on PEP610.
+    A `<path-to-venv>/lib/site-packages/<package>.dist-info/direct_url.json`
+    file should be present.
+
+    Returns
+    -------
+    dict[str, Path]
+        A dictionary mapping package names to their source directories for editable installs.
+    """
+    installs = {}
     for dist in importlib.metadata.distributions():
         try:
             direct_url_text = dist.read_text("direct_url.json")
             if not direct_url_text:
                 continue
 
-            import json
-
             info = json.loads(direct_url_text)
             if not info.get("dir_info", {}).get("editable"):
                 continue
 
-            # The URL is the source directory of the editable install
             url = info.get("url", "")
             if not url.startswith("file://"):
                 continue
 
             source_dir = Path(url[len("file://") :]).resolve()
-            if init_path.is_relative_to(source_dir):
-                return True
+            installs[dist.metadata["Name"]] = source_dir
 
         except Exception:
             continue
+
+    return installs
+
+
+def is_editable_install(init_path: str | Path) -> bool:
+    """Determine if the given path corresponds to an editable install."""
+    init_path = Path(init_path).resolve()
+
+    for name, source_dir in editable_installs().items():
+        if init_path.is_relative_to(source_dir):
+            LOG.debug("Path %s is an editable install of %s", init_path, name)
+            return True
 
     return False
 

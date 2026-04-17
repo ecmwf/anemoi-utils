@@ -13,7 +13,15 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from anemoi.utils import provenance
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    provenance.editable_installs.cache_clear()
+    yield
 
 
 def test_gather() -> None:
