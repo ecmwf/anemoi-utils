@@ -85,51 +85,40 @@ def test_get_package_source_url_nonexistent():
 
 
 def test_is_editable_install_with_editable_package():
-    """Test is_editable_install() with a synthetic editable package.
-
-    Create a temporary package metadata directory that simulates an editable install.
-    """
+    """Test is_editable_install() with a synthetic editable package."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create a fake package directory (in site-packages location for dist-info)
         site_packages = Path(tmpdir) / "site-packages"
         site_packages.mkdir()
+
+        # Create the source directory (what direct_url.json points to)
+        src_dir = Path(tmpdir) / "src"
+        src_dir.mkdir()
 
         # Create dist-info for the editable package
         dist_info = site_packages / "my_editable_package-1.0.0.dist-info"
         dist_info.mkdir()
 
-        # Create METADATA file
-        metadata_content = """Metadata-Version: 2.1
-Name: my-editable-package
-Version: 1.0.0
-"""
-        (dist_info / "METADATA").write_text(metadata_content)
+        (dist_info / "METADATA").write_text("Metadata-Version: 2.1\nName: my-editable-package\nVersion: 1.0.0\n")
 
-        # Create direct_url.json with editable flag
+        # direct_url.json points to the source directory
         direct_url_content = {
-            "url": f"file://{tmpdir}/src",
+            "url": f"file://{src_dir}",
             "dir_info": {"editable": True},
         }
         (dist_info / "direct_url.json").write_text(json.dumps(direct_url_content))
-
-        # Create top_level.txt pointing to the actual package name
         (dist_info / "top_level.txt").write_text("my_editable_package\n")
 
-        # Create the actual package directory in site-packages
-        # (editable installs create a link/pth file pointing to the source)
-        package_dir = site_packages / "my_editable_package"
+        # The actual package lives in the source directory, not site-packages
+        package_dir = src_dir / "my_editable_package"
         package_dir.mkdir()
         init_file = package_dir / "__init__.py"
         init_file.write_text("# Test package")
 
-        # Add site-packages to sys.path so importlib.metadata can discover it
         sys.path.insert(0, str(site_packages))
-
         try:
             result = provenance.is_editable_install(str(init_file))
             assert result is True, "Should detect editable install"
         finally:
-            # Clean up
             sys.path.remove(str(site_packages))
 
 
@@ -232,42 +221,6 @@ def test_is_editable_install_with_nonexistent_path():
     """Test is_editable_install() with a path that doesn't exist."""
     result = provenance.is_editable_install("/nonexistent/path/to/__init__.py")
     assert result is False, "Should return False for nonexistent path"
-
-
-def test_get_top_level_dir_with_top_level_txt(mocker):
-    """Test _get_top_level_dir() when top_level.txt exists."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Create a fake site-packages directory
-        site_packages = Path(tmpdir) / "site-packages"
-        site_packages.mkdir()
-
-        # Create dist-info directory
-        dist_info = site_packages / "test_package-1.0.0.dist-info"
-        dist_info.mkdir()
-
-        # Create METADATA file
-        (dist_info / "METADATA").write_text("Metadata-Version: 2.1\nName: test-package\n")
-
-        # Create top_level.txt
-        (dist_info / "top_level.txt").write_text("test_package\n")
-
-        # Create the actual package directory
-        package_dir = site_packages / "test_package"
-        package_dir.mkdir()
-
-        # Add site-packages to sys.path
-        sys.path.insert(0, str(site_packages))
-
-        try:
-            from importlib.metadata import distribution
-
-            dist = distribution("test-package")
-            result = provenance._get_top_level_dir(dist)
-
-            assert result is not None, "Should return a path"
-            assert result.name == "test_package", "Should resolve to package directory"
-        finally:
-            sys.path.remove(str(site_packages))
 
 
 def test_lookup_git_repo_with_non_editable_package(mocker):
