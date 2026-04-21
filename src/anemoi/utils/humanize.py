@@ -1,4 +1,4 @@
-# (C) Copyright 2024 Anemoi contributors.
+# (C) Copyright 2024-2026 Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -981,32 +981,47 @@ def print_dates(dates: list[datetime.datetime | str]) -> None:
 
 
 def make_list_int(value: str | list[int] | tuple[int] | int) -> list[int]:
-    """Convert a string like "1/2/3" or "1/to/3" or "1/to/10/by/2" to a list of integers.
+    """Convert a value to a list of integers.
+
+    Handles slash-separated strings including MARS-style range notation:
+    ``"1/2/3"``, ``"1/to/3"``, and ``"1/to/10/by/2"``.
 
     Parameters
     ----------
-    value : str, list, tuple, int
+    value : str, list, tuple, or int
         The value to convert to a list of integers.
 
     Returns
     -------
-    list
+    list[int]
         A list of integers.
+
+    Raises
+    ------
+    ValueError
+        If the value cannot be converted to a list of integers.
+
+    Examples
+    --------
+    >>> make_list_int("1/2/3")
+    [1, 2, 3]
+    >>> make_list_int("0/to/6")
+    [0, 1, 2, 3, 4, 5, 6]
+    >>> make_list_int("0/to/12/by/6")
+    [0, 6, 12]
     """
     if isinstance(value, str):
         if "/" not in value:
             return [int(value)]
         bits = value.split("/")
         if len(bits) == 3 and bits[1].lower() == "to":
-            value = list(range(int(bits[0]), int(bits[2]) + 1, 1))
+            return list(range(int(bits[0]), int(bits[2]) + 1))
+        if len(bits) == 5 and bits[1].lower() == "to" and bits[3].lower() == "by":
+            return list(range(int(bits[0]), int(bits[2]) + 1, int(bits[4])))
+        return [int(b) for b in bits]
 
-        elif len(bits) == 5 and bits[1].lower() == "to" and bits[3].lower() == "by":
-            value = list(range(int(bits[0]), int(bits[2]) + int(bits[4]), int(bits[4])))
-
-    if isinstance(value, list):
-        return value
-    if isinstance(value, tuple):
-        return value
+    if isinstance(value, (list, tuple)):
+        return list(value)
     if isinstance(value, int):
         return [value]
 

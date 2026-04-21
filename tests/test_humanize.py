@@ -11,6 +11,7 @@ import datetime
 
 import pytest
 
+from anemoi.utils.humanize import make_list_int
 from anemoi.utils.humanize import when
 
 UTC = datetime.timezone.utc
@@ -92,3 +93,60 @@ def test_when_future_values(delta, expected):
     """when() returns the correct human-readable string for future datetimes."""
     then = NOW_NAIVE + delta
     assert when(then, now=NOW_NAIVE) == expected
+
+
+# ---------------------------------------------------------------------------
+# make_list_int tests
+# ---------------------------------------------------------------------------
+
+
+def test_make_list_int_single_int():
+    assert make_list_int(42) == [42]
+
+
+def test_make_list_int_list_passthrough():
+    assert make_list_int([1, 2, 3]) == [1, 2, 3]
+
+
+def test_make_list_int_tuple():
+    assert make_list_int((1, 2, 3)) == [1, 2, 3]
+
+
+def test_make_list_int_single_string():
+    assert make_list_int("5") == [5]
+
+
+def test_make_list_int_slash_separated():
+    assert make_list_int("1/2/3") == [1, 2, 3]
+
+
+def test_make_list_int_to_range():
+    assert make_list_int("0/to/6") == [0, 1, 2, 3, 4, 5, 6]
+
+
+def test_make_list_int_to_range_inclusive_end():
+    """End value must be included even when it falls exactly on a step boundary."""
+    assert make_list_int("0/to/24") == list(range(0, 25))
+
+
+def test_make_list_int_to_by_range():
+    assert make_list_int("0/to/24/by/6") == [0, 6, 12, 18, 24]
+
+
+def test_make_list_int_to_by_inclusive_end():
+    """End value must be included when it falls exactly on a step boundary (bug fix)."""
+    assert make_list_int("0/to/12/by/6") == [0, 6, 12]
+
+
+def test_make_list_int_to_by_non_divisible_end():
+    """End value is not included when it does not fall on a step boundary."""
+    assert make_list_int("0/to/10/by/3") == [0, 3, 6, 9]
+
+
+def test_make_list_int_to_by_case_insensitive():
+    assert make_list_int("0/TO/12/BY/6") == [0, 6, 12]
+
+
+def test_make_list_int_invalid_raises():
+    with pytest.raises((ValueError, TypeError)):
+        make_list_int({"a": 1})
