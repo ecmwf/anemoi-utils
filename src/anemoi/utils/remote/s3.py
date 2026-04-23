@@ -29,6 +29,7 @@ import logging
 import os
 import threading
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from typing import Any
 
@@ -51,6 +52,10 @@ MIGRATE = {
 
 CACHE = {}
 LOCK = threading.Lock()
+
+# Avoids creating a new connection pool on every S3 read during training.
+CLIENT_CACHE = {}
+CLIENT_LOCK = threading.Lock()
 
 
 class S3Object:
@@ -205,7 +210,7 @@ def _s3_options(obj: str | S3Object) -> dict:
 
 
 def s3_client(obj: str | S3Object) -> Any:
-    """Create an S3 client for the given URL.
+    """Return a cached S3 client for the given URL.
 
     Parameters
     ----------
@@ -221,9 +226,12 @@ def s3_client(obj: str | S3Object) -> Any:
     import obstore
 
     obj = _s3_object(obj)
-    options = _s3_options(obj)
-    LOG.debug(f"Using S3 options: {_hide_secrets(options)}")
-    return obstore.store.from_url(obj.dirname, **options)
+    with CLIENT_LOCK:
+        if obj.dirname not in CLIENT_CACHE:
+            options = _s3_options(obj)
+            LOG.debug(f"Using S3 options: {_hide_secrets(options)}")
+            CLIENT_CACHE[obj.dirname] = obstore.store.from_url(obj.dirname, **options)
+        return CLIENT_CACHE[obj.dirname]
 
 
 def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosity: int) -> int:
@@ -283,7 +291,7 @@ def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosi
         leave=verbosity >= 2,
         delay=0 if verbosity > 0 else 10,
     ) as pbar:
-        chunk_size = 1024 * 1024 * 10
+        chunk_size = 1024 * 1024 * 128
         total = size
         with open(source, "rb") as f:
             with closing(obstore.open_writer(s3, obj.key, buffer_size=chunk_size)) as g:
@@ -343,26 +351,28 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
     if os.path.exists(target) and not overwrite and not resume:
         raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
-    with tqdm.tqdm(
-        desc=obj.key,
-        total=size,
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-        leave=verbosity >= 2,
-        delay=0 if verbosity > 0 else 10,
-    ) as pbar:
-        chunk_size = 1024 * 1024 * 10
-        total = size
-        with closing(obstore.open_reader(s3, obj.key, buffer_size=chunk_size)) as f:
-            with open(target, "wb") as g:
-                while total > 0:
-                    chunk = f.read(min(chunk_size, total))
-                    g.write(chunk)
-                    pbar.update(len(chunk))
-                    total -= len(chunk)
+    last_exc = None
+    for attempt in range(3):
+        try:
+            with tqdm.tqdm(
+                desc=obj.key,
+                total=size,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                leave=verbosity >= 2,
+                delay=0 if verbosity > 0 else 10,
+            ) as pbar:
+                data = obstore.get(s3, obj.key).bytes()
+                with open(target, "wb") as g:
+                    g.write(data)
+                pbar.update(size)
+            return size
+        except Exception as e:
+            last_exc = e
+            LOG.warning(f"Download attempt {attempt + 1}/3 failed for {source}: {e}")
 
-    return size
+    raise IOError(f"Failed to download {source} after 3 attempts: {last_exc}")
 
 
 def _list_objects(target: str, batch: bool = False) -> Iterable[list[dict]] | Iterable[dict]:
@@ -507,8 +517,8 @@ def object_exists(target: str) -> bool:
         return False
 
 
-def get_object(target: str) -> bool:
-    """Check if an S3 object exists.
+def get_object(target: str) -> bytes:
+    """Fetch an S3 object and return its contents as bytes.
 
     Parameters
     ----------
@@ -517,13 +527,43 @@ def get_object(target: str) -> bool:
 
     Returns
     -------
-    bool
-        True if object exists, False otherwise.
+    bytes
+        Object contents.
     """
     obj = _s3_object(target)
     s3 = s3_client(obj)
 
     return s3.get(obj.key).bytes()
+
+
+def get_objects_parallel(targets: list[str]) -> list[bytes]:
+    """Fetch multiple S3 objects concurrently and return their contents.
+
+    Parameters
+    ----------
+    targets : list[str]
+        List of S3 URLs to fetch in parallel.
+
+    Returns
+    -------
+    list[bytes]
+        Object contents in the same order as targets.
+    """
+
+    def _fetch(target: str) -> bytes:
+        obj = _s3_object(target)
+        s3 = s3_client(obj)
+        last_exc = None
+        for attempt in range(3):
+            try:
+                return s3.get(obj.key).bytes()
+            except Exception as e:
+                last_exc = e
+                LOG.warning(f"Fetch attempt {attempt + 1}/3 failed for {target}: {e}")
+        raise IOError(f"Failed to fetch {target} after 3 attempts: {last_exc}")
+
+    with ThreadPoolExecutor(max_workers=len(targets)) as ex:
+        return list(ex.map(_fetch, targets))
 
 
 def download(source: str, target: str, *args, **kwargs) -> None:
