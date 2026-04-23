@@ -123,6 +123,34 @@ class TestEditMetadata:
             np.testing.assert_array_equal(means_data, new_means)
             np.testing.assert_array_equal(stds_data, new_stds)
 
+    def test_edit_metadata_with_multi_dataset_supporting_arrays(self, sample_checkpoint):
+        """Test _edit_metadata with multi-dataset supporting arrays."""
+        arrays = {
+            "era5": {
+                "latitudes": np.array([1.0, 2.0, 3.0]),
+                "longitudes": np.array([4.0, 5.0, 6.0]),
+            },
+            "cerra": {
+                "latitudes": np.array([7.0, 8.0, 9.0]),
+                "longitudes": np.array([10.0, 11.0, 12.0]),
+            },
+        }
+
+        def noop(file_path):
+            pass
+
+        _edit_metadata(sample_checkpoint, "metadata.json", noop, supporting_arrays=arrays)
+
+        with zipfile.ZipFile(sample_checkpoint, "r") as zipf:
+            names = zipf.namelist()
+
+            for dataset, arrays in arrays.items():
+                for array_name, array in arrays.items():
+                    path = f"model/anemoi-metadata/{dataset}/{array_name}.numpy"
+                    assert path in names
+                    data = np.frombuffer(zipf.read(path), dtype=array.dtype)
+                    np.testing.assert_array_equal(data, array)
+
     def test_edit_metadata_preserves_other_files(self, sample_checkpoint):
         """Test that _edit_metadata preserves all other files in the ZIP."""
         with zipfile.ZipFile(sample_checkpoint, "r") as zipf:

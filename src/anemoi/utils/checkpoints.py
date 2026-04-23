@@ -292,17 +292,31 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
     with zipfile.ZipFile(path, "r") as source_zip:
         file_list = source_zip.namelist()
 
-        # Calculate total files for progress bar
-        total_files = len(file_list)
+        # Build flat mapping of zip path -> array
+        array_paths = {}
         if supporting_arrays is not None:
-            total_files += len(supporting_arrays)
+            for key, entry in supporting_arrays.items():
+                if isinstance(entry, dict):
+                    # multi-dataset arrays are in a dataset subfolder
+                    for sub_key, sub_entry in entry.items():
+                        p = f"{key}/{sub_key}.numpy"
+                        array_paths[os.path.join(directory, p) if directory else p] = sub_entry
+                else:
+                    p = f"{key}.numpy"
+                    array_paths[os.path.join(directory, p) if directory else p] = entry
+
+        # Skip set for the copy loop
+        skip_paths = {target_file} | array_paths.keys()
+
+        # Calculate total files for progress bar
+        total_files = len(file_list) + len(array_paths)
 
         with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
             with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
 
-                # Copy all files except the target file
+                # Copy all files except those being replaced
                 for file_path in file_list:
-                    if file_path != target_file:
+                    if file_path not in skip_paths:
                         with source_zip.open(file_path) as source_file:
                             data = source_file.read()
                             new_zip.writestr(file_path, data)
@@ -323,11 +337,9 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
                     pbar.update(1)
 
                 # Add supporting arrays if provided
-                if supporting_arrays is not None:
-                    for key, entry in supporting_arrays.items():
-                        array_path = os.path.join(directory, f"{key}.numpy") if directory else f"{key}.numpy"
-                        new_zip.writestr(array_path, entry.tobytes())
-                        pbar.update(1)
+                for array_path, array in array_paths.items():
+                    new_zip.writestr(array_path, array.tobytes())
+                    pbar.update(1)
 
     os.rename(new_path, path)
     LOG.info("Updated metadata in %s", path)
