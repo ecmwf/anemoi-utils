@@ -8,15 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
-## Unreleased
-
-### Features
-
-* Use CLIENT_CACHE to avoid creating a new connection pool on every S3 read
-* Create obstore store intance once per bucket rather than on every call
-* Use obstore.get().bytes() to hand the entire fetch to Rust in one call
-* New get_objects_patallel function for parallel multistep reads
-
 ## [0.5.1](https://github.com/ecmwf/anemoi-utils/compare/0.5.0...0.5.1) (2026-03-17)
 
 
