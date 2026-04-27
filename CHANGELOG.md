@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.2](https://github.com/ecmwf/anemoi-utils/compare/0.5.1...0.5.2) (2026-04-27)
+
+
+### Bug Fixes
+
+* **checkpoints:** `_edit_metadata` multi-dataset supporting arrays ([#288](https://github.com/ecmwf/anemoi-utils/issues/288)) ([544ae60](https://github.com/ecmwf/anemoi-utils/commit/544ae6050a34285703cc01b047e3064291abb1df))
+* Fix and test make_int_list i/to/j/by/k ([#287](https://github.com/ecmwf/anemoi-utils/issues/287)) ([8228328](https://github.com/ecmwf/anemoi-utils/commit/8228328e7d211fd97155063d3c5521606173ccf9))
+* Only lookup git repo for editable dependencies ([#285](https://github.com/ecmwf/anemoi-utils/issues/285)) ([88ad3fe](https://github.com/ecmwf/anemoi-utils/commit/88ad3feb88f44ade804c2a14e75b84afa4750b38))
+
 ## [0.5.1](https://github.com/ecmwf/anemoi-utils/compare/0.5.0...0.5.1) (2026-03-17)
 
 
