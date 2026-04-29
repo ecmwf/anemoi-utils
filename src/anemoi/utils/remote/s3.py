@@ -388,7 +388,8 @@ def _list_objects(target: str, batch: bool = False) -> Iterable[list[dict]] | It
 
     s3 = s3_client(obj)
 
-    for files in obstore.list(s3, obj.key + "/", chunk_size=1024):
+    prefix = obj.key.rstrip("/") + "/"
+    for files in obstore.list(s3, prefix, chunk_size=1024):
         if batch:
             yield files
         else:
