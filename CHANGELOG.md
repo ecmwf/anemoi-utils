@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.3](https://github.com/ecmwf/anemoi-utils/compare/0.5.2...0.5.3) (2026-05-06)
+
+
+### Features
+
+* Optimise training speed when reading from s3 buckets ([#289](https://github.com/ecmwf/anemoi-utils/issues/289)) ([832755d](https://github.com/ecmwf/anemoi-utils/commit/832755d51a67b1ad98272212ecb975965b1f1997))
+
+
+### Bug Fixes
+
+* More robust s3 to process folders ([#290](https://github.com/ecmwf/anemoi-utils/issues/290)) ([1493cdd](https://github.com/ecmwf/anemoi-utils/commit/1493cdd634f82bdf4655c339424923c3d6541bd6))
+
 ## [0.5.2](https://github.com/ecmwf/anemoi-utils/compare/0.5.1...0.5.2) (2026-04-27)
 
 
