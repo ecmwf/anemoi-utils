@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.36](https://github.com/ecmwf/anemoi-utils/compare/0.4.35...0.4.36) (2026-05-18)
+
+
+### Bug Fixes
+
+* Update local cache retrieval to use CONFIG directly ([78fe2c5](https://github.com/ecmwf/anemoi-utils/commit/78fe2c5906612462173cda21905686240760a6e9))
+
 ## [0.4.35](https://github.com/ecmwf/anemoi-utils/compare/0.4.34...0.4.35) (2025-08-12)
 
 
