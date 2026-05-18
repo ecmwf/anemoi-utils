@@ -15,6 +15,7 @@ See https://codes.ecmwf.int/grib/param-db/ for more information.
 
 import json
 import logging
+import os
 import re
 import warnings
 
@@ -27,6 +28,23 @@ LOG = logging.getLogger(__name__)
 
 
 class LazyConfig:
+
+    def _get_from_env(self, key: str) -> str | None:
+        """Get a configuration value from the environment variable.
+
+        Parameters
+        ----------
+        key : str
+            The configuration key to look up.
+
+        Returns
+        -------
+        str or None
+            The value of the environment variable if it exists, otherwise None.
+        """
+        env_key = f"ANEMOI_CONFIG_PARAMDB_{key.upper()}"
+        return os.getenv(env_key)
+
     @property
     def _config(self) -> dict:
         return load_config().get("paramdb", {})  # type: ignore
@@ -34,17 +52,19 @@ class LazyConfig:
     @property
     def default_origin(self) -> str:
         """Default origin to use when disambiguating parameters with the same shortname."""
-        return self._config.get("default_origin", "ecmwf")
+        return self._get_from_env("default_origin") or self._config.get("default_origin", "ecmwf")
 
     @property
     def cache_length(self) -> int:
         """Cache length in seconds for GRIB parameter lookups."""
-        return self._config.get("cache_length", 30) * 24 * 3600  # Default to 30 days
+        return (
+            int(self._get_from_env("cache_length") or self._config.get("cache_length", 30)) * 24 * 3600
+        )  # Default to 30 days
 
     @property
     def local_cache(self) -> str | None:
         """Path to a local cache file for GRIB parameters. If set, this will be used instead of making API calls."""
-        return self._config.get("local_cache", None)
+        return self._get_from_env("local_cache") or self._config.get("local_cache", None)
 
 
 GRIB_CONFIG = LazyConfig()
