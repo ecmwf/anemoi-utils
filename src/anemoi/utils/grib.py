@@ -19,11 +19,16 @@ import re
 import requests
 
 from .caching import cached
+from .config import load_config
 
 LOG = logging.getLogger(__name__)
+CONFIG = load_config().get("param_db", {})
+
+cache_length = CONFIG.get("cache_length", 30) * 24 * 60 * 60
+default_origin = CONFIG.get("default_origin", "ecmf")
 
 
-@cached(collection="grib", expires=30 * 24 * 60 * 60)
+@cached(collection="grib", expires=cache_length)
 def _units() -> dict[str, str]:
     """Fetch and cache GRIB parameter units.
 
@@ -38,14 +43,16 @@ def _units() -> dict[str, str]:
     return {str(u["id"]): u["name"] for u in units}
 
 
-@cached(collection="grib", expires=30 * 24 * 60 * 60)
-def _search_param(name: str) -> dict[str, str | int]:
+@cached(collection="grib", expires=cache_length)
+def _search_param(name: str, **filters) -> dict[str, str | int]:
     """Search for a GRIB parameter by name.
 
     Parameters
     ----------
     name : str
         Parameter name to search for.
+    filters : Any
+        Additional filters to disambiguate parameters with the same shortname (e.g. origin, encoding, table, discipline, category).
 
     Returns
     -------
@@ -57,8 +64,13 @@ def _search_param(name: str) -> dict[str, str | int]:
     KeyError
         If no parameter is found.
     """
+    if "origin" in filters and isinstance(filters["origin"], str):
+        filters["origin"] = _search_origin(filters["origin"])["id"]
+
     name = re.escape(name)
-    r = requests.get(f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true")
+    r = requests.get(
+        f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true{ ''.join(f'&{k}={v}' for k, v in filters.items()) }"
+    )
     r.raise_for_status()
     results = r.json()
     if len(results) == 0:
@@ -70,19 +82,63 @@ def _search_param(name: str) -> dict[str, str | int]:
         if len(dissemination) == 1:
             return dissemination[0]
 
+        LOG.warning(
+            f"{name} is ambiguous: {', '.join(names)}. Try filtering with 'origin','encoding','table','discipline' or 'category' to disambiguate."
+        )
+        if "origin" not in filters:
+            LOG.warning(f"Applying origin='{default_origin}' to disambiguate {name}.")
+            try:
+                return _search_param(name, **{**filters, "origin": default_origin})
+            except KeyError:
+                LOG.warning(
+                    f"Failed to disambiguate {name} with origin='{default_origin}'. Returning the first match: {names[0]}."
+                )
+
         results = sorted(results, key=lambda x: x["id"])
-        LOG.warning(f"{name} is ambiguous: {', '.join(names)}. Using param_id={results[0]['id']}")
 
     return results[0]
 
 
-def shortname_to_paramid(shortname: str) -> int:
+@cached(collection="grib", expires=30 * 24 * 60 * 60)
+def _search_origin(name: str) -> dict[str, str | int]:
+    """Search for an id of an origin by name.
+
+    Parameters
+    ----------
+    name : str
+        Origin name to search for.
+
+    Returns
+    -------
+    dict
+        A dictionary containing origin details.
+
+    Raises
+    ------
+    KeyError
+        If no origin is found.
+    """
+    name = re.escape(name)
+    r = requests.get("https://codes.ecmwf.int/parameter-database/api/v1/origin/")
+    r.raise_for_status()
+    results = r.json()
+
+    for result in results:
+        if result["abbreviation"] == name:
+            return result
+
+    raise KeyError(name)
+
+
+def shortname_to_paramid(shortname: str, **filters) -> int:
     """Return the GRIB parameter id given its shortname.
 
     Parameters
     ----------
     shortname : str
         Parameter shortname.
+    filters : Any
+        Additional filters to disambiguate parameters with the same shortname (e.g. origin, encoding, table, discipline, category).
 
     Returns
     -------
@@ -92,16 +148,18 @@ def shortname_to_paramid(shortname: str) -> int:
     >>> shortname_to_paramid("2t")
     167
     """
-    return _search_param(shortname)["id"]
+    return _search_param(shortname, **filters)["id"]
 
 
-def paramid_to_shortname(paramid: int) -> str:
+def paramid_to_shortname(paramid: int, **filters) -> str:
     """Return the shortname of a GRIB parameter given its id.
 
     Parameters
     ----------
     paramid : int
         Parameter id.
+    filters : Any
+        Additional filters to disambiguate parameters with the same shortname (e.g. origin, encoding, table, discipline, category).
 
     Returns
     -------
@@ -111,7 +169,7 @@ def paramid_to_shortname(paramid: int) -> str:
     >>> paramid_to_shortname(167)
     '2t'
     """
-    return _search_param(str(paramid))["shortname"]
+    return _search_param(str(paramid), **filters)["shortname"]
 
 
 def units(param: int | str) -> str:
