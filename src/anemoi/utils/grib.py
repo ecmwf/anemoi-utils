@@ -13,6 +13,7 @@
 See https://codes.ecmwf.int/grib/param-db/ for more information.
 """
 
+import json
 import logging
 import re
 
@@ -26,6 +27,7 @@ CONFIG = load_config().get("paramdb", {})
 
 cache_length = int(CONFIG.get("cache_length", 30)) * 24 * 60 * 60
 default_origin = CONFIG.get("default_origin", "ecmf")
+local_cache = CONFIG.get("local_cache", None)
 
 
 @cached(collection="grib", expires=cache_length)
@@ -43,8 +45,57 @@ def _units() -> dict[str, str]:
     return {str(u["id"]): u["name"] for u in units}
 
 
+def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
+    """Search for a GRIB parameter by name in the local cache.
+
+    This is used to avoid making API calls when the local cache is available.
+
+    Parameters
+    ----------
+    name : str
+        Parameter name to search for.
+
+    Returns
+    -------
+    list
+        A list of dictionaries containing parameter details.
+
+    Raises
+    ------
+    KeyError
+        If no parameter is found.
+    """
+    local_param_db = json.load(open(local_cache))
+    for param in local_param_db:
+        if param["shortname"] == name:
+            return [param]
+    raise KeyError(f"{name} not found in local cache.")
+
+
 @cached(collection="grib", expires=cache_length)
-def _search_param(name: str, **filters) -> dict[str, str | int]:
+def _online_search_param(name: str, **filters) -> list[dict[str, str | int | list[str]]]:
+    """Search for a GRIB parameter by name using the online API.
+
+    Parameters
+    ----------
+    name : str
+        Parameter name to search for.
+    filters : Any
+        Additional filters to disambiguate parameters with the same shortname (e.g. origin, encoding, table, discipline, category).
+
+    Returns
+    -------
+    list
+        A list of dictionaries containing parameter details.
+    """
+    r = requests.get(
+        f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true{''.join(f'&{k}={v}' for k, v in filters.items())}"
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
     """Search for a GRIB parameter by name.
 
     Parameters
@@ -64,26 +115,20 @@ def _search_param(name: str, **filters) -> dict[str, str | int]:
     KeyError
         If no parameter is found.
     """
-    return _search_param_impl(name, **filters)
-
-
-def _search_param_impl(name: str, **filters) -> dict[str, str | int]:
-    """Core implementation of _search_param, without caching.
-
-    Separated to avoid deadlock when the cached _search_param calls itself
-    recursively (the @cached decorator holds a lock).
-    """
     if "origin" in filters and isinstance(filters["origin"], str):
         filters["origin"] = _search_origin_impl(filters["origin"])["id"]
 
     name = re.escape(name)
-    r = requests.get(
-        f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true{''.join(f'&{k}={v}' for k, v in filters.items())}"
-    )
-    r.raise_for_status()
-    results = r.json()
+
+    if local_cache is not None:
+        if filters:
+            LOG.warning("Filters are ignored when using local cache.")
+        results = _local_search_param(name)
+    else:
+        results = _online_search_param(name, **filters)
+
     if len(results) == 0:
-        raise KeyError(name)
+        raise KeyError(f"{name} not found in parameter database.")
 
     if len(results) > 1:
         names = [f"{r.get('id')} ({r.get('name')})" for r in results]
@@ -97,7 +142,7 @@ def _search_param_impl(name: str, **filters) -> dict[str, str | int]:
         if "origin" not in filters:
             LOG.warning(f"Applying origin='{default_origin}' to disambiguate {name}.")
             try:
-                return _search_param_impl(name, **{**filters, "origin": default_origin})
+                return _search_param(name, **{**filters, "origin": default_origin})
             except KeyError:
                 LOG.warning(
                     f"Failed to disambiguate {name} with origin='{default_origin}'. Returning the first match: {names[0]}."
@@ -123,7 +168,7 @@ def _search_origin_impl(name: str) -> dict[str, str | int]:
 
 
 @cached(collection="grib", expires=cache_length)
-def origin_to_id(name: str) -> dict[str, str | int]:
+def origin(name: str) -> dict[str, str | int]:
     """Search for an id of an origin by name.
 
     Parameters
