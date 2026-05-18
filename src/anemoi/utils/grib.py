@@ -28,7 +28,6 @@ CONFIG = load_config().get("paramdb", {})
 
 CACHE_LENGTH = int(CONFIG.get("cache_length", 30)) * 24 * 60 * 60
 DEFAULT_ORIGIN = CONFIG.get("default_origin", "ecmf")
-LOCAL_CACHE = CONFIG.get("local_cache", None)
 
 
 @cached(collection="grib", expires=CACHE_LENGTH)
@@ -66,7 +65,7 @@ def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
     KeyError
         If no parameter is found.
     """
-    local_param_db = json.load(open(LOCAL_CACHE))
+    local_param_db = json.load(open(CONFIG.get("local_cache", None)))
     for param in local_param_db:
         if param["shortname"] == name:
             return [param]
@@ -121,7 +120,7 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
 
     name = re.escape(name)
 
-    if LOCAL_CACHE is not None:
+    if CONFIG.get("local_cache", None):
         if filters:
             warnings.warn("Filters are ignored when using local cache.")
         results = _local_search_param(name)
