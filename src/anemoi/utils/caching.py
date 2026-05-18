@@ -13,13 +13,13 @@ import json
 import os
 import time
 from collections.abc import Callable
-from threading import Lock
+from threading import RLock
 from typing import Any
 
 import numpy as np
 from filelock import FileLock
 
-LOCK = Lock()
+LOCK = RLock()
 CACHE = {}
 
 
