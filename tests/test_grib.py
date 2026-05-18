@@ -15,6 +15,7 @@ feature, including origin-based filtering and default origin fallback.
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -326,7 +327,7 @@ class TestSearchOrigin:
         mock_get.return_value = _mock_response(ALL_ORIGINS)
 
         grib = _grib()
-        result = grib._search_origin("ecmf")
+        result = grib.origin("ecmf")
         assert result["id"] == 98
         assert result["abbreviation"] == "ecmf"
 
@@ -336,7 +337,7 @@ class TestSearchOrigin:
 
         grib = _grib()
         with pytest.raises(KeyError):
-            grib._search_origin("zzzz")
+            grib.origin("zzzz")
 
 
 # ---------------------------------------------------------------------------
@@ -431,3 +432,202 @@ class TestUrlConstruction:
         assert len(param_calls) >= 1
         param_url = param_calls[0][0][0]
         assert "origin=98" in param_url, f"Expected origin to be resolved to numeric id 98, got URL: {param_url}"
+
+
+# ---------------------------------------------------------------------------
+# Local cache tests
+# ---------------------------------------------------------------------------
+
+# Minimal mock data modelled after parameters.json structure
+LOCAL_CACHE_DATA = [
+    {
+        "id": 1,
+        "name": "Stream function",
+        "shortname": "strf",
+        "unit_id": 1,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": ["dissemination"],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
+    {
+        "id": 2,
+        "name": "Velocity potential",
+        "shortname": "vp",
+        "unit_id": 1,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": ["dissemination"],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
+    {
+        "id": 10,
+        "name": "Wind speed",
+        "shortname": "ws",
+        "unit_id": 5,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": ["dissemination"],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
+    {
+        "id": 31,
+        "name": "Sea ice area fraction",
+        "shortname": "ci",
+        "unit_id": 3,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": ["dissemination"],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
+    {
+        "id": 34,
+        "name": "Sea surface temperature",
+        "shortname": "sst",
+        "unit_id": 2,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": ["dissemination"],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
+    {
+        "id": 54,
+        "name": "Pressure",
+        "shortname": "pres",
+        "unit_id": 16,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": ["dissemination"],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
+    {
+        "id": 59,
+        "name": "Convective available potential energy",
+        "shortname": "cape",
+        "unit_id": 17,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": [],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
+]
+
+
+@pytest.fixture()
+def local_cache_file(tmp_path):
+    """Write LOCAL_CACHE_DATA to a temporary JSON file and return its path."""
+    cache_file = tmp_path / "parameters.json"
+    cache_file.write_text(json.dumps(LOCAL_CACHE_DATA))
+    return str(cache_file)
+
+
+class TestLocalCacheSearch:
+    """Tests for _local_search_param and the LOCAL_CACHE routing in _search_param."""
+
+    def test_local_search_param_returns_single_match(self, local_cache_file):
+        """_local_search_param returns a one-element list for a known shortname."""
+        grib = _grib()
+        orig = grib.LOCAL_CACHE
+        try:
+            grib.LOCAL_CACHE = local_cache_file
+            results = grib._local_search_param("sst")
+            assert len(results) == 1
+            assert results[0]["shortname"] == "sst"
+            assert results[0]["id"] == 34
+        finally:
+            grib.LOCAL_CACHE = orig
+
+    def test_local_search_param_raises_on_missing(self, local_cache_file):
+        """_local_search_param raises KeyError for an unknown shortname."""
+        grib = _grib()
+        orig = grib.LOCAL_CACHE
+        try:
+            grib.LOCAL_CACHE = local_cache_file
+            with pytest.raises(KeyError, match="not found in local cache"):
+                grib._local_search_param("nonexistent_param_xyz")
+        finally:
+            grib.LOCAL_CACHE = orig
+
+    @patch("anemoi.utils.grib.requests.get")
+    def test_search_param_local_cache_no_network(self, mock_get, local_cache_file):
+        """Verify requests.get is never called when LOCAL_CACHE is configured."""
+        grib = _grib()
+        orig = grib.LOCAL_CACHE
+        try:
+            grib.LOCAL_CACHE = local_cache_file
+            result = grib._search_param("ws")
+            mock_get.assert_not_called()
+            assert result["shortname"] == "ws"
+            assert result["id"] == 10
+        finally:
+            grib.LOCAL_CACHE = orig
+
+    @patch("anemoi.utils.grib.requests.get")
+    def test_shortname_to_paramid_via_local_cache(self, mock_get, local_cache_file):
+        """End-to-end: shortname_to_paramid works with the local cache."""
+        grib = _grib()
+        orig = grib.LOCAL_CACHE
+        try:
+            grib.LOCAL_CACHE = local_cache_file
+            assert grib.shortname_to_paramid("ci") == 31
+            assert grib.shortname_to_paramid("sst") == 34
+            assert grib.shortname_to_paramid("pres") == 54
+            mock_get.assert_not_called()
+        finally:
+            grib.LOCAL_CACHE = orig
+
+    @patch("anemoi.utils.grib.requests.get")
+    def test_paramid_to_shortname_via_local_cache(self, mock_get, local_cache_file):
+        """_search_param finds entries via local cache for reverse lookups."""
+        grib = _grib()
+        orig = grib.LOCAL_CACHE
+        try:
+            grib.LOCAL_CACHE = local_cache_file
+            result = grib._search_param("sst")
+            assert result["shortname"] == "sst"
+            mock_get.assert_not_called()
+        finally:
+            grib.LOCAL_CACHE = orig
+
+    @patch("anemoi.utils.grib.warnings.warn")
+    def test_local_cache_filters_ignored_with_warning(self, mock_warning, local_cache_file):
+        """When LOCAL_CACHE is set, passing filters emits a warning."""
+        grib = _grib()
+        orig = grib.LOCAL_CACHE
+        try:
+            grib.LOCAL_CACHE = local_cache_file
+            result = grib._search_param("sst", origin=98)
+            mock_warning.assert_called()
+            warning_msg = mock_warning.call_args[0][0]
+            assert "ignored" in warning_msg.lower() or "Filters" in warning_msg
+            assert result["id"] == 34
+        finally:
+            grib.LOCAL_CACHE = orig
+
+    def test_local_search_multiple_params(self, local_cache_file):
+        """Verify several known parameters from the mock cache are found."""
+        grib = _grib()
+        orig = grib.LOCAL_CACHE
+        try:
+            grib.LOCAL_CACHE = local_cache_file
+            expected = {
+                "strf": 1,
+                "vp": 2,
+                "ws": 10,
+                "cape": 59,
+            }
+            for shortname, expected_id in expected.items():
+                results = grib._local_search_param(shortname)
+                assert len(results) == 1
+                assert (
+                    results[0]["id"] == expected_id
+                ), f"Expected {shortname} -> id={expected_id}, got {results[0]['id']}"
+        finally:
+            grib.LOCAL_CACHE = orig
