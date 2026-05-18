@@ -22,9 +22,9 @@ from .caching import cached
 from .config import load_config
 
 LOG = logging.getLogger(__name__)
-CONFIG = load_config().get("param_db", {})
+CONFIG = load_config().get("paramdb", {})
 
-cache_length = CONFIG.get("cache_length", 30) * 24 * 60 * 60
+cache_length = int(CONFIG.get("cache_length", 30)) * 24 * 60 * 60
 default_origin = CONFIG.get("default_origin", "ecmf")
 
 
@@ -64,12 +64,21 @@ def _search_param(name: str, **filters) -> dict[str, str | int]:
     KeyError
         If no parameter is found.
     """
+    return _search_param_impl(name, **filters)
+
+
+def _search_param_impl(name: str, **filters) -> dict[str, str | int]:
+    """Core implementation of _search_param, without caching.
+
+    Separated to avoid deadlock when the cached _search_param calls itself
+    recursively (the @cached decorator holds a lock).
+    """
     if "origin" in filters and isinstance(filters["origin"], str):
-        filters["origin"] = _search_origin(filters["origin"])["id"]
+        filters["origin"] = _search_origin_impl(filters["origin"])["id"]
 
     name = re.escape(name)
     r = requests.get(
-        f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true{ ''.join(f'&{k}={v}' for k, v in filters.items()) }"
+        f"https://codes.ecmwf.int/parameter-database/api/v1/param/?search=^{name}$&regex=true{''.join(f'&{k}={v}' for k, v in filters.items())}"
     )
     r.raise_for_status()
     results = r.json()
@@ -77,7 +86,7 @@ def _search_param(name: str, **filters) -> dict[str, str | int]:
         raise KeyError(name)
 
     if len(results) > 1:
-        names = [f'{r.get("id")} ({r.get("name")})' for r in results]
+        names = [f"{r.get('id')} ({r.get('name')})" for r in results]
         dissemination = [r for r in results if "dissemination" in r.get("access_ids", [])]
         if len(dissemination) == 1:
             return dissemination[0]
@@ -88,7 +97,7 @@ def _search_param(name: str, **filters) -> dict[str, str | int]:
         if "origin" not in filters:
             LOG.warning(f"Applying origin='{default_origin}' to disambiguate {name}.")
             try:
-                return _search_param(name, **{**filters, "origin": default_origin})
+                return _search_param_impl(name, **{**filters, "origin": default_origin})
             except KeyError:
                 LOG.warning(
                     f"Failed to disambiguate {name} with origin='{default_origin}'. Returning the first match: {names[0]}."
@@ -99,8 +108,22 @@ def _search_param(name: str, **filters) -> dict[str, str | int]:
     return results[0]
 
 
-@cached(collection="grib", expires=30 * 24 * 60 * 60)
-def _search_origin(name: str) -> dict[str, str | int]:
+def _search_origin_impl(name: str) -> dict[str, str | int]:
+    """Core implementation of _search_origin, without caching."""
+    name = re.escape(name)
+    r = requests.get("https://codes.ecmwf.int/parameter-database/api/v1/origin/")
+    r.raise_for_status()
+    results = r.json()
+
+    for result in results:
+        if result["abbreviation"] == name:
+            return result
+
+    raise KeyError(f"{name} not found in origin database.")
+
+
+@cached(collection="grib", expires=cache_length)
+def origin_to_id(name: str) -> dict[str, str | int]:
     """Search for an id of an origin by name.
 
     Parameters
@@ -118,16 +141,7 @@ def _search_origin(name: str) -> dict[str, str | int]:
     KeyError
         If no origin is found.
     """
-    name = re.escape(name)
-    r = requests.get("https://codes.ecmwf.int/parameter-database/api/v1/origin/")
-    r.raise_for_status()
-    results = r.json()
-
-    for result in results:
-        if result["abbreviation"] == name:
-            return result
-
-    raise KeyError(name)
+    return _search_origin_impl(name)
 
 
 def shortname_to_paramid(shortname: str, **filters) -> int:
