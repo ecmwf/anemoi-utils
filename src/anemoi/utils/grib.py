@@ -16,6 +16,7 @@ See https://codes.ecmwf.int/grib/param-db/ for more information.
 import json
 import logging
 import re
+import warnings
 
 import requests
 
@@ -25,12 +26,12 @@ from .config import load_config
 LOG = logging.getLogger(__name__)
 CONFIG = load_config().get("paramdb", {})
 
-cache_length = int(CONFIG.get("cache_length", 30)) * 24 * 60 * 60
-default_origin = CONFIG.get("default_origin", "ecmf")
-local_cache = CONFIG.get("local_cache", None)
+CACHE_LENGTH = int(CONFIG.get("CACHE_LENGTH", 30)) * 24 * 60 * 60
+DEFAULT_ORIGIN = CONFIG.get("DEFAULT_ORIGIN", "ecmf")
+LOCAL_CACHE = CONFIG.get("LOCAL_CACHE", None)
 
 
-@cached(collection="grib", expires=cache_length)
+@cached(collection="grib", expires=CACHE_LENGTH)
 def _units() -> dict[str, str]:
     """Fetch and cache GRIB parameter units.
 
@@ -65,14 +66,14 @@ def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
     KeyError
         If no parameter is found.
     """
-    local_param_db = json.load(open(local_cache))
+    local_param_db = json.load(open(LOCAL_CACHE))
     for param in local_param_db:
         if param["shortname"] == name:
             return [param]
     raise KeyError(f"{name} not found in local cache.")
 
 
-@cached(collection="grib", expires=cache_length)
+@cached(collection="grib", expires=CACHE_LENGTH)
 def _online_search_param(name: str, **filters) -> list[dict[str, str | int | list[str]]]:
     """Search for a GRIB parameter by name using the online API.
 
@@ -120,9 +121,9 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
 
     name = re.escape(name)
 
-    if local_cache is not None:
+    if LOCAL_CACHE is not None:
         if filters:
-            LOG.warning("Filters are ignored when using local cache.")
+            warnings.warn("Filters are ignored when using local cache.")
         results = _local_search_param(name)
     else:
         results = _online_search_param(name, **filters)
@@ -136,16 +137,18 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
         if len(dissemination) == 1:
             return dissemination[0]
 
-        LOG.warning(
-            f"{name} is ambiguous: {', '.join(names)}. Try filtering with 'origin','encoding','table','discipline' or 'category' to disambiguate."
-        )
+        warnings.warn(f"{name} is ambiguous: {', '.join(names)}.")
         if "origin" not in filters:
-            LOG.warning(f"Applying origin='{default_origin}' to disambiguate {name}.")
+            warnings.warn(f"Applying origin='{DEFAULT_ORIGIN}' to disambiguate {name}.")
             try:
-                return _search_param(name, **{**filters, "origin": default_origin})
+                filtered_param = _search_param(name, **{**filters, "origin": DEFAULT_ORIGIN})
+                warnings.warn(
+                    f"Disambiguated {name} to id: {filtered_param['id']} ({filtered_param.get('name', 'unknown')})."
+                )
+                return filtered_param
             except KeyError:
-                LOG.warning(
-                    f"Failed to disambiguate {name} with origin='{default_origin}'. Returning the first match: {names[0]}."
+                warnings.warn(
+                    f"Failed to disambiguate {name} with origin='{DEFAULT_ORIGIN}'. Returning the first match: {names[0]}."
                 )
 
         results = sorted(results, key=lambda x: x["id"])
@@ -167,7 +170,7 @@ def _search_origin_impl(name: str) -> dict[str, str | int]:
     raise KeyError(f"{name} not found in origin database.")
 
 
-@cached(collection="grib", expires=cache_length)
+@cached(collection="grib", expires=CACHE_LENGTH)
 def origin(name: str) -> dict[str, str | int]:
     """Search for an id of an origin by name.
 
