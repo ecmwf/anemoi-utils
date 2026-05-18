@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.4.36](https://github.com/ecmwf/anemoi-utils/compare/0.4.35...0.4.36) (2026-05-18)
+
+
+### Bug Fixes
+
+* Evaluate grib config at runtime ([#300](https://github.com/ecmwf/anemoi-utils/issues/300)) ([b715123](https://github.com/ecmwf/anemoi-utils/commit/b71512362e33cd3f2ced707da5435ecbf7a9a80c))
+
 ## [0.4.35](https://github.com/ecmwf/anemoi-utils/compare/0.4.34...0.4.35) (2025-08-12)
 
 
