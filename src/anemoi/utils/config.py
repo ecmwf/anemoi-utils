@@ -16,6 +16,7 @@ import logging
 import os
 import threading
 import warnings
+from collections.abc import Generator
 from typing import Any
 
 import yaml
@@ -705,7 +706,7 @@ def merge_configs(*configs: dict) -> dict:
 
 
 @contextlib.contextmanager
-def temporary_config(tmp: dict) -> None:
+def temporary_config(tmp: dict) -> Generator[None, None, None]:
 
     global CONFIG_PATCH
 
@@ -713,7 +714,6 @@ def temporary_config(tmp: dict) -> None:
         return merge_configs(config, tmp)
 
     with CONFIG_LOCK:
-
         CONFIG_PATCH = patch_config
 
         try:

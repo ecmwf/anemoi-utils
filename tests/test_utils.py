@@ -11,6 +11,7 @@
 from anemoi.utils.config import DotDict
 from anemoi.utils.config import _merge_dicts
 from anemoi.utils.config import _set_defaults
+from anemoi.utils.config import temporary_config
 from anemoi.utils.grib import paramid_to_shortname
 from anemoi.utils.grib import shortname_to_paramid
 
@@ -111,6 +112,57 @@ def test_grib() -> None:
     """
     assert shortname_to_paramid("2t") == 167
     assert paramid_to_shortname(167) == "2t"
+
+
+def test_config_runtime_resolution() -> None:
+    """Test that LazyConfig resolves config values at runtime, not at import time.
+
+    The grib module's CONFIG object uses properties that read from
+    load_config() on every access. This ensures that temporary_config
+    overrides are picked up dynamically without reimporting the module.
+
+    Tests:
+        - default_origin reflects runtime config changes
+        - local_cache reflects runtime config changes
+        - cache_length reflects runtime config changes
+        - values revert after the temporary_config context exits
+    """
+    from anemoi.utils.grib import GRIB_CONFIG
+
+    # Capture the defaults before any override
+    original_origin = GRIB_CONFIG.default_origin
+    original_local_cache = GRIB_CONFIG.local_cache
+    original_cache_length = GRIB_CONFIG.cache_length
+
+    # Override paramdb config at runtime
+    with temporary_config(
+        {
+            "paramdb": {
+                "default_origin": "test_origin",
+                "local_cache": "/tmp/test.json",
+                "cache_length": 99,
+            }
+        }
+    ):
+        assert (
+            GRIB_CONFIG.default_origin == "test_origin"
+        ), f"Expected 'test_origin', got '{GRIB_CONFIG.default_origin}'"
+        assert (
+            GRIB_CONFIG.local_cache == "/tmp/test.json"
+        ), f"Expected '/tmp/test.json', got '{GRIB_CONFIG.local_cache}'"
+        # cache_length is multiplied by 24*3600 in the property
+        assert GRIB_CONFIG.cache_length == 99 * 24 * 3600, f"Expected {99 * 24 * 3600}, got {GRIB_CONFIG.cache_length}"
+
+    # After exiting the context, values should revert to defaults
+    assert (
+        GRIB_CONFIG.default_origin == original_origin
+    ), f"Expected '{original_origin}' after context exit, got '{GRIB_CONFIG.default_origin}'"
+    assert (
+        GRIB_CONFIG.local_cache == original_local_cache
+    ), f"Expected '{original_local_cache}' after context exit, got '{GRIB_CONFIG.local_cache}'"
+    assert (
+        GRIB_CONFIG.cache_length == original_cache_length
+    ), f"Expected '{original_cache_length}' after context exit, got '{GRIB_CONFIG.cache_length}'"
 
 
 if __name__ == "__main__":

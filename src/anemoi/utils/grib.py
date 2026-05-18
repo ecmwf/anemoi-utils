@@ -15,6 +15,7 @@ See https://codes.ecmwf.int/grib/param-db/ for more information.
 
 import json
 import logging
+import os
 import re
 import warnings
 
@@ -24,14 +25,52 @@ from .caching import cached
 from .config import load_config
 
 LOG = logging.getLogger(__name__)
-CONFIG = load_config().get("paramdb", {})
-
-CACHE_LENGTH = int(CONFIG.get("cache_length", 30)) * 24 * 60 * 60
-DEFAULT_ORIGIN = CONFIG.get("default_origin", "ecmf")
-LOCAL_CACHE = CONFIG.get("local_cache", None)
 
 
-@cached(collection="grib", expires=CACHE_LENGTH)
+class LazyConfig:
+
+    def _get_from_env(self, key: str) -> str | None:
+        """Get a configuration value from the environment variable.
+
+        Parameters
+        ----------
+        key : str
+            The configuration key to look up.
+
+        Returns
+        -------
+        str or None
+            The value of the environment variable if it exists, otherwise None.
+        """
+        env_key = f"ANEMOI_CONFIG_PARAMDB_{key.upper()}"
+        return os.getenv(env_key)
+
+    @property
+    def _config(self) -> dict:
+        return load_config().get("paramdb", {})  # type: ignore
+
+    @property
+    def default_origin(self) -> str:
+        """Default origin to use when disambiguating parameters with the same shortname."""
+        return self._get_from_env("default_origin") or self._config.get("default_origin", "ecmwf")
+
+    @property
+    def cache_length(self) -> int:
+        """Cache length in seconds for GRIB parameter lookups."""
+        return (
+            int(self._get_from_env("cache_length") or self._config.get("cache_length", 30)) * 24 * 3600
+        )  # Default to 30 days
+
+    @property
+    def local_cache(self) -> str | None:
+        """Path to a local cache file for GRIB parameters. If set, this will be used instead of making API calls."""
+        return self._get_from_env("local_cache") or self._config.get("local_cache", None)
+
+
+GRIB_CONFIG = LazyConfig()
+
+
+@cached(collection="grib", expires=GRIB_CONFIG.cache_length)
 def _units() -> dict[str, str]:
     """Fetch and cache GRIB parameter units.
 
@@ -66,14 +105,17 @@ def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
     KeyError
         If no parameter is found.
     """
-    local_param_db = json.load(open(LOCAL_CACHE))
+    local_cache = GRIB_CONFIG.local_cache
+    assert local_cache is not None, "Local cache is not configured."
+
+    local_param_db = json.load(open(local_cache, "r"))
     for param in local_param_db:
         if param["shortname"] == name:
             return [param]
     raise KeyError(f"{name} not found in local cache.")
 
 
-@cached(collection="grib", expires=CACHE_LENGTH)
+@cached(collection="grib", expires=GRIB_CONFIG.cache_length)
 def _online_search_param(name: str, **filters) -> list[dict[str, str | int | list[str]]]:
     """Search for a GRIB parameter by name using the online API.
 
@@ -121,7 +163,7 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
 
     name = re.escape(name)
 
-    if LOCAL_CACHE is not None:
+    if GRIB_CONFIG.local_cache is not None:
         if filters:
             warnings.warn("Filters are ignored when using local cache.")
         results = _local_search_param(name)
@@ -139,16 +181,16 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
 
         warnings.warn(f"{name} is ambiguous: {', '.join(names)}.")
         if "origin" not in filters:
-            warnings.warn(f"Applying origin='{DEFAULT_ORIGIN}' to disambiguate {name}.")
+            warnings.warn(f"Applying origin='{GRIB_CONFIG.default_origin}' to disambiguate {name}.")
             try:
-                filtered_param = _search_param(name, **{**filters, "origin": DEFAULT_ORIGIN})
+                filtered_param = _search_param(name, **{**filters, "origin": GRIB_CONFIG.default_origin})
                 warnings.warn(
                     f"Disambiguated {name} to id: {filtered_param['id']} ({filtered_param.get('name', 'unknown')})."
                 )
                 return filtered_param
             except KeyError:
                 warnings.warn(
-                    f"Failed to disambiguate {name} with origin='{DEFAULT_ORIGIN}'. Returning the first match: {names[0]}."
+                    f"Failed to disambiguate {name} with origin='{GRIB_CONFIG.default_origin}'. Returning the first match: {names[0]}."
                 )
 
         results = sorted(results, key=lambda x: x["id"])
@@ -156,7 +198,7 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
     return results[0]
 
 
-@cached(collection="grib", expires=CACHE_LENGTH)
+@cached(collection="grib", expires=GRIB_CONFIG.cache_length)
 def origin(name: str) -> dict[str, str | int]:
     """Search for an id of an origin by name.
 
