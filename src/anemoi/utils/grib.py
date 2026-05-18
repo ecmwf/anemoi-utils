@@ -18,6 +18,7 @@ import logging
 import os
 import re
 import warnings
+from functools import cache
 
 import requests
 
@@ -85,6 +86,34 @@ def _units() -> dict[str, str]:
     return {str(u["id"]): u["name"] for u in units}
 
 
+@cache
+def _get_local_db(local_db: str) -> dict[str, dict[str, str | int | list[str]]]:
+    """Open the local GRIB parameter database.
+
+    Parameters
+    ----------
+    local_db : str
+        Path to the local cache file.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping parameter shortnames to their details.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the local db file is not found.
+    """
+
+    if not os.path.exists(local_db):
+        raise FileNotFoundError(f"Local cache file {local_db} not found.")
+    raw_json = json.load(open(local_db, "r"))
+
+    return {r["shortname"]: r for r in raw_json}
+
+
+@cache
 def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
     """Search for a GRIB parameter by name in the local cache.
 
@@ -108,10 +137,10 @@ def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
     local_cache = GRIB_CONFIG.local_cache
     assert local_cache is not None, "Local cache is not configured."
 
-    local_param_db = json.load(open(local_cache, "r"))
-    for param in local_param_db:
-        if param["shortname"] == name:
-            return [param]
+    local_param_db = _get_local_db(local_cache)
+
+    if name in local_param_db:
+        return [local_param_db[name]]
     raise KeyError(f"{name} not found in local cache.")
 
 
