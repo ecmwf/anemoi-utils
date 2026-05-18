@@ -17,6 +17,7 @@ import json
 import logging
 import re
 import warnings
+from functools import cache
 
 import requests
 
@@ -117,7 +118,7 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
         If no parameter is found.
     """
     if "origin" in filters and isinstance(filters["origin"], str):
-        filters["origin"] = _search_origin_impl(filters["origin"])["id"]
+        filters["origin"] = _search_origin(filters["origin"])["id"]
 
     name = re.escape(name)
 
@@ -156,7 +157,8 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
     return results[0]
 
 
-def _search_origin_impl(name: str) -> dict[str, str | int]:
+@cache
+def _search_origin(name: str) -> dict[str, str | int]:
     """Core implementation of _search_origin, without caching."""
     name = re.escape(name)
     r = requests.get("https://codes.ecmwf.int/parameter-database/api/v1/origin/")
@@ -189,7 +191,7 @@ def origin(name: str) -> dict[str, str | int]:
     KeyError
         If no origin is found.
     """
-    return _search_origin_impl(name)
+    return _search_origin(name)
 
 
 def shortname_to_paramid(shortname: str, **filters) -> int:
