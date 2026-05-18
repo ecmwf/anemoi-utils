@@ -21,6 +21,8 @@ from unittest.mock import patch
 
 import pytest
 
+from anemoi.utils.config import temporary_config
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -529,94 +531,68 @@ def local_cache_file(tmp_path):
 
 
 class TestLocalCacheSearch:
-    """Tests for _local_search_param and the LOCAL_CACHE routing in _search_param."""
+    """Tests for _local_search_param and the CONFIG.local_cache routing in _search_param."""
 
     def test_local_search_param_returns_single_match(self, local_cache_file):
         """_local_search_param returns a one-element list for a known shortname."""
         grib = _grib()
-        orig = grib.LOCAL_CACHE
-        try:
-            grib.LOCAL_CACHE = local_cache_file
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
             results = grib._local_search_param("sst")
             assert len(results) == 1
             assert results[0]["shortname"] == "sst"
             assert results[0]["id"] == 34
-        finally:
-            grib.LOCAL_CACHE = orig
 
     def test_local_search_param_raises_on_missing(self, local_cache_file):
         """_local_search_param raises KeyError for an unknown shortname."""
         grib = _grib()
-        orig = grib.LOCAL_CACHE
-        try:
-            grib.LOCAL_CACHE = local_cache_file
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
             with pytest.raises(KeyError, match="not found in local cache"):
                 grib._local_search_param("nonexistent_param_xyz")
-        finally:
-            grib.LOCAL_CACHE = orig
 
     @patch("anemoi.utils.grib.requests.get")
     def test_search_param_local_cache_no_network(self, mock_get, local_cache_file):
-        """Verify requests.get is never called when LOCAL_CACHE is configured."""
+        """Verify requests.get is never called when local_cache is configured."""
         grib = _grib()
-        orig = grib.LOCAL_CACHE
-        try:
-            grib.LOCAL_CACHE = local_cache_file
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
             result = grib._search_param("ws")
             mock_get.assert_not_called()
             assert result["shortname"] == "ws"
             assert result["id"] == 10
-        finally:
-            grib.LOCAL_CACHE = orig
 
     @patch("anemoi.utils.grib.requests.get")
     def test_shortname_to_paramid_via_local_cache(self, mock_get, local_cache_file):
         """End-to-end: shortname_to_paramid works with the local cache."""
         grib = _grib()
-        orig = grib.LOCAL_CACHE
-        try:
-            grib.LOCAL_CACHE = local_cache_file
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
             assert grib.shortname_to_paramid("ci") == 31
             assert grib.shortname_to_paramid("sst") == 34
             assert grib.shortname_to_paramid("pres") == 54
             mock_get.assert_not_called()
-        finally:
-            grib.LOCAL_CACHE = orig
 
     @patch("anemoi.utils.grib.requests.get")
     def test_paramid_to_shortname_via_local_cache(self, mock_get, local_cache_file):
         """_search_param finds entries via local cache for reverse lookups."""
         grib = _grib()
-        orig = grib.LOCAL_CACHE
-        try:
-            grib.LOCAL_CACHE = local_cache_file
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
             result = grib._search_param("sst")
             assert result["shortname"] == "sst"
             mock_get.assert_not_called()
-        finally:
-            grib.LOCAL_CACHE = orig
 
     @patch("anemoi.utils.grib.warnings.warn")
     def test_local_cache_filters_ignored_with_warning(self, mock_warning, local_cache_file):
-        """When LOCAL_CACHE is set, passing filters emits a warning."""
+        """When local_cache is set, passing filters emits a warning."""
         grib = _grib()
-        orig = grib.LOCAL_CACHE
-        try:
-            grib.LOCAL_CACHE = local_cache_file
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
             result = grib._search_param("sst", origin=98)
             mock_warning.assert_called()
             warning_msg = mock_warning.call_args[0][0]
             assert "ignored" in warning_msg.lower() or "Filters" in warning_msg
             assert result["id"] == 34
-        finally:
-            grib.LOCAL_CACHE = orig
 
     def test_local_search_multiple_params(self, local_cache_file):
         """Verify several known parameters from the mock cache are found."""
         grib = _grib()
-        orig = grib.LOCAL_CACHE
-        try:
-            grib.LOCAL_CACHE = local_cache_file
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
             expected = {
                 "strf": 1,
                 "vp": 2,
@@ -629,5 +605,3 @@ class TestLocalCacheSearch:
                 assert (
                     results[0]["id"] == expected_id
                 ), f"Expected {shortname} -> id={expected_id}, got {results[0]['id']}"
-        finally:
-            grib.LOCAL_CACHE = orig
