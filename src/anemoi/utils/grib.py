@@ -26,9 +26,9 @@ from .config import load_config
 LOG = logging.getLogger(__name__)
 CONFIG = load_config().get("paramdb", {})
 
-CACHE_LENGTH = int(CONFIG.get("CACHE_LENGTH", 30)) * 24 * 60 * 60
-DEFAULT_ORIGIN = CONFIG.get("DEFAULT_ORIGIN", "ecmf")
-LOCAL_CACHE = CONFIG.get("LOCAL_CACHE", None)
+CACHE_LENGTH = int(CONFIG.get("cache_length", 30)) * 24 * 60 * 60
+DEFAULT_ORIGIN = CONFIG.get("default_origin", "ecmf")
+LOCAL_CACHE = CONFIG.get("local_cache", None)
 
 
 @cached(collection="grib", expires=CACHE_LENGTH)
