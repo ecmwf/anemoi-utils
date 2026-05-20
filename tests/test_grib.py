@@ -16,12 +16,12 @@ feature, including origin-based filtering and default origin fallback.
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-
-from anemoi.utils.config import temporary_config
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -530,13 +530,29 @@ def local_cache_file(tmp_path):
     return str(cache_file)
 
 
+@contextmanager
+def _patch_local_cache(grib_mod, cache_path):
+    """Temporarily set SETTINGS.paramdb.local_cache on the grib module and clear functools caches."""
+    old_value = grib_mod.SETTINGS.paramdb.local_cache
+    grib_mod.SETTINGS.paramdb.local_cache = Path(cache_path) if cache_path else None
+    # Clear functools.cache so results are not stale across tests
+    grib_mod._local_search_param.cache_clear()
+    grib_mod._get_local_db.cache_clear()
+    try:
+        yield
+    finally:
+        grib_mod.SETTINGS.paramdb.local_cache = old_value
+        grib_mod._local_search_param.cache_clear()
+        grib_mod._get_local_db.cache_clear()
+
+
 class TestLocalCacheSearch:
-    """Tests for _local_search_param and the CONFIG.local_cache routing in _search_param."""
+    """Tests for _local_search_param and the SETTINGS.paramdb.local_cache routing in _search_param."""
 
     def test_local_search_param_returns_single_match(self, local_cache_file):
         """_local_search_param returns a one-element list for a known shortname."""
         grib = _grib()
-        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+        with _patch_local_cache(grib, local_cache_file):
             results = grib._local_search_param("sst")
             assert len(results) == 1
             assert results[0]["shortname"] == "sst"
@@ -545,7 +561,7 @@ class TestLocalCacheSearch:
     def test_local_search_param_raises_on_missing(self, local_cache_file):
         """_local_search_param raises KeyError for an unknown shortname."""
         grib = _grib()
-        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+        with _patch_local_cache(grib, local_cache_file):
             with pytest.raises(KeyError, match="not found in local cache"):
                 grib._local_search_param("nonexistent_param_xyz")
 
@@ -553,7 +569,7 @@ class TestLocalCacheSearch:
     def test_search_param_local_cache_no_network(self, mock_get, local_cache_file):
         """Verify requests.get is never called when local_cache is configured."""
         grib = _grib()
-        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+        with _patch_local_cache(grib, local_cache_file):
             result = grib._search_param("ws")
             mock_get.assert_not_called()
             assert result["shortname"] == "ws"
@@ -563,7 +579,7 @@ class TestLocalCacheSearch:
     def test_shortname_to_paramid_via_local_cache(self, mock_get, local_cache_file):
         """End-to-end: shortname_to_paramid works with the local cache."""
         grib = _grib()
-        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+        with _patch_local_cache(grib, local_cache_file):
             assert grib.shortname_to_paramid("ci") == 31
             assert grib.shortname_to_paramid("sst") == 34
             assert grib.shortname_to_paramid("pres") == 54
@@ -573,7 +589,7 @@ class TestLocalCacheSearch:
     def test_paramid_to_shortname_via_local_cache(self, mock_get, local_cache_file):
         """_search_param finds entries via local cache for reverse lookups."""
         grib = _grib()
-        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+        with _patch_local_cache(grib, local_cache_file):
             result = grib._search_param("sst")
             assert result["shortname"] == "sst"
             mock_get.assert_not_called()
@@ -582,7 +598,7 @@ class TestLocalCacheSearch:
     def test_local_cache_filters_ignored_with_warning(self, mock_warning, local_cache_file):
         """When local_cache is set, passing filters emits a warning."""
         grib = _grib()
-        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+        with _patch_local_cache(grib, local_cache_file):
             result = grib._search_param("sst", origin=98)
             mock_warning.assert_called()
             warning_msg = mock_warning.call_args[0][0]
@@ -592,7 +608,7 @@ class TestLocalCacheSearch:
     def test_local_search_multiple_params(self, local_cache_file):
         """Verify several known parameters from the mock cache are found."""
         grib = _grib()
-        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+        with _patch_local_cache(grib, local_cache_file):
             expected = {
                 "strf": 1,
                 "vp": 2,

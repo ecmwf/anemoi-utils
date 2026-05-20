@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import threading
+import warnings
 from collections.abc import Generator
 from typing import Any
 
@@ -586,6 +587,11 @@ def load_config(
     DotDict or str
         Return DotDict if it is a dictionary, otherwise the raw data
     """
+    if name == "settings.toml":
+        warnings.warn(
+            "Loading the settings config file with load_config is deprecated, please use anemoi.utils.settings.AnemoiSettings instead",
+            DeprecationWarning,
+        )
 
     with CONFIG_LOCK:
         config = _load_config(name, secrets, defaults)

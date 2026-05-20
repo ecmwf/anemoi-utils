@@ -155,7 +155,7 @@ def _grids(name: str | list[float] | tuple[float, ...]) -> bytes:
     bytes
         The grid data
     """
-    from anemoi.utils.config import load_config
+    from anemoi.utils.settings import SETTINGS
 
     if isinstance(name, (tuple, list)):
         assert len(name) == 2, "Grid name must be a list or a tuple of length 2"
@@ -166,7 +166,7 @@ def _grids(name: str | list[float] | tuple[float, ...]) -> bytes:
             name = str(float(name[0])) + "x" + str(float(name[1]))
         name = name.replace(".", "p")
 
-    user_path = load_config().get("utils", {}).get("grids_path")
+    user_path = SETTINGS.utils.grids_path
     if user_path:
         path = os.path.expanduser(os.path.join(user_path, f"grid-{name}.npz"))
         if os.path.exists(path):

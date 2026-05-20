@@ -21,7 +21,7 @@ to use a different S3 compatible service::
 
 Alternatively, the `endpoint_url`, and keys can be set in one of
 the `~/.config/anemoi/settings.toml`
-or `~/.config/anemoi/settings-secrets.toml` files.
+or `~/.config/anemoi/settings.secrets.toml` files.
 """
 
 import fnmatch
@@ -35,20 +35,14 @@ from typing import Any
 
 import tqdm
 
-from ..config import load_config
 from ..humanize import bytes_to_human
+from ..settings import AnemoiSettings
+from ..settings_schema.object_storage import ObjectStorageConfig
 from . import BaseDownload
 from . import BaseUpload
 from . import transfer
 
 LOG = logging.getLogger(__name__)
-SECRETS = ["aws_access_key_id", "aws_secret_access_key", "access_key_id", "secret_access_key"]
-
-
-MIGRATE = {
-    "aws_access_key_id": "access_key_id",
-    "aws_secret_access_key": "secret_access_key",
-}
 
 CACHE = {}
 LOCK = threading.Lock()
@@ -99,35 +93,7 @@ def _s3_object(url_or_object: str | S3Object) -> S3Object:
     raise TypeError(f"Invalid type for S3 object: {type(url_or_object)}")
 
 
-def _hide_secrets(options: dict | list) -> dict | list:
-    """Hide secret values in options.
-
-    Parameters
-    ----------
-    options : dict or list
-        Options possibly containing secrets.
-
-    Returns
-    -------
-    dict or list
-        Options with secrets hidden.
-    """
-
-    def __(k, v):
-        if k in SECRETS:
-            return "***"
-        return v
-
-    if isinstance(options, dict):
-        return {k: __(k, v) for k, v in options.items()}
-
-    if isinstance(options, list):
-        return [_hide_secrets(o) for o in options]
-
-    return options
-
-
-def _s3_options(obj: str | S3Object) -> dict:
+def _s3_options(obj: str | S3Object) -> ObjectStorageConfig:
     """Get S3 options for a given object.
 
     Parameters
@@ -137,7 +103,7 @@ def _s3_options(obj: str | S3Object) -> dict:
 
     Returns
     -------
-    dict
+    ObjectStorageConfig
         S3 connection options.
     """
 
@@ -147,66 +113,41 @@ def _s3_options(obj: str | S3Object) -> dict:
         if obj.dirname in CACHE:
             return CACHE[obj.dirname]
 
-    options = {}
-
     # We may be accessing a different S3 compatible service
-    # Use anemoi.config to get the configuration
+    # Use anemoi.utils.settings to get the configuration
 
-    config = load_config(secrets=SECRETS)
+    object_storage_cfg = AnemoiSettings().object_storage
+    keys_of_buckets = [
+        k
+        for k in object_storage_cfg.model_dump().keys()
+        if k not in ("type", "endpoint_url", "access_key_id", "secret_access_key")
+    ]
 
-    cfg = config.get("object-storage", {})
-    candidate = None
-    for k, v in cfg.items():
-        if isinstance(v, (str, int, float, bool)):
-            options[k] = v
+    candidate: ObjectStorageConfig | None = None
+    for key in keys_of_buckets:
+        if fnmatch.fnmatch(obj.bucket, key):
+            if candidate is not None:
+                raise ValueError(f"Multiple object storage configurations match {obj.bucket}: {candidate} and {key}")
+            candidate = getattr(object_storage_cfg, key)
 
-        if isinstance(v, dict):
-            if fnmatch.fnmatch(obj.bucket, k):
-                if candidate is not None:
-                    raise ValueError(f"Multiple object storage configurations match {obj.bucket}: {candidate} and {k}")
-                candidate = k
+    if object_storage_cfg.type != "s3":
+        raise ValueError(f"Unsupported object storage type {object_storage_cfg.type}")
 
-    if candidate is not None:
-        for k, v in cfg.get(candidate, {}).items():
-            if isinstance(v, (str, int, float, bool)):
-                options[k] = v
+    resolved_config = {
+        key: val
+        for key, val in object_storage_cfg.model_dump().items()
+        if key in ("endpoint_url", "access_key_id", "secret_access_key")
+    }
+    resolved_config.update(candidate.model_dump() if candidate else {})
 
-    type = options.pop("type", "s3")
-    if type != "s3":
-        raise ValueError(f"Unsupported object storage type {type}")
+    resolved_object_config = ObjectStorageConfig(**resolved_config)
 
-    for k, v in MIGRATE.items():
-        if k in options:
-            LOG.warning(f"Option '{k}' is deprecated, use '{v}' instead")
-            options[v] = options.pop(k)
-
-    for key in ("endpoint_url", "access_key_id", "secret_access_key"):
-        """
-        This allows one of the bucket entry to reset these keys from the global settings
-
-        [object-storage]
-        endpoint_url = "https://..."
-        access_key_id = "...."
-        secret_access_key = "...."
-
-        [object-storage.some-public-bucket-on-aws]
-        endpoint_url = ""             <--- resets to 'undefined'
-        access_key_id = ""
-        secret_access_key = ""
-        region = "eu-north-1"
-        skip_signature=true
-        """
-
-        if options.get(key) in (None, ""):
-            print(f"Removing {key} from S3 options for {obj.dirname}")
-            options.pop(key, None)
-
-    LOG.info(f"Using S3 options: {_hide_secrets(options)}")
+    LOG.info(f"Using S3 options: {resolved_object_config}")
 
     with LOCK:
-        CACHE[obj.dirname] = options
+        CACHE[obj.dirname] = resolved_object_config
 
-    return options
+    return resolved_object_config
 
 
 def s3_client(obj: str | S3Object) -> Any:
@@ -225,12 +166,20 @@ def s3_client(obj: str | S3Object) -> Any:
 
     import obstore
 
+    def resolve_secrets(options: ObjectStorageConfig) -> dict[str, Any]:
+        secrets = {}
+        if options.access_key_id is not None:
+            secrets["access_key_id"] = options.access_key_id.get_secret_value()
+        if options.secret_access_key is not None:
+            secrets["secret_access_key"] = options.secret_access_key.get_secret_value()
+        return secrets
+
     obj = _s3_object(obj)
     with CLIENT_LOCK:
         if obj.dirname not in CLIENT_CACHE:
             options = _s3_options(obj)
-            LOG.debug(f"Using S3 options: {_hide_secrets(options)}")
-            CLIENT_CACHE[obj.dirname] = obstore.store.from_url(obj.dirname, **options)
+            LOG.debug(f"Using S3 options: {options}")
+            CLIENT_CACHE[obj.dirname] = obstore.store.from_url(obj.dirname, **resolve_secrets(options))
         return CLIENT_CACHE[obj.dirname]
 
 

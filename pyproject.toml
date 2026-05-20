@@ -39,6 +39,7 @@ dependencies = [
   "multiurl",
   "numpy",
   "pydantic>=2.9",
+  "pydantic-settings>=2.14.1",
   "python-dateutil",
   "pyyaml",
   "rich",
@@ -48,6 +49,7 @@ optional-dependencies.all = [ "anemoi-utils[grib,mlflow,provenance,s3,text]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 optional-dependencies.docs = [
   "anemoi-utils[all]",
+  "autodoc-pydantic>=2.2",
   "nbsphinx",
   "pandoc",
   "requests",
@@ -72,6 +74,7 @@ scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools]
 package-data."anemoi.utils.mars" = [ "*.yaml" ]
+package-data."anemoi.utils.settings_schema" = [ "*.toml" ]
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
