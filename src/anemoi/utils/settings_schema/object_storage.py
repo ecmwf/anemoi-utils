@@ -33,6 +33,21 @@ class ObjectStorageBucketConfig(AnemoiBaseSettingsSchema):
     skip_signature: Optional[bool] = False
     """Skip signature for public buckets."""
 
+    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Get a configuration value with fallback to the global setting."""
+        import warnings
+
+        warnings.warn(
+            "ObjectStorageBucketConfig.get() is deprecated and will be removed in a future version. "
+            "Access bucket-specific settings directly as attributes, rather than viewing this as a dictionary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        value = getattr(self, key)
+        if value is not None and value != "":
+            return value
+        return default
+
 
 class ObjectStorageConfig(AnemoiBaseSettingsSchema):
     """Object storage configuration for S3-compatible services."""
@@ -50,3 +65,18 @@ class ObjectStorageConfig(AnemoiBaseSettingsSchema):
     """Global secret access key."""
 
     __pydantic_extra__: dict[str, ObjectStorageBucketConfig] = Field(init=False)  # type: ignore[assignment]
+
+    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Get a configuration value with fallback to the global setting."""
+        import warnings
+
+        warnings.warn(
+            "ObjectStorageConfig.get() is deprecated and will be removed in a future version. "
+            "Access settings directly as attributes, rather than viewing this as a dictionary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        value = getattr(self, key)
+        if value is not None and value != "":
+            return value
+        return default
