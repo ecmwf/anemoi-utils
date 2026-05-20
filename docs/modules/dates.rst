@@ -6,3 +6,4 @@
    :members:
    :no-undoc-members:
    :show-inheritance:
+   :no-index:
