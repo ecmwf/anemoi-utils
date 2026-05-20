@@ -12,18 +12,22 @@ import hashlib
 import json
 import os
 import time
+from abc import abstractmethod
 from collections.abc import Callable
+from pathlib import Path
 from threading import RLock
 from typing import Any
 
 import numpy as np
 from filelock import FileLock
 
+from .settings import AnemoiSettings
+
 LOCK = RLock()
 CACHE = {}
 
 
-def _get_cache_path(collection: str) -> str:
+def _get_cache_path(collection: str) -> Path:
     """Get the cache path for a collection.
 
     Parameters
@@ -33,10 +37,10 @@ def _get_cache_path(collection: str) -> str:
 
     Returns
     -------
-    str
+    Path
         The cache path
     """
-    return os.path.join(os.path.expanduser("~"), ".cache", "anemoi", collection)
+    return (AnemoiSettings().utils.cache_directory / collection).expanduser()
 
 
 def clean_cache(collection: str = "default") -> None:
@@ -52,16 +56,18 @@ def clean_cache(collection: str = "default") -> None:
     global CACHE
     CACHE = {}
     path = _get_cache_path(collection)
-    if not os.path.exists(path):
+    if not path.exists():
         return
-    for filename in os.listdir(path):
-        os.remove(os.path.join(path, filename))
+    for filename in path.iterdir():
+        os.remove(filename)
 
 
 class Cacher:
     """This class implements a simple caching mechanism.
     Private class, do not use directly.
     """
+
+    ext: str
 
     def __init__(self, collection: str, expires: int | None):
         """Initialize the Cacher.
@@ -100,6 +106,14 @@ class Cacher:
 
         return wrapped
 
+    @abstractmethod
+    def load(self, path: Path) -> dict:
+        pass
+
+    @abstractmethod
+    def save(self, path: Path, data: dict) -> Path:
+        pass
+
     def cache(self, key: tuple, proc: Callable) -> Any:
         """Cache the result of a function.
 
@@ -115,28 +129,28 @@ class Cacher:
         Any
             The cached result
         """
-        key = json.dumps(key, sort_keys=True)
+        json_key = json.dumps(key, sort_keys=True)
         m = hashlib.md5()
-        m.update(key.encode("utf-8"))
+        m.update(json_key.encode("utf-8"))
         m = m.hexdigest()
 
         if m in CACHE:
             return CACHE[m]
 
         path = _get_cache_path(self.collection)
-        os.makedirs(path, exist_ok=True)
+        path.mkdir(parents=True, exist_ok=True)
 
-        lock_file = os.path.join(path, f"{m}.lock")
+        lock_file = path / f"{m}.lock"
         with FileLock(lock_file):
-            filename = os.path.join(path, m) + self.ext
-            if os.path.exists(filename):
+            filename = path / (m + self.ext)
+            if filename.exists():
                 data = self.load(filename)
                 if self.expires is None or data["expires"] > time.time():
-                    if data["key"] == key:
+                    if data["key"] == json_key:
                         return data["value"]
 
             value = proc()
-            data = {"key": key, "value": value}
+            data = {"key": json_key, "value": value}
             if self.expires is not None:
                 data["expires"] = time.time() + self.expires
 
@@ -150,34 +164,34 @@ class Cacher:
 class JsonCacher(Cacher):
     """Cacher that uses JSON files."""
 
-    ext = ""
+    ext = ".json"
 
-    def save(self, path: str, data: dict) -> str:
+    def save(self, path: Path, data: dict) -> Path:
         """Save data to a JSON file.
 
         Parameters
         ----------
-        path : str
+        path : Path
             The path to the JSON file
         data : dict
             The data to save
 
         Returns
         -------
-        str
+        Path
             The temporary file path
         """
-        temp_path = path + ".tmp"
+        temp_path = path.with_suffix(path.suffix + ".tmp")
         with open(temp_path, "w") as f:
             json.dump(data, f)
         return temp_path
 
-    def load(self, path: str) -> dict:
+    def load(self, path: Path) -> dict:
         """Load data from a JSON file.
 
         Parameters
         ----------
-        path : str
+        path : Path
             The path to the JSON file
 
         Returns
@@ -194,12 +208,12 @@ class NpzCacher(Cacher):
 
     ext = ".npz"
 
-    def save(self, path: str, data: dict) -> str:
+    def save(self, path: Path, data: dict) -> Path:
         """Save data to an NPZ file.
 
         Parameters
         ----------
-        path : str
+        path : Path
             The path to the NPZ file
         data : dict
             The data to save
@@ -209,16 +223,16 @@ class NpzCacher(Cacher):
         str
             The temporary file path
         """
-        temp_path = path + ".tmp.npz"
+        temp_path = path.with_suffix(path.suffix + ".tmp.npz")
         np.savez(temp_path, **data)
         return temp_path
 
-    def load(self, path: str) -> dict:
+    def load(self, path: Path) -> dict:
         """Load data from an NPZ file.
 
         Parameters
         ----------
-        path : str
+        path : Path
             The path to the NPZ file
 
         Returns
@@ -226,7 +240,7 @@ class NpzCacher(Cacher):
         dict
             The loaded data
         """
-        return np.load(path, allow_pickle=True)
+        return dict(np.load(path, allow_pickle=True))
 
 
 # This function is the main entry point for the caching mechanism for the other anemoi packages

@@ -135,3 +135,7 @@ cache_length = 30
 # When set, grids are loaded from this directory before falling back to the
 # built-in remote source.  Supports ~ expansion.
 grids_path = ""
+
+# Directory to using for caching resutls of functions marked with utils.cache
+# Supports ~ expansion.
+cache_directory = "~/.cache/anemoi"
