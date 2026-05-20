@@ -81,6 +81,7 @@ class TestDefaultSettingsAgainstSchema:
             alias = field.alias or name
             schema_fields.add(alias)
         toml_sections = set(data.keys())
+        print(toml_sections)
         missing = schema_fields - toml_sections
         assert not missing, f"Sections defined in schema but missing from defaults TOML: {missing}"
 

@@ -31,3 +31,6 @@ class UtilsConfig(AnemoiBaseSettingsSchema):
 
     cache_directory: DirectoryPath = Path("~/.cache/anemoi")
     """Custom path to a directory for caching downloaded files (e.g. grid files or grib param)."""
+
+    debug_imports_in_cli: bool = False
+    """Whether to print debug information about imports in the CLI."""

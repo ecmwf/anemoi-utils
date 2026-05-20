@@ -139,3 +139,6 @@ grids_path = ""
 # Directory to using for caching resutls of functions marked with utils.cache
 # Supports ~ expansion.
 cache_directory = "~/.cache/anemoi"
+
+# Whether to print import debug messages during loading of the cli
+debug_imports_in_cli = false

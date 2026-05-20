@@ -16,7 +16,7 @@ import sys
 import traceback
 from collections.abc import Callable
 
-from anemoi.utils import ENV
+from anemoi.utils.settings import AnemoiSettings
 
 try:
     import argcomplete
@@ -24,7 +24,7 @@ except ImportError:
     argcomplete = None
 
 
-if ENV.ANEMOI_DEBUG_IMPORTS:
+if AnemoiSettings().utils.debug_imports_in_cli:
     from datetime import datetime
     from importlib.abc import MetaPathFinder
 

@@ -326,13 +326,18 @@ class AnemoiSettings(BaseSettings):
 
 
 SETTINGS = AnemoiSettings()
+"""Global instance of the AnemoiSettings. This will be created on first import of the anemoi.utils.settings module, and can be reloaded with `reload_settings()`.
+
+Use `AnemoiSettings()` to create separate instances if needed, but these will be runtime specific.
+"""
+
 copy_default_settings()  # Ensure the defaults file is present on disk for users to copy from
 
 
 def reload_settings():
     """Reload the Anemoi settings.
 
-    Is run in-place on the global SETTINGS instance
+    Is run in-place on the global SETTINGS instance.
     """
     global SETTINGS
     SETTINGS.__init__()
