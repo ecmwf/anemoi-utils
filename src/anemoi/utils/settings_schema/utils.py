@@ -11,8 +11,6 @@
 from pathlib import Path
 from typing import Optional
 
-from pydantic import DirectoryPath
-
 from .base import AnemoiBaseSettingsSchema
 
 
@@ -22,14 +20,14 @@ class UtilsConfig(AnemoiBaseSettingsSchema):
     Used by ``anemoi.utils.grids`` for custom grid file paths.
     """
 
-    grids_path: Optional[DirectoryPath] = None
+    grids_path: Optional[Path] = None
     """Custom path to a directory containing precomputed grid files (grid-<name>.npz).
 
     When set, grids are loaded from this directory before falling back to the
     built-in remote source. Supports ~ expansion.
     """
 
-    cache_directory: DirectoryPath = Path("~/.cache/anemoi")
+    cache_directory: Path = Path("~/.cache/anemoi").expanduser()
     """Custom path to a directory for caching downloaded files (e.g. grid files or grib param)."""
 
     debug_imports_in_cli: bool = False

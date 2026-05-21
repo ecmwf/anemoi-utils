@@ -48,10 +48,8 @@ endpoint_url = ""
 
 # Global credentials.
 # IMPORTANT: move these to ~/.config/anemoi/settings.secrets.toml (chmod 600).
-# The deprecated names aws_access_key_id / aws_secret_access_key still work
-# but will emit a deprecation warning; prefer the names below.
-access_key_id = ""
-secret_access_key = ""
+# access_key_id = ""
+# secret_access_key = ""
 
 # Per-bucket overrides
 # --------------------
@@ -114,8 +112,8 @@ ignore_naming_conventions = false
 [paramdb]
 
 # Default origin to use when disambiguating parameters with the same shortname.
-# Common values: "ecmwf", "destine".
-default_origin = "ecmwf"
+# Common values: "ecmf", "destine".
+default_origin = "ecmf"
 
 # Cache length in days for GRIB parameter lookups from the online API.
 cache_length = 30
@@ -136,9 +134,6 @@ cache_length = 30
 # built-in remote source.  Supports ~ expansion.
 grids_path = ""
 
-# Directory to using for caching resutls of functions marked with utils.cache
+# Directory to using for caching results of functions marked with utils.cache
 # Supports ~ expansion.
 cache_directory = "~/.cache/anemoi"
-
-# Whether to print import debug messages during loading of the cli
-debug_imports_in_cli = false

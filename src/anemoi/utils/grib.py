@@ -31,7 +31,7 @@ SETTINGS = AnemoiSettings()
 """Anemoi settings, loaded on module import."""
 
 
-@cached(collection="grib", expires=SETTINGS.paramdb.cache_length)
+@cached(collection="grib", expires=SETTINGS.paramdb.cache_length * 24 * 3600)
 def _units() -> dict[str, str]:
     """Fetch and cache GRIB parameter units.
 
@@ -104,7 +104,7 @@ def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
     raise KeyError(f"{name} not found in local cache.")
 
 
-@cached(collection="grib", expires=SETTINGS.paramdb.cache_length)
+@cached(collection="grib", expires=SETTINGS.paramdb.cache_length * 24 * 3600)
 def _online_search_param(name: str, **filters) -> list[dict[str, str | int | list[str]]]:
     """Search for a GRIB parameter by name using the online API.
 
@@ -187,7 +187,7 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
     return results[0]
 
 
-@cached(collection="grib", expires=SETTINGS.paramdb.cache_length)
+@cached(collection="grib", expires=SETTINGS.paramdb.cache_length * 24 * 3600)
 def origin(name: str) -> dict[str, str | int]:
     """Search for an id of an origin by name.
 

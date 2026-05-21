@@ -18,7 +18,7 @@ from .base import AnemoiBaseSettingsSchema
 class ObjectStorageBucketConfig(AnemoiBaseSettingsSchema):
     """Per-bucket overrides for object storage configuration."""
 
-    endpoint_url: Optional[str] = ""
+    endpoint_url: Optional[str] = None
     """Bucket-specific endpoint URL."""
 
     access_key_id: Optional[SecretStr] = None
@@ -55,13 +55,13 @@ class ObjectStorageConfig(AnemoiBaseSettingsSchema):
     type: str = "s3"
     """Default storage type (only 's3' is currently supported)."""
 
-    endpoint_url: str = ""
+    endpoint_url: Optional[str] = None
     """Global endpoint URL (leave empty for default AWS endpoint)."""
 
-    access_key_id: Optional[SecretStr] = SecretStr("")
+    access_key_id: Optional[SecretStr] = None
     """Global access key ID."""
 
-    secret_access_key: Optional[SecretStr] = SecretStr("")
+    secret_access_key: Optional[SecretStr] = None
     """Global secret access key."""
 
     __pydantic_extra__: dict[str, ObjectStorageBucketConfig] = Field(init=False)  # type: ignore[assignment]

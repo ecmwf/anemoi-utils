@@ -21,7 +21,7 @@ from typing import Any
 import numpy as np
 from filelock import FileLock
 
-from .settings import AnemoiSettings
+from .settings import SETTINGS
 
 LOCK = RLock()
 CACHE = {}
@@ -40,7 +40,7 @@ def _get_cache_path(collection: str) -> Path:
     Path
         The cache path
     """
-    return (AnemoiSettings().utils.cache_directory / collection).expanduser()
+    return (SETTINGS.utils.cache_directory / collection).expanduser()
 
 
 def clean_cache(collection: str = "default") -> None:

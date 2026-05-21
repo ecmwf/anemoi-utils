@@ -28,6 +28,8 @@ from pydantic_settings import SettingsConfigDict
 from pydantic_settings import TomlConfigSettingsSource
 from pydantic_settings import YamlConfigSettingsSource
 
+from anemoi.utils.config import LOG
+
 from .settings_schema.datasets import DatasetsConfig
 from .settings_schema.object_storage import ObjectStorageConfig
 from .settings_schema.paramdb import ParamDBConfig
@@ -205,8 +207,8 @@ class AnemoiSecretsSource(PydanticBaseSettingsSource):
             logger.warning(
                 "Ignoring non-secret keys in secrets file(s): %s. Move these to %s/%s.",
                 sorted(rest.keys()),
-                self._toml_path.with_suffix(""),
-                self._yaml_path.name,
+                self._toml_path.with_name(self._toml_path.stem.replace(".secrets", "")),
+                self._yaml_path.with_name(self._yaml_path.stem.replace(".secrets", "")).name,
             )
         return convert_to_secret(secret) if secret else {}
 
@@ -305,7 +307,7 @@ class AnemoiSettings(BaseSettings):
     """Miscellaneous anemoi-utils settings."""
 
     ## ---------- Control how the settings are loaded from various sources ---------- ##
-    ## Priority order (highest to lowest): __init__() > env vars > .secrets.(toml|yaml) > .(toml|yaml) > defaults in code ##
+    ## Priority order (highest to lowest): env vars > .env file > .secrets.(toml|yaml) > .(toml|yaml) > defaults in code ##
 
     @classmethod
     def settings_customise_sources(
@@ -331,7 +333,10 @@ SETTINGS = AnemoiSettings()
 Use `AnemoiSettings()` to create separate instances if needed, but these will be runtime specific.
 """
 
-copy_default_settings()  # Ensure the defaults file is present on disk for users to copy from
+try:
+    copy_default_settings()  # Ensure the defaults file is present on disk for users to copy from
+except Exception as e:
+    LOG.warning(f"Failed to copy default settings: {e}")
 
 
 def reload_settings():
@@ -340,4 +345,4 @@ def reload_settings():
     Is run in-place on the global SETTINGS instance.
     """
     global SETTINGS
-    SETTINGS.__init__()
+    SETTINGS = AnemoiSettings()

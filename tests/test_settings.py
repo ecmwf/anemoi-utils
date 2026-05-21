@@ -81,7 +81,6 @@ class TestDefaultSettingsAgainstSchema:
             alias = field.alias or name
             schema_fields.add(alias)
         toml_sections = set(data.keys())
-        print(toml_sections)
         missing = schema_fields - toml_sections
         assert not missing, f"Sections defined in schema but missing from defaults TOML: {missing}"
 
@@ -219,7 +218,7 @@ class TestSettingsFromFile:
     def test_missing_file_uses_defaults(self, isolated_settings):
         """When no config file exists, built-in defaults are used."""
         s = isolated_settings.load()
-        assert s.paramdb.default_origin in ("ecmf", "ecmwf")
+        assert s.paramdb.default_origin in ("ecmf")
         assert s.paramdb.cache_length == 30
 
 
