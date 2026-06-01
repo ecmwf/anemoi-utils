@@ -77,12 +77,12 @@ package-data."anemoi.utils.mars" = [ "*.yaml" ]
 version_file = "src/anemoi/utils/_version.py"
 
 [tool.mypy]
-strict = false
 mypy_path = "src"
-explicit_package_bases = true
 exclude = [
   "docs/.*",
 ]
+explicit_package_bases = true
+strict = false
 
 [tool.pytest]
 ini_options.markers = [
