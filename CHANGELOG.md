@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.4](https://github.com/ecmwf/anemoi-utils/compare/0.5.3...0.5.4) (2026-06-03)
+
+
+### Features
+
+* Add in-memory caching for local GRIB parameter database ([#302](https://github.com/ecmwf/anemoi-utils/issues/302)) ([b02c11a](https://github.com/ecmwf/anemoi-utils/commit/b02c11ac0d71e17dcd1d5c0ee7ff5853f998efdf))
+* Add origin filtering to search parameters and tests ([#296](https://github.com/ecmwf/anemoi-utils/issues/296)) ([96c96f8](https://github.com/ecmwf/anemoi-utils/commit/96c96f84ebe08a4d448ce8c80f4ab1e16e22d6fb))
+* Add window (move from datasets) ([#307](https://github.com/ecmwf/anemoi-utils/issues/307)) ([d2c2ed7](https://github.com/ecmwf/anemoi-utils/commit/d2c2ed78881a2bc2324e178c764493eaeb47bfde))
+* More robust logs for registry ([#294](https://github.com/ecmwf/anemoi-utils/issues/294)) ([7ce7b00](https://github.com/ecmwf/anemoi-utils/commit/7ce7b00d97240a26b20c82e6ba4341e89aa12e8f))
+
+
+### Bug Fixes
+
+* Evaluate grib config at runtime ([#300](https://github.com/ecmwf/anemoi-utils/issues/300)) ([250825c](https://github.com/ecmwf/anemoi-utils/commit/250825c055f88e328ec523cd88d3c55f34a4bb90))
+
 ## [0.5.3](https://github.com/ecmwf/anemoi-utils/compare/0.5.2...0.5.3) (2026-05-06)
 
 
