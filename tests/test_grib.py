@@ -205,7 +205,8 @@ class TestDisambiguationByDefaultOrigin:
         mock_get.side_effect = side_effect
 
         grib = _grib()
-        result = grib.shortname_to_paramid("xx")
+        with pytest.warns(UserWarning):
+            result = grib.shortname_to_paramid("xx")
         # The default_origin filter resolves to PARAM_AMBIGUOUS_A (id=200)
         assert result == 200
 
@@ -226,7 +227,8 @@ class TestDisambiguationByDefaultOrigin:
 
         grib = _grib()
         # Should fall back to sorted-first → id 200 (PARAM_AMBIGUOUS_A)
-        result = grib.shortname_to_paramid("xx")
+        with pytest.warns(UserWarning):
+            result = grib.shortname_to_paramid("xx")
         assert result == 200, "Should return the entry with the lowest id after sorting"
 
 
@@ -293,7 +295,8 @@ class TestExplicitOriginFilter:
         mock_get.side_effect = side_effect
 
         grib = _grib()
-        result = grib.shortname_to_paramid("xx", origin="destine")
+        with pytest.warns(UserWarning):
+            result = grib.shortname_to_paramid("xx", origin="destine")
         # Should NOT recurse with default_origin because origin was already
         # provided. Falls through to sorted first → id 200.
         assert result == 200
@@ -519,6 +522,17 @@ LOCAL_CACHE_DATA = [
         "pending": False,
         "retired": False,
     },
+    {
+        "id": 228059,
+        "name": "Convective available potential energy",
+        "shortname": "cape",
+        "unit_id": 17,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": [],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
 ]
 
 
@@ -613,7 +627,6 @@ class TestLocalCacheSearch:
                 "strf": 1,
                 "vp": 2,
                 "ws": 10,
-                "cape": 59,
             }
             for shortname, expected_id in expected.items():
                 results = grib._local_search_param(shortname)
