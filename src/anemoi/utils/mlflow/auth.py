@@ -190,9 +190,24 @@ class TokenAuth(AuthBase):
             by default `MLFLOW_TRACKING_TOKEN`
 
         """
-        self.url = url.rstrip("/") if url is not None else None
-        self.target_env_var = target_env_var
+        self._refresh_token = None
+        self.refresh_expires = 0
+
+        self.access_token: str | None = None
+        self.access_expires = 0
+
         self._enabled = enabled
+        # the command line tool adds a default handler to the root logger on runtime,
+        # so we init our logger here (on runtime, not on import) to avoid duplicate handlers
+        self.log = logging.getLogger(__name__)
+
+        if not url:
+            self.url = None
+            assert not enabled, "URL must be provided if authentication is enabled."
+            return
+
+        self.url = url.rstrip("/")
+        self.target_env_var = target_env_var
 
         store = self._get_store()
         config = store.get(self.url)
@@ -200,16 +215,6 @@ class TokenAuth(AuthBase):
         if config is not None:
             self._refresh_token = config.refresh_token
             self.refresh_expires = config.refresh_expires
-        else:
-            self._refresh_token = None
-            self.refresh_expires = 0
-
-        self.access_token: str | None = None
-        self.access_expires = 0
-
-        # the command line tool adds a default handler to the root logger on runtime,
-        # so we init our logger here (on runtime, not on import) to avoid duplicate handlers
-        self.log = logging.getLogger(__name__)
 
     def __call__(self) -> None:
         self.authenticate()
