@@ -280,6 +280,37 @@ def test_server_store() -> None:
     assert ServerStore({}).model_dump() == {}
 
 
+def test_normalise_urls() -> None:
+    """URLs with trailing slashes stored on disk should be normalised on load."""
+    config_with_slashes = {
+        "https://server-1.url/": {
+            "refresh_token": "refresh-token-1",
+            "refresh_expires": 1,
+        },
+        "https://server-2.url///": {
+            "refresh_token": "refresh-token-2",
+            "refresh_expires": 2,
+        },
+        "https://server-3.url": {
+            "refresh_token": "refresh-token-3",
+            "refresh_expires": 3,
+        },
+    }
+    store = ServerStore(config_with_slashes)
+
+    assert store.servers == [("https://server-3.url", 3), ("https://server-2.url", 2), ("https://server-1.url", 1)]
+
+    # getters should also accept slashed keys and resolve them correctly
+    assert store.get("https://server-1.url/") is not None
+    assert store.get("https://server-1.url/").refresh_token == "refresh-token-1"
+    assert store["https://server-3.url///"].refresh_token == "refresh-token-3"
+
+    # update() should normalise keys too
+    store.update("https://server-1.url/", ServerConfig(refresh_token="updated", refresh_expires=99))
+    assert store["https://server-1.url"].refresh_token == "updated"
+    assert store.get("https://server-1.url/").refresh_token == "updated"
+
+
 def test_utils_interface():
     """TokenAuth uses the utils CONFIG_LOCK when reading and writing the server store to ensure thread safety.
     Ensure that CONFIG_LOCK stays a reentrant lock, if it were a normal lock it would deadlock itself.

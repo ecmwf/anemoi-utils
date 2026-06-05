@@ -82,17 +82,17 @@ class ServerStore(RootModel):
     root: dict[str, ServerConfig] = {}
 
     def get(self, url: str) -> ServerConfig | None:
-        return self.root.get(url)
+        return self.root.get(url.rstrip("/"))
 
     def __getitem__(self, url: str) -> ServerConfig:
-        return self.root[url]
+        return self.root[url.rstrip("/")]
 
     def items(self):
         return self.root.items()
 
-    def update(self, url, config: ServerConfig) -> None:
+    def update(self, url: str, config: ServerConfig) -> None:
         """Update the server configuration for a given URL."""
-        self.root[url] = config
+        self.root[url.rstrip("/")] = config
 
     @property
     def servers(self) -> list[tuple[str, int]]:
@@ -115,6 +115,12 @@ class ServerStore(RootModel):
             _url = _data.pop("url")
             data = {_url: ServerConfig(**_data)}
         return data
+
+    @model_validator(mode="after")
+    def normalise_urls(self) -> ServerStore:
+        """Strip trailing slashes for pre-existing store entries."""
+        self.root = {url.rstrip("/"): cfg for url, cfg in self.root.items()}
+        return self
 
 
 class AuthBase(ABC):
@@ -184,7 +190,7 @@ class TokenAuth(AuthBase):
             by default `MLFLOW_TRACKING_TOKEN`
 
         """
-        self.url = url
+        self.url = url.rstrip("/")
         self.target_env_var = target_env_var
         self._enabled = enabled
 
