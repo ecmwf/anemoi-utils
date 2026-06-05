@@ -19,9 +19,7 @@ Each test is parametrised over two ParamDB backends:
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from pymetkit import ParamDB
@@ -32,45 +30,30 @@ from pymetkit import ParamDB
 
 FIXTURE_YAML = Path(__file__).parent / "parameter_metadata_test.yaml"
 
-_bundled_xfail = pytest.param(
-    "bundled",
-    marks=pytest.mark.xfail(
-        raises=FileNotFoundError,
-        reason="pymetkit bundled YAML not installed in this environment",
-        strict=False,
-    ),
-)
+
+@pytest.fixture(scope="session")
+def _local_paramdb():
+    return ParamDB(mode="offline", yaml_path=FIXTURE_YAML.resolve())
 
 
-@pytest.fixture(params=["local", _bundled_xfail])
-def grib(request, monkeypatch):
-    """Import anemoi.utils.grib and swap PARAMDB to the requested backend.
+@pytest.fixture(scope="session")
+def _offline_paramdb():
+    return ParamDB(mode="offline")
 
-    For 'local', the module is imported with settings pointing at our test
-    YAML. For 'bundled', PARAMDB is replaced with a ParamDB using pymetkit's
-    default YAML lookup (which may not exist).
+
+@pytest.fixture(params=["local", "bundled"])
+def grib(request, monkeypatch, _local_paramdb, _offline_paramdb):
+    """Swap anemoi.utils.grib.PARAMDB to the requested backend.
+
+    'local' reuses a session-scoped ParamDB pointing at our test YAML.
+    'bundled' constructs one from pymetkit's default YAML lookup (which may
+    not exist, in which case the test xfails on FileNotFoundError).
     """
-    from anemoi.utils.settings import AnemoiSettings
+    import anemoi.utils.grib as grib_mod
 
-    yaml_path = FIXTURE_YAML.resolve()
-    settings = AnemoiSettings()
-    settings.paramdb.local_data = yaml_path
-
-    # Ensure a clean import of the grib module with patched settings
-    cached = sys.modules.pop("anemoi.utils.grib", None)
-    try:
-        with patch("anemoi.utils.settings.AnemoiSettings", return_value=settings):
-            import anemoi.utils.grib as grib_mod
-
-        if request.param == "bundled":
-            bundled = ParamDB(mode="offline")
-            monkeypatch.setattr(grib_mod, "PARAMDB", bundled)
-
-        yield grib_mod
-    finally:
-        sys.modules.pop("anemoi.utils.grib", None)
-        if cached is not None:
-            sys.modules["anemoi.utils.grib"] = cached
+    db = _local_paramdb if request.param == "local" else _offline_paramdb
+    monkeypatch.setattr(grib_mod, "PARAMDB", db)
+    return grib_mod
 
 
 # ---------------------------------------------------------------------------
