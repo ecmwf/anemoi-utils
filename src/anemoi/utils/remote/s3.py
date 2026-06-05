@@ -133,12 +133,15 @@ def _s3_options(obj: str | S3Object) -> ObjectStorageBucketConfig:
     if object_storage_cfg.type != "s3":
         raise ValueError(f"Unsupported object storage type {object_storage_cfg.type}")
 
+    def _drop_empty(d: dict[str, Any]) -> dict[str, Any]:
+        return {k: v for k, v in d.items() if v}
+
     resolved_config = {
         key: val
-        for key, val in object_storage_cfg.model_dump(by_alias=False, exclude_none=True).items()
+        for key, val in _drop_empty(object_storage_cfg.model_dump(by_alias=False, exclude_none=True)).items()
         if key in ("endpoint_url", "access_key_id", "secret_access_key")
     }
-    resolved_config.update(candidate.model_dump(by_alias=False, exclude_none=True) if candidate else {})
+    resolved_config.update(_drop_empty(candidate.model_dump(by_alias=False, exclude_none=True)) if candidate else {})
 
     resolved_object_config = ObjectStorageBucketConfig(**resolved_config)
 
