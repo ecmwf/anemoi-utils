@@ -136,14 +136,19 @@ def _s3_options(obj: str | S3Object) -> ObjectStorageBucketConfig:
     def _drop_empty(d: dict[str, Any]) -> dict[str, Any]:
         return {k: v for k, v in d.items() if v}
 
-    resolved_config = {
-        key: val
-        for key, val in _drop_empty(object_storage_cfg.model_dump(by_alias=False, exclude_none=True)).items()
-        if key in ("endpoint_url", "access_key_id", "secret_access_key")
-    }
-    resolved_config.update(_drop_empty(candidate.model_dump(by_alias=False, exclude_none=True)) if candidate else {})
+    if candidate:
+        config = _drop_empty(candidate.model_dump(by_alias=False, exclude_none=True))
+    else:
+        LOG.debug(f"No specific object storage configuration found for bucket {obj.bucket}, using global settings")
+        config = _drop_empty(
+            {
+                k: v
+                for k, v in object_storage_cfg.model_dump(by_alias=False, exclude_none=True).items()
+                if k in ("endpoint_url", "access_key_id", "secret_access_key")
+            }
+        )
 
-    resolved_object_config = ObjectStorageBucketConfig(**resolved_config)
+    resolved_object_config = ObjectStorageBucketConfig(**config)
 
     LOG.info(f"Using S3 options: {resolved_object_config}")
 
