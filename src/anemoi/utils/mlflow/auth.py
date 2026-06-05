@@ -173,7 +173,7 @@ class TokenAuth(AuthBase):
 
     def __init__(
         self,
-        url: str,
+        url: str | None,
         enabled: bool = True,
         target_env_var: str = "MLFLOW_TRACKING_TOKEN",
     ) -> None:
@@ -181,7 +181,7 @@ class TokenAuth(AuthBase):
 
         Parameters
         ----------
-        url : str
+        url : str | None
             URL of the authentication server.
         enabled : bool, optional
             Set this to False to turn off authentication, by default True
@@ -190,7 +190,7 @@ class TokenAuth(AuthBase):
             by default `MLFLOW_TRACKING_TOKEN`
 
         """
-        self.url = url.rstrip("/")
+        self.url = url.rstrip("/") if url is not None else None
         self.target_env_var = target_env_var
         self._enabled = enabled
 
