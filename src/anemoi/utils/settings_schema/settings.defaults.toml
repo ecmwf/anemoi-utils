@@ -125,6 +125,33 @@ cache_length = 30
 
 
 # =============================================================================
+# [registry]  —  Anemoi Registry Configuration
+# =============================================================================
+[registry]
+
+# API URL for the registry.
+api_url = ""
+
+# API token for authenticating with the registry.
+api_token = ""
+
+# Allow deletion operations in the registry.
+allow_delete = false
+
+# URI pattern for plots storage.
+plots_uri_pattern = ""
+
+# URI pattern for datasets storage.
+datasets_uri_pattern = ""
+
+# URI pattern for weights storage.
+weights_uri_pattern = ""
+
+# Platform identifier for weights.
+weights_platform = ""
+
+
+# =============================================================================
 # [utils]  —  Miscellaneous anemoi-utils settings
 # =============================================================================
 [utils]

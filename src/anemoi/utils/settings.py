@@ -33,6 +33,7 @@ from anemoi.utils.config import LOG
 from .settings_schema.datasets import DatasetsConfig
 from .settings_schema.object_storage import ObjectStorageConfig
 from .settings_schema.paramdb import ParamDBConfig
+from .settings_schema.registry import RegistryConfig
 from .settings_schema.utils import UtilsConfig
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,9 @@ _WILDCARD = "*"
 # nodes are sub-trees keyed by underscore-normalised field name. The special
 # key "*" represents typed extras (`__pydantic_extra__: dict[str, Model]`).
 SecretTree = dict[str, Any]
+# A DataTree mirrors the shape of the input data: a nested dict with arbitrary
+# leaf values, partitioned by `_split_secrets` according to a SecretTree.
+DataTree = dict[str, Any]
 
 
 def _resolve_annotation(ann: Any, seen: frozenset[type]) -> Any:
@@ -143,10 +147,22 @@ def _collect_secret_paths(model_cls: type, seen: frozenset[type] = frozenset()) 
     return tree
 
 
-def _split_secrets(data: dict[str, Any], tree: SecretTree) -> tuple[dict[str, Any], dict[str, Any]]:
+def _flatten_tree(d: DataTree, prefix: str = "") -> list[str]:
+    """Flatten a DataTree into a list of dotted path strings."""
+    out: list[str] = []
+    for k, v in d.items():
+        path = f"{prefix}{k}"
+        if isinstance(v, dict):
+            out.extend(_flatten_tree(v, path + "."))
+        else:
+            out.append(path)
+    return out
+
+
+def _split_secrets(data: DataTree, tree: SecretTree) -> tuple[DataTree, DataTree]:
     """Partition *data* into (secret_part, non_secret_part) using *tree*."""
-    secret: dict[str, Any] = {}
-    rest: dict[str, Any] = {}
+    secret: DataTree = {}
+    rest: DataTree = {}
     for k, v in data.items():
         node = tree.get(k.replace("-", "_"), tree.get(_WILDCARD))
         if node is True:
@@ -205,10 +221,9 @@ class AnemoiSecretsSource(PydanticBaseSettingsSource):
         secret, rest = _split_secrets(data, self._secret_tree)
         if rest:
             logger.warning(
-                "Ignoring non-secret keys in secrets file(s): %s. Move these to %s/%s.",
-                sorted(rest.keys()),
-                self._toml_path.with_name(self._toml_path.stem.replace(".secrets", "")),
-                self._yaml_path.with_name(self._yaml_path.stem.replace(".secrets", "")).name,
+                "Ignoring non-secret keys in secrets file(s): %s. Move these to %s.",
+                sorted(_flatten_tree(rest)),
+                self._toml_path.with_name(self._toml_path.name.replace(".secrets", "")),
             )
         return convert_to_secret(secret) if secret else {}
 
@@ -239,21 +254,10 @@ class AnemoiNonSecretsSource(PydanticBaseSettingsSource):
         if secret:
             stem = ANEMOI_SETTINGS_FILE_LOCATION.stem
             raise ValueError(
-                f"Secret keys {sorted(self._flatten(secret))} found in non-secret config files; "
+                f"Secret keys {sorted(_flatten_tree(secret))} found in non-secret config files; "
                 f"move them to the {stem}.secrets.toml/{stem}.secrets.yaml file (mode 0600)."
             )
         return rest
-
-    @staticmethod
-    def _flatten(d: dict[str, Any], prefix: str = "") -> list[str]:
-        out: list[str] = []
-        for k, v in d.items():
-            path = f"{prefix}{k}"
-            if isinstance(v, dict):
-                out.extend(AnemoiNonSecretsSource._flatten(v, path + "."))
-            else:
-                out.append(path)
-        return out
 
 
 class AnemoiSettings(BaseSettings):
@@ -302,6 +306,9 @@ class AnemoiSettings(BaseSettings):
 
     paramdb: ParamDBConfig = Field(default_factory=ParamDBConfig)
     """GRIB parameter database lookup settings."""
+
+    registry: RegistryConfig = Field(default_factory=RegistryConfig)
+    """Configuration for access to the Anemoi registry."""
 
     utils: UtilsConfig = Field(default_factory=UtilsConfig)
     """Miscellaneous anemoi-utils settings."""
