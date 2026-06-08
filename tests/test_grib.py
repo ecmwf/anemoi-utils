@@ -16,6 +16,7 @@ feature, including origin-based filtering and default origin fallback.
 from __future__ import annotations
 
 import json
+import os
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -26,6 +27,17 @@ from anemoi.utils.config import temporary_config
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _ensure_no_env():
+    """Ensure no environment variables are set that would interfere with tests."""
+    env_copy = os.environ.copy()
+    for key in list(env_copy.keys()):
+        if key.startswith("ANEMOI_CONFIG_PARAMDB_"):
+            os.environ.pop(key)
+    yield
+    os.environ.update(env_copy)
 
 
 def _mock_response(json_data, status_code=200):
@@ -205,7 +217,8 @@ class TestDisambiguationByDefaultOrigin:
         mock_get.side_effect = side_effect
 
         grib = _grib()
-        result = grib.shortname_to_paramid("xx")
+        with pytest.warns(UserWarning):
+            result = grib.shortname_to_paramid("xx")
         # The default_origin filter resolves to PARAM_AMBIGUOUS_A (id=200)
         assert result == 200
 
@@ -226,7 +239,8 @@ class TestDisambiguationByDefaultOrigin:
 
         grib = _grib()
         # Should fall back to sorted-first → id 200 (PARAM_AMBIGUOUS_A)
-        result = grib.shortname_to_paramid("xx")
+        with pytest.warns(UserWarning):
+            result = grib.shortname_to_paramid("xx")
         assert result == 200, "Should return the entry with the lowest id after sorting"
 
 
@@ -293,7 +307,8 @@ class TestExplicitOriginFilter:
         mock_get.side_effect = side_effect
 
         grib = _grib()
-        result = grib.shortname_to_paramid("xx", origin="destine")
+        with pytest.warns(UserWarning):
+            result = grib.shortname_to_paramid("xx", origin="destine")
         # Should NOT recurse with default_origin because origin was already
         # provided. Falls through to sorted first → id 200.
         assert result == 200
@@ -519,6 +534,17 @@ LOCAL_CACHE_DATA = [
         "pending": False,
         "retired": False,
     },
+    {
+        "id": 228059,
+        "name": "Convective available potential energy",
+        "shortname": "cape",
+        "unit_id": 17,
+        "encoding_ids": ["grib1", "grib2"],
+        "access_ids": [],
+        "published": True,
+        "pending": False,
+        "retired": False,
+    },
 ]
 
 
@@ -597,7 +623,6 @@ class TestLocalCacheSearch:
                 "strf": 1,
                 "vp": 2,
                 "ws": 10,
-                "cape": 59,
             }
             for shortname, expected_id in expected.items():
                 results = grib._local_search_param(shortname)
@@ -605,3 +630,22 @@ class TestLocalCacheSearch:
                 assert (
                     results[0]["id"] == expected_id
                 ), f"Expected {shortname} -> id={expected_id}, got {results[0]['id']}"
+
+    def test_local_search_matching_multiple_entries(self, local_cache_file):
+        """If multiple entries share the same shortname, all are returned."""
+        grib = _grib()
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+            results = grib._local_search_param("cape")
+            assert len(results) == 2
+            ids = {r["id"] for r in results}  # type: ignore
+            assert ids == {59, 228059}, f"Expected to find both CAPE entries with ids 59 and 228059, got {ids}"
+
+    def test_smallest_id_returned_when_ambiguous_and_no_dissemination(self, local_cache_file):
+        """When multiple entries share a shortname and none have dissemination access, the one with the smallest id is returned."""
+        grib = _grib()
+        with temporary_config({"paramdb": {"local_cache": local_cache_file}}):
+            with pytest.warns(UserWarning):
+                result = grib.shortname_to_paramid("cape")
+            assert (
+                result == 59
+            ), f"Expected to return the entry with the smallest id (59) when multiple matches are found without dissemination access, got {result}"

@@ -87,7 +87,7 @@ def _units() -> dict[str, str]:
 
 
 @cache
-def _get_local_db(local_db: str) -> dict[str, dict[str, str | int | list[str]]]:
+def _get_local_db(local_db: str) -> list[dict[str, str | int | list[str]]]:
     """Open the local GRIB parameter database.
 
     Parameters
@@ -97,8 +97,8 @@ def _get_local_db(local_db: str) -> dict[str, dict[str, str | int | list[str]]]:
 
     Returns
     -------
-    dict
-        A dictionary mapping parameter shortnames to their details.
+    list[dict[str, str | int | list[str]]]
+        A list of dictionaries containing parameter details.
 
     Raises
     ------
@@ -108,9 +108,8 @@ def _get_local_db(local_db: str) -> dict[str, dict[str, str | int | list[str]]]:
 
     if not os.path.exists(local_db):
         raise FileNotFoundError(f"Local cache file {local_db} not found.")
-    raw_json = json.load(open(local_db, "r"))
 
-    return {r["shortname"]: r for r in raw_json}
+    return json.load(open(local_db, "r"))
 
 
 @cache
@@ -139,8 +138,10 @@ def _local_search_param(name: str) -> list[dict[str, str | int | list[str]]]:
 
     local_param_db = _get_local_db(local_cache)
 
-    if name in local_param_db:
-        return [local_param_db[name]]
+    matched_params = [param for param in local_param_db if param["shortname"] == name]
+    if matched_params:
+        return matched_params
+
     raise KeyError(f"{name} not found in local cache.")
 
 
@@ -209,8 +210,8 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
             return dissemination[0]
 
         warnings.warn(f"{name} is ambiguous: {', '.join(names)}.")
-        if "origin" not in filters:
-            warnings.warn(f"Applying origin='{GRIB_CONFIG.default_origin}' to disambiguate {name}.")
+        if "origin" not in filters and GRIB_CONFIG.local_cache is None:
+            warnings.warn(f"Applying origin='{GRIB_CONFIG.default_origin}' in an attempt to disambiguate {name}.")
             try:
                 filtered_param = _search_param(name, **{**filters, "origin": GRIB_CONFIG.default_origin})
                 warnings.warn(
@@ -218,10 +219,9 @@ def _search_param(name: str, **filters) -> dict[str, str | int | list[str]]:
                 )
                 return filtered_param
             except KeyError:
-                warnings.warn(
-                    f"Failed to disambiguate {name} with origin='{GRIB_CONFIG.default_origin}'. Returning the first match: {names[0]}."
-                )
+                pass
 
+        warnings.warn(f"Failed to disambiguate {name}'. Returning the first match: {names[0]}.")
         results = sorted(results, key=lambda x: x["id"])
 
     return results[0]

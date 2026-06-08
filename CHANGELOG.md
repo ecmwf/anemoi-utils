@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.5](https://github.com/ecmwf/anemoi-utils/compare/0.5.4...0.5.5) (2026-06-04)
+
+
+### Bug Fixes
+
+* Local grib param cache was secretly dropping entries ([#304](https://github.com/ecmwf/anemoi-utils/issues/304)) ([5b1ea96](https://github.com/ecmwf/anemoi-utils/commit/5b1ea969868b52da336d76f8d04a03a40d6593b9))
+
 ## [0.5.4](https://github.com/ecmwf/anemoi-utils/compare/0.5.3...0.5.4) (2026-06-03)
 
 
