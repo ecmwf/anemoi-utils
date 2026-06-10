@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.6](https://github.com/ecmwf/anemoi-utils/compare/0.5.5...0.5.6) (2026-06-10)
+
+
+### Bug Fixes
+
+* **mlflow auth:** Strip trailing slashes in server URL ([#311](https://github.com/ecmwf/anemoi-utils/issues/311)) ([da64c61](https://github.com/ecmwf/anemoi-utils/commit/da64c61aa59ab07333c80600da44dcd29a025e6f))
+
 ## [0.5.5](https://github.com/ecmwf/anemoi-utils/compare/0.5.4...0.5.5) (2026-06-04)
 
 
