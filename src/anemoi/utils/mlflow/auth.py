@@ -197,6 +197,8 @@ class TokenAuth(AuthBase):
         self.access_expires = 0
 
         self._enabled = enabled
+        self.target_env_var = target_env_var
+
         # the command line tool adds a default handler to the root logger on runtime,
         # so we init our logger here (on runtime, not on import) to avoid duplicate handlers
         self.log = logging.getLogger(__name__)
@@ -207,7 +209,6 @@ class TokenAuth(AuthBase):
             return
 
         self.url = url.rstrip("/")
-        self.target_env_var = target_env_var
 
         store = self._get_store()
         config = store.get(self.url)
