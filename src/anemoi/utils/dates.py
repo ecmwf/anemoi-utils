@@ -265,6 +265,9 @@ def frequency_to_string(frequency: datetime.timedelta) -> str:
     if total_seconds < 0:
         return f"-{frequency_to_string(-frequency)}"
 
+    if total_seconds == 0:
+        return "0h"
+
     if total_seconds % (24 * 3600) == 0:
         return f"{total_seconds // (24 * 3600)}d"
 
