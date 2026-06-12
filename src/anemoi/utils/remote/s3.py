@@ -134,7 +134,7 @@ def _s3_options(obj: str | S3Object) -> ObjectStorageBucketConfig:
         raise ValueError(f"Unsupported object storage type {object_storage_cfg.type}")
 
     def _drop_empty(d: dict[str, Any]) -> dict[str, Any]:
-        return {k: v for k, v in d.items() if v}
+        return {k: v for k, v in d.items() if v is not None}
 
     if candidate:
         config = _drop_empty(candidate.model_dump(by_alias=False, exclude_none=True))
