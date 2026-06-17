@@ -7,11 +7,13 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 [build-system]
+build-backend = "setuptools.build_meta"
 requires = [ "setuptools>=60", "setuptools-scm>=8" ]
 
 [project]
 name = "anemoi-utils"
 description = "A package to hold various functions to support training of ML models on ECMWF data."
+readme = "README.md"
 keywords = [ "ai", "tools" ]
 license = { file = "LICENSE" }
 authors = [
