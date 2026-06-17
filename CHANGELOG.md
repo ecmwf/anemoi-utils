@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.7](https://github.com/ecmwf/anemoi-utils/compare/0.5.6...0.5.7) (2026-06-17)
+
+
+### Features
+
+* Adopt pydantic-settings for anemoi configuration ([#305](https://github.com/ecmwf/anemoi-utils/issues/305)) ([e330952](https://github.com/ecmwf/anemoi-utils/commit/e330952928425f16982d37cbe00dc13d1a37b853))
+* Zero-timedelta-0h ([#309](https://github.com/ecmwf/anemoi-utils/issues/309)) ([e1c0550](https://github.com/ecmwf/anemoi-utils/commit/e1c0550348c67409c650e2844fc244eca0064581))
+
 ## [0.5.6](https://github.com/ecmwf/anemoi-utils/compare/0.5.5...0.5.6) (2026-06-10)
 
 
