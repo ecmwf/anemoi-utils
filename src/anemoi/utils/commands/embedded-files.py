@@ -183,6 +183,7 @@ class EmbeddedFiles(Command):
         extract_embedded_files(args.path, set(args.file), target_directory=args.directory, overwrite=args.overwrite)
 
     def cat(self, args: Namespace) -> None:
+        """For testing checkpoint:// scheme."""
         local_path = checkpoint_file(args.path, args.cat)
         with open(local_path, "rb") as f:
             data = f.read()
