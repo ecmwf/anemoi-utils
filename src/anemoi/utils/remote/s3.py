@@ -32,6 +32,7 @@ from collections.abc import Iterable
 from contextlib import closing
 from typing import Any
 
+import obstore
 import tqdm
 
 from ..config import load_config
@@ -43,6 +44,7 @@ from . import transfer
 LOG = logging.getLogger(__name__)
 SECRETS = ["aws_access_key_id", "aws_secret_access_key", "access_key_id", "secret_access_key"]
 
+ORIGINAL_PID = os.getpid()
 
 MIGRATE = {
     "aws_access_key_id": "access_key_id",
@@ -223,7 +225,11 @@ def s3_client(obj: str | S3Object) -> Any:
     obj = _s3_object(obj)
     options = _s3_options(obj)
     LOG.debug(f"Using S3 options: {_hide_secrets(options)}")
-    return obstore.store.from_url(obj.dirname, **options)
+    LOG.info(f"Creating S3 client for {obj.dirname} with options: {_hide_secrets(options)}")
+    with LOCK:
+        o = obstore.store.from_url(obj.dirname, **options)
+    LOG.info(f"S3 client created for {obj.dirname}")
+    return o
 
 
 def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosity: int) -> int:
@@ -523,7 +529,16 @@ def get_object(target: str) -> bool:
     obj = _s3_object(target)
     s3 = s3_client(obj)
 
-    return s3.get(obj.key).bytes()
+    LOG.info(
+        f"Getting object {target} from S3 {obj.key} pid={os.getpid()} {ORIGINAL_PID=} {'✅' if os.getpid() == ORIGINAL_PID else '⚠️'} {'✅' if threading.current_thread() == threading.main_thread() else '⚠️'}"
+    )
+
+    with LOCK:
+        LOG.info("Got lock for S3 client, fetching object")
+        data = s3.get(obj.key).bytes()
+
+    LOG.info(f"Got object {target} from S3 {obj.key} (size={len(data)})")
+    return data
 
 
 def download(source: str, target: str, *args, **kwargs) -> None:
@@ -754,3 +769,22 @@ class S3Download(BaseDownload):
         """
 
         return download_file(source, target, overwrite, resume, verbosity)
+
+
+def prepare_for_fork():
+    LOG.info(f"🚀 [{os.getpid()}] About to fork: Cleaning up resources...")
+
+
+def parent_after_fork():
+    LOG.info(f"🚀 [{os.getpid()}] Parent: Fork complete. Continuing business as usual.")
+
+
+def child_after_fork():
+    import importlib
+
+    LOG.info(f"🚀 [{os.getpid()}] Child: I was just born! Resetting connections: thread={threading.current_thread()}.")
+    importlib.reload(obstore)
+
+
+# Register the hooks
+os.register_at_fork(before=prepare_for_fork, after_in_parent=parent_after_fork, after_in_child=child_after_fork)

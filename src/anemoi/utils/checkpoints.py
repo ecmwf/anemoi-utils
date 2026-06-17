@@ -12,6 +12,7 @@
 are zip archives containing the model weights.
 """
 
+import datetime
 import json
 import logging
 import os
@@ -31,6 +32,8 @@ DEFAULT_NAME = "anemoi.json"
 DEFAULT_FOLDER = "anemoi-metadata"
 
 DEPRECATED_NAME = "ai-models.json"
+
+EMBEDDED_FILES_FOLDER = "anemoi-embedded-files"
 
 
 def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
@@ -108,7 +111,13 @@ def load_metadata(
 ) -> tuple[dict, dict]: ...
 
 
-def load_metadata(path: str, *, supporting_arrays: bool = False, name: str = DEFAULT_NAME) -> dict | tuple[dict, dict]:
+def load_metadata(
+    path: str,
+    *,
+    supporting_arrays: bool = False,
+    embedded_files: bool = False,
+    name: str = DEFAULT_NAME,
+) -> dict | tuple[dict, dict]:
     """Load metadata from a checkpoint file.
 
     Parameters
@@ -118,6 +127,9 @@ def load_metadata(path: str, *, supporting_arrays: bool = False, name: str = DEF
 
     supporting_arrays : bool, optional
         If True, the function will return a dictionary with the supporting arrays
+
+    embedded_files : bool, optional
+        If True, the function will return the list of embedded files in the checkpoint
 
     name : str, optional
         The name of the metadata file in the zip archive
@@ -137,10 +149,15 @@ def load_metadata(path: str, *, supporting_arrays: bool = False, name: str = DEF
 
     with zipfile.ZipFile(path, "r") as f:
         metadata = json.load(f.open(metadata, "r"))
+        result = [metadata]
         if supporting_arrays:
             arrays = load_supporting_arrays(f, metadata.get("supporting_arrays_paths", {}))
-            return metadata, arrays
-        return metadata
+            result.append(arrays)
+        if embedded_files:
+            result.append(f.namelist())
+        if len(result) == 1:
+            return result[0]
+        return tuple(result)
 
 
 def load_supporting_arrays(zipf: zipfile.ZipFile, entries: dict) -> dict:
@@ -282,59 +299,68 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
         A dictionary of supporting NumPy arrays
     """
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
+    try:
 
-    target_file = get_metadata_path(path, name=name)
-    if target_file is None:
-        raise FileNotFoundError(f"Could not find '{name}' in {path}")
+        target_file = get_metadata_path(path, name=name)
+        if target_file is None:
+            raise FileNotFoundError(f"Could not find '{name}' in {path}")
 
-    directory = os.path.dirname(target_file)
+        directory = os.path.dirname(target_file)
 
-    with zipfile.ZipFile(path, "r") as source_zip:
-        file_list = source_zip.namelist()
+        with zipfile.ZipFile(path, "r") as source_zip:
+            file_list = source_zip.namelist()
 
-        # Calculate total files for progress bar
-        total_files = len(file_list)
-        if supporting_arrays is not None:
-            total_files += len(supporting_arrays)
+            # Calculate total files for progress bar
+            total_files = len(file_list)
+            if supporting_arrays is not None:
+                total_files += len(supporting_arrays)
 
-        with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
-            with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
+            with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
+                with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
 
-                # Copy all files except the target file
-                for file_path in file_list:
-                    if file_path != target_file:
-                        with source_zip.open(file_path) as source_file:
-                            data = source_file.read()
-                            new_zip.writestr(file_path, data)
+                    # Copy all files except the target file
+                    for file_path in file_list:
+                        if file_path != target_file:
+                            with source_zip.open(file_path) as source_file:
+                                data = source_file.read()
+                                new_zip.writestr(file_path, data)
+                            pbar.update(1)
+
+                    # Handle the target file with callback
+                    with TemporaryDirectory() as temp_dir:
+                        # Extract only the target file
+                        source_zip.extract(target_file, temp_dir)
+                        target_full_path = os.path.join(temp_dir, target_file)
+
+                        # Apply the callback
+                        callback(target_full_path)
+
+                        # Add the modified file to the new zip (if it still exists)
+                        if os.path.exists(target_full_path):
+                            new_zip.write(target_full_path, target_file)
                         pbar.update(1)
 
-                # Handle the target file with callback
-                with TemporaryDirectory() as temp_dir:
-                    # Extract only the target file
-                    source_zip.extract(target_file, temp_dir)
-                    target_full_path = os.path.join(temp_dir, target_file)
+                    # Add supporting arrays if provided
+                    if supporting_arrays is not None:
+                        for key, entry in supporting_arrays.items():
+                            array_path = os.path.join(directory, f"{key}.numpy") if directory else f"{key}.numpy"
+                            new_zip.writestr(array_path, entry.tobytes())
+                            pbar.update(1)
 
-                    # Apply the callback
-                    callback(target_full_path)
+        os.rename(new_path, path)
+        LOG.info("Updated metadata in %s", path)
 
-                    # Add the modified file to the new zip (if it still exists)
-                    if os.path.exists(target_full_path):
-                        new_zip.write(target_full_path, target_file)
-                    pbar.update(1)
-
-                # Add supporting arrays if provided
-                if supporting_arrays is not None:
-                    for key, entry in supporting_arrays.items():
-                        array_path = os.path.join(directory, f"{key}.numpy") if directory else f"{key}.numpy"
-                        new_zip.writestr(array_path, entry.tobytes())
-                        pbar.update(1)
-
-    os.rename(new_path, path)
-    LOG.info("Updated metadata in %s", path)
+    finally:
+        if os.path.exists(new_path):
+            os.remove(new_path)
 
 
 def replace_metadata(
-    path: str, metadata: dict, supporting_arrays: dict | None = None, *, name: str = DEFAULT_NAME
+    path: str,
+    metadata: dict,
+    supporting_arrays: dict | None = None,
+    *,
+    name: str = DEFAULT_NAME,
 ) -> None:
     """Replace metadata in a checkpoint file.
 
@@ -379,3 +405,110 @@ def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
         os.remove(full)
 
     return _edit_metadata(path, name, callback)
+
+
+def _todir(path, zip_file) -> str:
+    topdirs = set()
+    for b in zip_file.namelist():
+        topdir = b.split("/")[0]
+        topdirs.add(topdir)
+
+    if len(topdirs) != 1:
+        raise ValueError(f"No or multiple top-level directories in the checkpoint {path}, topdirs={topdirs}")
+
+    return list(topdirs)[0]
+
+
+def _add__remove_embedded_files(
+    path: str,
+    *,
+    files_to_add: dict[str, str],
+    files_to_remove: set[str],
+    overwrite: bool = False,
+) -> None:
+    """Add an embedded file to a checkpoint file."""
+
+    new_path = f"{path}.anemoi-embedded-files-{time.time()}-{os.getpid()}.tmp"
+
+    try:
+
+        with zipfile.ZipFile(path, "r") as source_zip:
+
+            topdir = _todir(path, source_zip)
+
+            file_list = source_zip.namelist()
+
+            # Calculate total files for progress bar
+            total_files = len(file_list) + len(files_to_add)
+
+            embedded_name_to_add = {f"{topdir}/{EMBEDDED_FILES_FOLDER}/{name}" for name in files_to_add.keys()}
+
+            embedded_name_to_remove = {f"{topdir}/{EMBEDDED_FILES_FOLDER}/{name}" for name in files_to_remove}
+
+            with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
+                with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
+
+                    # Copy all files except the target file
+                    for file_path in file_list:
+
+                        if file_path in embedded_name_to_remove:
+                            LOG.info(f"Removing embedded file: {file_path}")
+                            continue
+
+                        if file_path in embedded_name_to_add:
+                            if not overwrite:
+                                raise ValueError(
+                                    f"File {file_path} already exists in the checkpoint. Re-run with overwrite=True to replace it."
+                                )
+                            continue
+
+                        with source_zip.open(file_path) as source_file:
+                            data = source_file.read()
+                            new_zip.writestr(file_path, data)
+
+                        pbar.update(1)
+
+                    # Add the new embedded files
+                    for name, file_path in files_to_add.items():
+                        embedded_path = f"{topdir}/{EMBEDDED_FILES_FOLDER}/{name}"
+                        with open(file_path, "rb") as f:
+                            data = f.read()
+                            new_zip.writestr(embedded_path, data)
+                        pbar.update(1)
+
+        os.rename(new_path, path)
+        LOG.info("Updated embedded files in %s", path)
+
+    finally:
+        if os.path.exists(new_path):
+            os.remove(new_path)
+
+
+def add_embedded_files(path: str, files_to_add: dict[str, str], overwrite: bool = False) -> None:
+    _add__remove_embedded_files(
+        path,
+        files_to_add=files_to_add,
+        files_to_remove=set(),
+        overwrite=overwrite,
+    )
+
+
+def remove_embedded_files(path: str, files_to_remove: set[str] | list[str]) -> None:
+    _add__remove_embedded_files(
+        path,
+        files_to_add=dict(),
+        files_to_remove=set(files_to_remove),
+    )
+
+
+def list_embedded_files(path: str) -> list[tuple[str, int]]:
+    with zipfile.ZipFile(path, "r") as f:
+        topdir = _todir(path, f)
+        prefix = f"{topdir}/{EMBEDDED_FILES_FOLDER}/"
+
+        result = []
+        for b in f.namelist():
+            if b.startswith(prefix):
+                info = f.getinfo(b)
+                result.append((b[len(prefix) :], info.file_size, datetime.datetime(*info.date_time)))
+        return result
