@@ -16,6 +16,7 @@ import datetime
 import json
 import logging
 import os
+import threading
 import time
 import zipfile
 from collections.abc import Callable
@@ -435,15 +436,16 @@ def _add__remove_embedded_files(
         with zipfile.ZipFile(path, "r") as source_zip:
 
             topdir = _todir(path, source_zip)
+            prefix = f"{topdir}/{EMBEDDED_FILES_FOLDER}/"
 
             file_list = source_zip.namelist()
 
             # Calculate total files for progress bar
             total_files = len(file_list) + len(files_to_add)
 
-            embedded_name_to_add = {f"{topdir}/{EMBEDDED_FILES_FOLDER}/{name}" for name in files_to_add.keys()}
+            embedded_name_to_add = {f"{prefix}{name}" for name in files_to_add.keys()}
 
-            embedded_name_to_remove = {f"{topdir}/{EMBEDDED_FILES_FOLDER}/{name}" for name in files_to_remove}
+            embedded_name_to_remove = {f"{prefix}{name}" for name in files_to_remove}
 
             with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
                 with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
@@ -470,7 +472,7 @@ def _add__remove_embedded_files(
 
                     # Add the new embedded files
                     for name, file_path in files_to_add.items():
-                        embedded_path = f"{topdir}/{EMBEDDED_FILES_FOLDER}/{name}"
+                        embedded_path = f"{prefix}{name}"
                         with open(file_path, "rb") as f:
                             data = f.read()
                             new_zip.writestr(embedded_path, data)
@@ -512,3 +514,67 @@ def list_embedded_files(path: str) -> list[tuple[str, int]]:
                 info = f.getinfo(b)
                 result.append((b[len(prefix) :], info.file_size, datetime.datetime(*info.date_time)))
         return result
+
+
+def extract_embedded_files(
+    path: str, files_to_extract: set[str], target_directory: str | None = None, overwrite: bool = False
+) -> None:
+    with zipfile.ZipFile(path, "r") as f:
+        topdir = _todir(path, f)
+        prefix = f"{topdir}/{EMBEDDED_FILES_FOLDER}/"
+
+        if target_directory is None:
+            target_directory = os.getcwd()
+
+        result = {}
+
+        for b in f.namelist():
+            if b.startswith(prefix):
+                name = b[len(prefix) :]
+                if name in files_to_extract:
+                    output_path = os.path.join(target_directory, name)
+                    if os.path.exists(output_path) and not overwrite:
+                        raise ValueError(f"File {output_path} already exists. Use overwrite=True to replace it.")
+                    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                    with open(output_path, "wb") as out_file:
+                        out_file.write(f.read(b))
+                    result[name] = output_path
+
+        for name in files_to_extract:
+            if name not in result:
+                raise ValueError(f"File {name} not found in the checkpoint.")
+
+        return result
+
+
+CACHE = {}
+LOCK = threading.Lock()
+TMPDIR = None
+
+
+def checkpoint_file(path: str, name: str) -> None:
+    global TMPDIR
+    scheme = "checkpoint://"
+
+    if not name.startswith(scheme):
+        return name
+
+    name = name[len(scheme) :]
+
+    with LOCK:
+
+        if (path, name) in CACHE:
+            return CACHE[(path, name)]
+
+        if TMPDIR is None:
+            TMPDIR = TemporaryDirectory()
+
+        local_path = extract_embedded_files(
+            path,
+            files_to_extract={name},
+            target_directory=TMPDIR.name,
+        )[name]
+
+        CACHE[(path, name)] = local_path
+
+        return local_path

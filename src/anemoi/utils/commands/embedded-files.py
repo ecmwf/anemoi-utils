@@ -15,6 +15,8 @@ from argparse import ArgumentParser
 from argparse import Namespace
 
 from anemoi.utils.checkpoints import add_embedded_files
+from anemoi.utils.checkpoints import checkpoint_file
+from anemoi.utils.checkpoints import extract_embedded_files
 from anemoi.utils.checkpoints import list_embedded_files
 from anemoi.utils.checkpoints import remove_embedded_files
 
@@ -55,10 +57,16 @@ class EmbeddedFiles(Command):
             action="store_true",
             help=("Remove files from the embedded files in the checkpoint."),
         )
+
         group.add_argument(
             "--extract",
             action="store_true",
             help=("Extract files from the embedded files in the checkpoint."),
+        )
+
+        group.add_argument(
+            "--cat",
+            help=("For testing checkpoint:// scheme."),
         )
 
         command_parser.add_argument(
@@ -72,6 +80,12 @@ class EmbeddedFiles(Command):
             "--overwrite",
             action="store_true",
             help="Overwrite existing embedded files with the same name when adding new files.",
+        )
+
+        command_parser.add_argument(
+            "--directory",
+            required=False,
+            help="Target directory for extracting embedded files.",
         )
 
     def _validate_args(self, args: Namespace) -> None:
@@ -112,6 +126,9 @@ class EmbeddedFiles(Command):
         if args.extract:
             return self.extract(args)
 
+        if args.cat:
+            return self.cat(args)
+
     def list(self, args: Namespace) -> None:
         """List the embedded files in the checkpoint.
 
@@ -135,6 +152,10 @@ class EmbeddedFiles(Command):
 
         file_paths = {}
         for file in args.file:
+
+            if os.path.realpath(file) == os.path.realpath(args.path):
+                raise ValueError(f"Cannot add the checkpoint file itself as an embedded file: {file}")
+
             name = os.path.basename(file)
             LOG.info(f"Adding file: {file} as {name}")
             file_paths[name] = file
@@ -152,14 +173,20 @@ class EmbeddedFiles(Command):
         remove_embedded_files(args.path, set(args.file))
 
     def extract(self, args: Namespace) -> None:
-        """Remove files from the embedded files in the checkpoint.
+        """Extract files from the embedded files in the checkpoint.
 
         Parameters
         ----------
         args : Namespace
             The arguments passed to the command.
         """
-        pass
+        extract_embedded_files(args.path, set(args.file), target_directory=args.directory, overwrite=args.overwrite)
+
+    def cat(self, args: Namespace) -> None:
+        local_path = checkpoint_file(args.path, args.cat)
+        with open(local_path, "rb") as f:
+            data = f.read()
+            print(data.decode("utf-8"))
 
 
 command = EmbeddedFiles
