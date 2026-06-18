@@ -82,17 +82,17 @@ class ServerStore(RootModel):
     root: dict[str, ServerConfig] = {}
 
     def get(self, url: str) -> ServerConfig | None:
-        return self.root.get(url)
+        return self.root.get(url.rstrip("/"))
 
     def __getitem__(self, url: str) -> ServerConfig:
-        return self.root[url]
+        return self.root[url.rstrip("/")]
 
     def items(self):
         return self.root.items()
 
-    def update(self, url, config: ServerConfig) -> None:
+    def update(self, url: str, config: ServerConfig) -> None:
         """Update the server configuration for a given URL."""
-        self.root[url] = config
+        self.root[url.rstrip("/")] = config
 
     @property
     def servers(self) -> list[tuple[str, int]]:
@@ -115,6 +115,12 @@ class ServerStore(RootModel):
             _url = _data.pop("url")
             data = {_url: ServerConfig(**_data)}
         return data
+
+    @model_validator(mode="after")
+    def normalise_urls(self) -> ServerStore:
+        """Strip trailing slashes for pre-existing store entries."""
+        self.root = {url.rstrip("/"): cfg for url, cfg in self.root.items()}
+        return self
 
 
 class AuthBase(ABC):
@@ -167,7 +173,7 @@ class TokenAuth(AuthBase):
 
     def __init__(
         self,
-        url: str,
+        url: str | None,
         enabled: bool = True,
         target_env_var: str = "MLFLOW_TRACKING_TOKEN",
     ) -> None:
@@ -175,7 +181,7 @@ class TokenAuth(AuthBase):
 
         Parameters
         ----------
-        url : str
+        url : str | None
             URL of the authentication server.
         enabled : bool, optional
             Set this to False to turn off authentication, by default True
@@ -184,9 +190,25 @@ class TokenAuth(AuthBase):
             by default `MLFLOW_TRACKING_TOKEN`
 
         """
-        self.url = url
-        self.target_env_var = target_env_var
+        self._refresh_token = None
+        self.refresh_expires = 0
+
+        self.access_token: str | None = None
+        self.access_expires = 0
+
         self._enabled = enabled
+        self.target_env_var = target_env_var
+
+        # the command line tool adds a default handler to the root logger on runtime,
+        # so we init our logger here (on runtime, not on import) to avoid duplicate handlers
+        self.log = logging.getLogger(__name__)
+
+        if not url:
+            self.url = None
+            assert not enabled, "URL must be provided if authentication is enabled."
+            return
+
+        self.url = url.rstrip("/")
 
         store = self._get_store()
         config = store.get(self.url)
@@ -194,16 +216,6 @@ class TokenAuth(AuthBase):
         if config is not None:
             self._refresh_token = config.refresh_token
             self.refresh_expires = config.refresh_expires
-        else:
-            self._refresh_token = None
-            self.refresh_expires = 0
-
-        self.access_token: str | None = None
-        self.access_expires = 0
-
-        # the command line tool adds a default handler to the root logger on runtime,
-        # so we init our logger here (on runtime, not on import) to avoid duplicate handlers
-        self.log = logging.getLogger(__name__)
 
     def __call__(self) -> None:
         self.authenticate()

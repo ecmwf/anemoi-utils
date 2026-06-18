@@ -8,6 +8,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.7](https://github.com/ecmwf/anemoi-utils/compare/0.5.6...0.5.7) (2026-06-17)
+
+
+### Features
+
+* Adopt pydantic-settings for anemoi configuration ([#305](https://github.com/ecmwf/anemoi-utils/issues/305)) ([e330952](https://github.com/ecmwf/anemoi-utils/commit/e330952928425f16982d37cbe00dc13d1a37b853))
+* Zero-timedelta-0h ([#309](https://github.com/ecmwf/anemoi-utils/issues/309)) ([e1c0550](https://github.com/ecmwf/anemoi-utils/commit/e1c0550348c67409c650e2844fc244eca0064581))
+
+## [0.5.6](https://github.com/ecmwf/anemoi-utils/compare/0.5.5...0.5.6) (2026-06-10)
+
+
+### Bug Fixes
+
+* **mlflow auth:** Strip trailing slashes in server URL ([#311](https://github.com/ecmwf/anemoi-utils/issues/311)) ([da64c61](https://github.com/ecmwf/anemoi-utils/commit/da64c61aa59ab07333c80600da44dcd29a025e6f))
+
+## [0.5.5](https://github.com/ecmwf/anemoi-utils/compare/0.5.4...0.5.5) (2026-06-04)
+
+
+### Bug Fixes
+
+* Local grib param cache was secretly dropping entries ([#304](https://github.com/ecmwf/anemoi-utils/issues/304)) ([5b1ea96](https://github.com/ecmwf/anemoi-utils/commit/5b1ea969868b52da336d76f8d04a03a40d6593b9))
+
+## [0.5.4](https://github.com/ecmwf/anemoi-utils/compare/0.5.3...0.5.4) (2026-06-03)
+
+
+### Features
+
+* Add in-memory caching for local GRIB parameter database ([#302](https://github.com/ecmwf/anemoi-utils/issues/302)) ([b02c11a](https://github.com/ecmwf/anemoi-utils/commit/b02c11ac0d71e17dcd1d5c0ee7ff5853f998efdf))
+* Add origin filtering to search parameters and tests ([#296](https://github.com/ecmwf/anemoi-utils/issues/296)) ([96c96f8](https://github.com/ecmwf/anemoi-utils/commit/96c96f84ebe08a4d448ce8c80f4ab1e16e22d6fb))
+* Add window (move from datasets) ([#307](https://github.com/ecmwf/anemoi-utils/issues/307)) ([d2c2ed7](https://github.com/ecmwf/anemoi-utils/commit/d2c2ed78881a2bc2324e178c764493eaeb47bfde))
+* More robust logs for registry ([#294](https://github.com/ecmwf/anemoi-utils/issues/294)) ([7ce7b00](https://github.com/ecmwf/anemoi-utils/commit/7ce7b00d97240a26b20c82e6ba4341e89aa12e8f))
+
+
+### Bug Fixes
+
+* Evaluate grib config at runtime ([#300](https://github.com/ecmwf/anemoi-utils/issues/300)) ([250825c](https://github.com/ecmwf/anemoi-utils/commit/250825c055f88e328ec523cd88d3c55f34a4bb90))
+
+## [0.5.3](https://github.com/ecmwf/anemoi-utils/compare/0.5.2...0.5.3) (2026-05-06)
+
+
+### Features
+
+* Optimise training speed when reading from s3 buckets ([#289](https://github.com/ecmwf/anemoi-utils/issues/289)) ([832755d](https://github.com/ecmwf/anemoi-utils/commit/832755d51a67b1ad98272212ecb975965b1f1997))
+
+
+### Bug Fixes
+
+* More robust s3 to process folders ([#290](https://github.com/ecmwf/anemoi-utils/issues/290)) ([1493cdd](https://github.com/ecmwf/anemoi-utils/commit/1493cdd634f82bdf4655c339424923c3d6541bd6))
+
+## [0.5.2](https://github.com/ecmwf/anemoi-utils/compare/0.5.1...0.5.2) (2026-04-27)
+
+
+### Bug Fixes
+
+* **checkpoints:** `_edit_metadata` multi-dataset supporting arrays ([#288](https://github.com/ecmwf/anemoi-utils/issues/288)) ([544ae60](https://github.com/ecmwf/anemoi-utils/commit/544ae6050a34285703cc01b047e3064291abb1df))
+* Fix and test make_int_list i/to/j/by/k ([#287](https://github.com/ecmwf/anemoi-utils/issues/287)) ([8228328](https://github.com/ecmwf/anemoi-utils/commit/8228328e7d211fd97155063d3c5521606173ccf9))
+* Only lookup git repo for editable dependencies ([#285](https://github.com/ecmwf/anemoi-utils/issues/285)) ([88ad3fe](https://github.com/ecmwf/anemoi-utils/commit/88ad3feb88f44ade804c2a14e75b84afa4750b38))
+
 ## [0.5.1](https://github.com/ecmwf/anemoi-utils/compare/0.5.0...0.5.1) (2026-03-17)
 
 

@@ -6,13 +6,14 @@
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
-
 [build-system]
+build-backend = "setuptools.build_meta"
 requires = [ "setuptools>=60", "setuptools-scm>=8" ]
 
 [project]
 name = "anemoi-utils"
 description = "A package to hold various functions to support training of ML models on ECMWF data."
+readme = "README.md"
 keywords = [ "ai", "tools" ]
 license = { file = "LICENSE" }
 authors = [
@@ -40,6 +41,7 @@ dependencies = [
   "multiurl",
   "numpy",
   "pydantic>=2.9",
+  "pydantic-settings>=2.14.1",
   "python-dateutil",
   "pyyaml",
   "rich",
@@ -49,6 +51,7 @@ optional-dependencies.all = [ "anemoi-utils[grib,mlflow,provenance,s3,text]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 optional-dependencies.docs = [
   "anemoi-utils[all]",
+  "autodoc-pydantic>=2.2",
   "nbsphinx",
   "pandoc",
   "requests",
@@ -73,21 +76,22 @@ scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools]
 package-data."anemoi.utils.mars" = [ "*.yaml" ]
+package-data."anemoi.utils.settings_schema" = [ "*.toml" ]
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
 
+[tool.mypy]
+mypy_path = "src"
+exclude = [
+  "docs/.*",
+]
+explicit_package_bases = true
+strict = false
+
 [tool.pytest]
 ini_options.markers = [
   "skip_on_hpc: mark a test that should not be run on HPC",
-]
-
-[tool.mypy]
-strict = false
-mypy_path = "src"
-explicit_package_bases = true
-exclude = [
-  "docs/.*",
 ]
 
 [tool.pydocstringformatter]

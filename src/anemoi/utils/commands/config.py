@@ -7,13 +7,11 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-
-import json
 from argparse import ArgumentParser
 from argparse import Namespace
 
-from ..config import config_path
-from ..config import load_config
+from ..settings import ANEMOI_SETTINGS_FILE_LOCATION
+from ..settings import SETTINGS
 from . import Command
 
 
@@ -38,10 +36,11 @@ class Config(Command):
         args : Namespace
             The arguments passed to the command.
         """
+
         if args.path:
-            print(config_path())
+            print(ANEMOI_SETTINGS_FILE_LOCATION)
         else:
-            print(json.dumps(load_config(), indent=4))
+            print(SETTINGS.model_dump_json(indent=4))
 
 
 command = Config

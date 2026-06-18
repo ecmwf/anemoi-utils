@@ -1,0 +1,166 @@
+# =============================================================================
+# Anemoi — Default Configuration  (settings.toml)
+# =============================================================================
+#
+# This file documents ALL configuration keys read from settings.toml across the
+# anemoi ecosystem (utils, datasets, inference, core) with their assumed
+# default values.  Copy it to:
+#
+#     ~/.config/anemoi/settings.toml
+#
+# and customise the values you need.
+#
+# Secrets (access keys, tokens, …) should go into a separate file with
+# restricted permissions:
+#
+#     ~/.config/anemoi/settings.secrets.toml     (chmod 600)
+#
+# Environment variable overrides
+# --------------------------------
+# Settings use pydantic-settings with the prefix ANEMOI_SETTINGS_.
+# Any key can be overridden at runtime with an environment variable named:
+#
+#   ANEMOI_SETTINGS_<SECTION>__<KEY>=<value>
+#
+# Sections and keys are upper-cased.  Nested sections use double underscores.
+# For example:
+#   ANEMOI_SETTINGS_DATASETS__IGNORE_NAMING_CONVENTIONS=1
+#   ANEMOI_SETTINGS_OBJECT_STORAGE__ENDPOINT_URL=https://...
+#   ANEMOI_SETTINGS_PARAMDB__DEFAULT_ORIGIN=destine
+#   ANEMOI_SETTINGS_UTILS__GRIDS_PATH=/data/grids
+#
+# =============================================================================
+
+
+# =============================================================================
+# [object-storage]  —  S3-compatible object storage
+# =============================================================================
+# Read by: anemoi.utils.remote.s3  (_s3_options)
+# Secrets file: settings.secrets.toml (for access_key_id / secret_access_key)
+# =============================================================================
+[object-storage]
+
+# Default storage type (only "s3" is currently supported).
+type = "s3"
+
+# Global endpoint URL.  Leave empty to use the default AWS endpoint.
+endpoint_url = ""
+
+# Global credentials.
+# IMPORTANT: move these to ~/.config/anemoi/settings.secrets.toml (chmod 600).
+# access_key_id = ""
+# secret_access_key = ""
+
+# Per-bucket overrides
+# --------------------
+# Create a sub-table whose key is the bucket name (or a glob pattern).
+# Values here override the global ones above for matching buckets.
+# Set a key to "" to explicitly clear an inherited value (e.g. to fall back
+# to anonymous / IAM-role access for a public bucket on AWS).
+#
+# Example:
+#
+# [object-storage."my-private-bucket"]
+# endpoint_url = "https://my-private-s3.example.com"
+# access_key_id = "AKIA..."
+# secret_access_key = "wJal..."
+#
+# [object-storage."some-public-bucket-on-aws"]
+# endpoint_url = ""
+# access_key_id = ""
+# secret_access_key = ""
+# region = "eu-north-1"
+# skip_signature = true
+
+
+# =============================================================================
+# [datasets]  —  Dataset discovery & validation
+# =============================================================================
+[datasets]
+
+# Search paths: list of directories or S3 prefixes where anemoi-datasets will
+# look for <name>.zarr when you call open_dataset("<name>").
+# Paths are tried in order; the first match wins and is cached.
+path = []
+
+# When true, if a .zarr path is provided but does not exist on disk/S3,
+# strip it to its basename and search the paths above instead of failing
+# immediately.  anemoi-inference enables this automatically at runtime when
+# re-opening training datasets from checkpoint metadata.
+use_search_path_not_found = false
+
+# When true, skip all dataset naming-convention validation (character checks,
+# resolution / frequency / date matching) during dataset creation.
+ignore_naming_conventions = false
+
+# Named datasets: a map of friendly names to full paths / URLs.
+# When you call open_dataset("my-dataset"), anemoi-datasets first checks here
+# before falling back to the search paths above.
+#
+# Example:
+#
+# [datasets.named]
+# era5-6h  = "/data/datasets/era5-6h.zarr"
+# oper-an  = "s3://bucket/datasets/oper-an.zarr"
+
+[datasets.named]
+
+
+# =============================================================================
+# [paramdb]  —  GRIB parameter database lookups
+# =============================================================================
+[paramdb]
+
+# Default origin to use when disambiguating parameters with the same shortname.
+# Common values: "ecmf", "destine".
+default_origin = "ecmf"
+
+# Cache length in days for GRIB parameter lookups from the online API.
+cache_length = 30
+
+# Path to a local JSON cache file for GRIB parameters.
+# If set, this will be used instead of making online API calls.
+# Leave empty / unset to use the online API.
+# local_cache = "/path/to/parameters.json"
+
+
+# =============================================================================
+# [registry]  —  Anemoi Registry Configuration
+# =============================================================================
+[registry]
+
+# API URL for the registry.
+api_url = ""
+
+# API token for authenticating with the registry.
+api_token = ""
+
+# Allow deletion operations in the registry.
+allow_delete = false
+
+# URI pattern for plots storage.
+plots_uri_pattern = ""
+
+# URI pattern for datasets storage.
+datasets_uri_pattern = ""
+
+# URI pattern for weights storage.
+weights_uri_pattern = ""
+
+# Platform identifier for weights.
+weights_platform = ""
+
+
+# =============================================================================
+# [utils]  —  Miscellaneous anemoi-utils settings
+# =============================================================================
+[utils]
+
+# Custom path to a directory containing precomputed grid files (grid-<name>.npz).
+# When set, grids are loaded from this directory before falling back to the
+# built-in remote source.  Supports ~ expansion.
+grids_path = ""
+
+# Directory to using for caching results of functions marked with utils.cache
+# Supports ~ expansion.
+cache_directory = "~/.cache/anemoi"

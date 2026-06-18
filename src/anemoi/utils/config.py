@@ -15,11 +15,11 @@ import json
 import logging
 import os
 import threading
+import warnings
+from collections.abc import Generator
 from typing import Any
 
 import yaml
-
-from anemoi.utils import ENV
 
 try:
     import tomllib  # Only available since 3.11
@@ -492,8 +492,8 @@ def _load_config(
         secret_config = _load_config(secret_name)
         _merge_dicts(config, secret_config)
 
-    if ENV.ANEMOI_CONFIG_OVERRIDE_PATH is not None:
-        override_config = load_any_dict_format(os.path.abspath(ENV.ANEMOI_CONFIG_OVERRIDE_PATH))
+    if os.environ.get("ANEMOI_CONFIG_OVERRIDE_PATH") is not None:
+        override_config = load_any_dict_format(os.path.abspath(os.environ["ANEMOI_CONFIG_OVERRIDE_PATH"]))
         config = merge_configs(config, override_config)
 
     for env, value in os.environ.items():
@@ -585,6 +585,11 @@ def load_config(
     DotDict or str
         Return DotDict if it is a dictionary, otherwise the raw data
     """
+    if name == "settings.toml":
+        warnings.warn(
+            "Loading the settings config file with load_config is deprecated, please use anemoi.utils.settings.AnemoiSettings instead",
+            DeprecationWarning,
+        )
 
     with CONFIG_LOCK:
         config = _load_config(name, secrets, defaults)
@@ -711,7 +716,7 @@ def merge_configs(*configs: dict) -> dict:
 
 
 @contextlib.contextmanager
-def temporary_config(tmp: dict) -> None:
+def temporary_config(tmp: dict) -> Generator[None, None, None]:
 
     global CONFIG_PATCH
 
@@ -719,7 +724,6 @@ def temporary_config(tmp: dict) -> None:
         return merge_configs(config, tmp)
 
     with CONFIG_LOCK:
-
         CONFIG_PATCH = patch_config
 
         try:

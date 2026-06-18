@@ -21,7 +21,7 @@ to use a different S3 compatible service::
 
 Alternatively, the `endpoint_url`, and keys can be set in one of
 the `~/.config/anemoi/settings.toml`
-or `~/.config/anemoi/settings-secrets.toml` files.
+or `~/.config/anemoi/settings.secrets.toml` files.
 """
 
 import fnmatch
@@ -29,30 +29,27 @@ import logging
 import os
 import threading
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from typing import Any
 
-import obstore
 import tqdm
 
-from ..config import load_config
 from ..humanize import bytes_to_human
+from ..settings import SETTINGS
+from ..settings_schema.object_storage import ObjectStorageBucketConfig
 from . import BaseDownload
 from . import BaseUpload
 from . import transfer
 
 LOG = logging.getLogger(__name__)
-SECRETS = ["aws_access_key_id", "aws_secret_access_key", "access_key_id", "secret_access_key"]
-
-ORIGINAL_PID = os.getpid()
-
-MIGRATE = {
-    "aws_access_key_id": "access_key_id",
-    "aws_secret_access_key": "secret_access_key",
-}
 
 CACHE = {}
 LOCK = threading.Lock()
+
+# Avoids creating a new connection pool on every S3 read during training.
+CLIENT_CACHE = {}
+CLIENT_LOCK = threading.Lock()
 
 
 class S3Object:
@@ -96,35 +93,7 @@ def _s3_object(url_or_object: str | S3Object) -> S3Object:
     raise TypeError(f"Invalid type for S3 object: {type(url_or_object)}")
 
 
-def _hide_secrets(options: dict | list) -> dict | list:
-    """Hide secret values in options.
-
-    Parameters
-    ----------
-    options : dict or list
-        Options possibly containing secrets.
-
-    Returns
-    -------
-    dict or list
-        Options with secrets hidden.
-    """
-
-    def __(k, v):
-        if k in SECRETS:
-            return "***"
-        return v
-
-    if isinstance(options, dict):
-        return {k: __(k, v) for k, v in options.items()}
-
-    if isinstance(options, list):
-        return [_hide_secrets(o) for o in options]
-
-    return options
-
-
-def _s3_options(obj: str | S3Object) -> dict:
+def _s3_options(obj: str | S3Object) -> ObjectStorageBucketConfig:
     """Get S3 options for a given object.
 
     Parameters
@@ -134,7 +103,7 @@ def _s3_options(obj: str | S3Object) -> dict:
 
     Returns
     -------
-    dict
+    ObjectStorageBucketConfig
         S3 connection options.
     """
 
@@ -144,70 +113,53 @@ def _s3_options(obj: str | S3Object) -> dict:
         if obj.dirname in CACHE:
             return CACHE[obj.dirname]
 
-    options = {}
-
     # We may be accessing a different S3 compatible service
-    # Use anemoi.config to get the configuration
+    # Use anemoi.utils.settings to get the configuration
 
-    config = load_config(secrets=SECRETS)
+    object_storage_cfg = SETTINGS.object_storage
+    keys_of_buckets = [
+        k
+        for k in object_storage_cfg.model_dump(by_alias=False).keys()
+        if k not in ("type", "endpoint_url", "access_key_id", "secret_access_key")
+    ]
 
-    cfg = config.get("object-storage", {})
-    candidate = None
-    for k, v in cfg.items():
-        if isinstance(v, (str, int, float, bool)):
-            options[k] = v
+    candidate: ObjectStorageBucketConfig | None = None
+    for key in keys_of_buckets:
+        if fnmatch.fnmatch(obj.bucket, key):
+            if candidate is not None:
+                raise ValueError(f"Multiple object storage configurations match {obj.bucket}: {candidate} and {key}")
+            candidate = getattr(object_storage_cfg, key)
 
-        if isinstance(v, dict):
-            if fnmatch.fnmatch(obj.bucket, k):
-                if candidate is not None:
-                    raise ValueError(f"Multiple object storage configurations match {obj.bucket}: {candidate} and {k}")
-                candidate = k
+    if object_storage_cfg.type != "s3":
+        raise ValueError(f"Unsupported object storage type {object_storage_cfg.type}")
 
-    if candidate is not None:
-        for k, v in cfg.get(candidate, {}).items():
-            if isinstance(v, (str, int, float, bool)):
-                options[k] = v
+    def _drop_empty(d: dict[str, Any]) -> dict[str, Any]:
+        return {k: v for k, v in d.items() if v is not None}
 
-    type = options.pop("type", "s3")
-    if type != "s3":
-        raise ValueError(f"Unsupported object storage type {type}")
+    if candidate:
+        config = _drop_empty(candidate.model_dump(by_alias=False, exclude_none=True))
+    else:
+        LOG.debug(f"No specific object storage configuration found for bucket {obj.bucket}, using global settings")
+        config = _drop_empty(
+            {
+                k: v
+                for k, v in object_storage_cfg.model_dump(by_alias=False, exclude_none=True).items()
+                if k in ("endpoint_url", "access_key_id", "secret_access_key")
+            }
+        )
 
-    for k, v in MIGRATE.items():
-        if k in options:
-            LOG.warning(f"Option '{k}' is deprecated, use '{v}' instead")
-            options[v] = options.pop(k)
+    resolved_object_config = ObjectStorageBucketConfig(**config)
 
-    for key in ("endpoint_url", "access_key_id", "secret_access_key"):
-        """
-        This allows one of the bucket entry to reset these keys from the global settings
-
-        [object-storage]
-        endpoint_url = "https://..."
-        access_key_id = "...."
-        secret_access_key = "...."
-
-        [object-storage.some-public-bucket-on-aws]
-        endpoint_url = ""             <--- resets to 'undefined'
-        access_key_id = ""
-        secret_access_key = ""
-        region = "eu-north-1"
-        skip_signature=true
-        """
-
-        if options.get(key) in (None, ""):
-            print(f"Removing {key} from S3 options for {obj.dirname}")
-            options.pop(key, None)
-
-    LOG.info(f"Using S3 options: {_hide_secrets(options)}")
+    LOG.info(f"Using S3 options: {resolved_object_config}")
 
     with LOCK:
-        CACHE[obj.dirname] = options
+        CACHE[obj.dirname] = resolved_object_config
 
-    return options
+    return resolved_object_config
 
 
 def s3_client(obj: str | S3Object) -> Any:
-    """Create an S3 client for the given URL.
+    """Return a cached S3 client for the given URL.
 
     Parameters
     ----------
@@ -222,14 +174,21 @@ def s3_client(obj: str | S3Object) -> Any:
 
     import obstore
 
+    def resolve_secrets(options: ObjectStorageBucketConfig) -> dict[str, Any]:
+        resolved_keys = options.model_dump(by_alias=False, exclude_none=True)
+        if options.access_key_id is not None:
+            resolved_keys["access_key_id"] = options.access_key_id.get_secret_value()
+        if options.secret_access_key is not None:
+            resolved_keys["secret_access_key"] = options.secret_access_key.get_secret_value()
+        return resolved_keys
+
     obj = _s3_object(obj)
-    options = _s3_options(obj)
-    LOG.debug(f"Using S3 options: {_hide_secrets(options)}")
-    LOG.info(f"Creating S3 client for {obj.dirname} with options: {_hide_secrets(options)}")
-    with LOCK:
-        o = obstore.store.from_url(obj.dirname, **options)
-    LOG.info(f"S3 client created for {obj.dirname}")
-    return o
+    with CLIENT_LOCK:
+        if obj.dirname not in CLIENT_CACHE:
+            options = _s3_options(obj)
+            LOG.debug(f"Using S3 options: {options}")
+            CLIENT_CACHE[obj.dirname] = obstore.store.from_url(obj.dirname, **resolve_secrets(options))
+        return CLIENT_CACHE[obj.dirname]
 
 
 def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosity: int) -> int:
@@ -349,26 +308,28 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
     if os.path.exists(target) and not overwrite and not resume:
         raise ValueError(f"{target} already exists, use 'overwrite' to replace or 'resume' to skip")
 
-    with tqdm.tqdm(
-        desc=obj.key,
-        total=size,
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-        leave=verbosity >= 2,
-        delay=0 if verbosity > 0 else 10,
-    ) as pbar:
-        chunk_size = 1024 * 1024 * 10
-        total = size
-        with closing(obstore.open_reader(s3, obj.key, buffer_size=chunk_size)) as f:
-            with open(target, "wb") as g:
-                while total > 0:
-                    chunk = f.read(min(chunk_size, total))
-                    g.write(chunk)
-                    pbar.update(len(chunk))
-                    total -= len(chunk)
+    last_exc = None
+    for attempt in range(3):
+        try:
+            with tqdm.tqdm(
+                desc=obj.key,
+                total=size,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                leave=verbosity >= 2,
+                delay=0 if verbosity > 0 else 10,
+            ) as pbar:
+                data = obstore.get(s3, obj.key).bytes()
+                with open(target, "wb") as g:
+                    g.write(data)
+                pbar.update(size)
+            return size
+        except Exception as e:
+            last_exc = e
+            LOG.warning(f"Download attempt {attempt + 1}/3 failed for {source}: {e}")
 
-    return size
+    raise IOError(f"Failed to download {source} after 3 attempts: {last_exc}")
 
 
 def _list_objects(target: str, batch: bool = False) -> Iterable[list[dict]] | Iterable[dict]:
@@ -394,7 +355,8 @@ def _list_objects(target: str, batch: bool = False) -> Iterable[list[dict]] | It
 
     s3 = s3_client(obj)
 
-    for files in obstore.list(s3, obj.key + "/", chunk_size=1024):
+    prefix = obj.key.rstrip("/") + "/"
+    for files in obstore.list(s3, prefix, chunk_size=1024):
         if batch:
             yield files
         else:
@@ -513,8 +475,8 @@ def object_exists(target: str) -> bool:
         return False
 
 
-def get_object(target: str) -> bool:
-    """Check if an S3 object exists.
+def get_object(target: str) -> bytes:
+    """Fetch an S3 object and return its contents as bytes.
 
     Parameters
     ----------
@@ -523,22 +485,43 @@ def get_object(target: str) -> bool:
 
     Returns
     -------
-    bool
-        True if object exists, False otherwise.
+    bytes
+        Object contents.
     """
     obj = _s3_object(target)
     s3 = s3_client(obj)
 
-    LOG.info(
-        f"Getting object {target} from S3 {obj.key} pid={os.getpid()} {ORIGINAL_PID=} {'✅' if os.getpid() == ORIGINAL_PID else '⚠️'} {'✅' if threading.current_thread() == threading.main_thread() else '⚠️'}"
-    )
+    return s3.get(obj.key).bytes()
 
-    with LOCK:
-        LOG.info("Got lock for S3 client, fetching object")
-        data = s3.get(obj.key).bytes()
 
-    LOG.info(f"Got object {target} from S3 {obj.key} (size={len(data)})")
-    return data
+def get_objects_parallel(targets: list[str]) -> list[bytes]:
+    """Fetch multiple S3 objects concurrently and return their contents.
+
+    Parameters
+    ----------
+    targets : list[str]
+        List of S3 URLs to fetch in parallel.
+
+    Returns
+    -------
+    list[bytes]
+        Object contents in the same order as targets.
+    """
+
+    def _fetch(target: str) -> bytes:
+        obj = _s3_object(target)
+        s3 = s3_client(obj)
+        last_exc = None
+        for attempt in range(3):
+            try:
+                return s3.get(obj.key).bytes()
+            except Exception as e:
+                last_exc = e
+                LOG.warning(f"Fetch attempt {attempt + 1}/3 failed for {target}: {e}")
+        raise IOError(f"Failed to fetch {target} after 3 attempts: {last_exc}")
+
+    with ThreadPoolExecutor(max_workers=len(targets)) as ex:
+        return list(ex.map(_fetch, targets))
 
 
 def download(source: str, target: str, *args, **kwargs) -> None:
@@ -769,22 +752,3 @@ class S3Download(BaseDownload):
         """
 
         return download_file(source, target, overwrite, resume, verbosity)
-
-
-def prepare_for_fork():
-    LOG.info(f"🚀 [{os.getpid()}] About to fork: Cleaning up resources...")
-
-
-def parent_after_fork():
-    LOG.info(f"🚀 [{os.getpid()}] Parent: Fork complete. Continuing business as usual.")
-
-
-def child_after_fork():
-    import importlib
-
-    LOG.info(f"🚀 [{os.getpid()}] Child: I was just born! Resetting connections: thread={threading.current_thread()}.")
-    importlib.reload(obstore)
-
-
-# Register the hooks
-os.register_at_fork(before=prepare_for_fork, after_in_parent=parent_after_fork, after_in_child=child_after_fork)

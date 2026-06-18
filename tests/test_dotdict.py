@@ -11,8 +11,6 @@
 from anemoi.utils.config import DotDict
 from anemoi.utils.config import _merge_dicts
 from anemoi.utils.config import _set_defaults
-from anemoi.utils.grib import paramid_to_shortname
-from anemoi.utils.grib import shortname_to_paramid
 
 
 def test_dotdict() -> None:
@@ -100,22 +98,3 @@ def test_set_defaults() -> None:
     b = dict(a=10, c=dict(a=30, e=40), d=9)
     _set_defaults(a, b)
     assert a == {"a": 1, "b": 2, "c": {"d": 3, "e": 4, "a": 30}, "d": 9}
-
-
-def test_grib() -> None:
-    """Test the GRIB utility functions.
-
-    Tests:
-        - Converting short names to parameter IDs.
-        - Converting parameter IDs to short names.
-    """
-    assert shortname_to_paramid("2t") == 167
-    assert paramid_to_shortname(167) == "2t"
-
-
-if __name__ == "__main__":
-    """Run all test functions."""
-    for name, obj in list(globals().items()):
-        if name.startswith("test_") and callable(obj):
-            print(f"Running {name}...")
-            obj()

@@ -171,7 +171,7 @@ class Registry(Generic[T]):
 
         if name in self.__registered:
             warnings.warn(f"Factory '{name}' is already registered in {self.package}")
-            warnings.warn(f"Existing: {self._sources[name]}")
+            warnings.warn(f"Existing: {self._sources.get(name, '<unknown>')}")
             warnings.warn(f"New: {source}")
 
         for alias in aliases:

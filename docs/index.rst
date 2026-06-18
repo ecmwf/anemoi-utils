@@ -6,10 +6,6 @@
  Welcome to `anemoi-utils` documentation!
 ##########################################
 
-.. warning::
-
-   This documentation is work in progress.
-
 *Anemoi* is a framework for developing machine learning weather
 forecasting models. It comprises of components or packages for preparing
 training datasets, conducting ML model training and a registry for
@@ -19,40 +15,92 @@ framework it seeks to handle many of the complexities that
 meteorological organisations will share, allowing them to easily train
 models from existing recipes but with their own data.
 
-This package provides a series of utility functions for used by the rest
-of the *Anemoi* packages.
+``anemoi-utils`` is the shared utility layer that the rest of the Anemoi
+packages depend on. It provides:
 
--  :doc:`installing`
+Configuration & settings
+   A Pydantic-settings based configuration system that loads from
+   TOML/YAML files and environment variables, with built-in secret
+   management. See :doc:`modules/settings` for the full schema
+   reference and environment variable naming conventions.
+
+Checkpoint I/O
+   Read and write extra metadata inside PyTorch checkpoint files
+   (zip archives). See :doc:`modules/checkpoints`.
+
+Date & frequency handling
+   Normalise frequencies, generate date ranges, and parse date
+   specifications used across Anemoi workflows. See
+   :doc:`modules/dates`.
+
+GRIB parameter database
+   Look up GRIB parameter metadata from the ECMWF parameter database,
+   with local caching support. See :doc:`modules/grib`.
+
+Human-readable formatting
+   Convert bytes, seconds, and other quantities into human-friendly
+   strings. See :doc:`modules/humanize`.
+
+Provenance tracking
+   Collect environment information (Python version, installed packages,
+   git state) for experiment reproducibility. See
+   :doc:`modules/provenance`.
+
+S3 / object storage
+   Helpers for interacting with S3-compatible object storage, including
+   per-bucket credential overrides. See :doc:`modules/s3`.
+
+Testing utilities
+   Shared test helpers and fixtures used across Anemoi packages. See
+   :doc:`modules/testing`.
+
+Text & table formatting
+   Terminal-friendly text utilities including table rendering, dotted
+   lines, and tree display. See :doc:`modules/text`.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Getting Started
    :hidden:
 
    installing
 
-*****
- API
-*****
+.. toctree::
+   :maxdepth: 1
+   :caption: Configuration
+   :hidden:
+
+   modules/settings
 
 .. toctree::
    :maxdepth: 1
-   :glob:
+   :caption: Modules
+   :hidden:
 
-   _api/*
+   modules/checkpoints
+   modules/dates
+   modules/grib
+   modules/humanize
+   modules/provenance
+   modules/s3
+   modules/testing
+   modules/text
 
-***********************
- Other Anemoi packages
-***********************
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference
+   :hidden:
 
--  :ref:`anemoi-utils <anemoi-utils:index-page>`
--  :ref:`anemoi-transform <anemoi-transform:index-page>`
--  :ref:`anemoi-datasets <anemoi-datasets:index-page>`
--  :ref:`anemoi-models <anemoi-models:index-page>`
--  :ref:`anemoi-graphs <anemoi-graphs:index-page>`
--  :ref:`anemoi-training <anemoi-training:index-page>`
--  :ref:`anemoi-inference <anemoi-inference:index-page>`
--  :ref:`anemoi-registry <anemoi-registry:index-page>`
--  :ref:`anemoi-plugins <anemoi-plugins:index-page>`
+   _api/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Links
+   :hidden:
+
+   Anemoi <https://anemoi.readthedocs.io>
+   Source code <https://github.com/ecmwf/anemoi-utils>
+   Issues <https://github.com/ecmwf/anemoi-utils/issues>
 
 *********
  License

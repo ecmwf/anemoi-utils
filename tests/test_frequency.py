@@ -22,6 +22,7 @@ def test_frequency_to_string() -> None:
     assert frequency_to_string(datetime.timedelta(hours=30)) == "30h"
     assert frequency_to_string(datetime.timedelta(minutes=10)) == "10m"
     assert frequency_to_string(datetime.timedelta(minutes=90)) == "90m"
+    assert frequency_to_string(datetime.timedelta(0)) == "0h"
 
 
 def test_frequency_to_timedelta() -> None:

@@ -12,11 +12,40 @@
 #
 import datetime
 import os
+import pathlib
 import sys
 
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
 
 sys.path.insert(0, os.path.join(os.path.abspath(".."), "src"))
+
+# -- Auto-generate API stubs with sphinx-apidoc ------------------------------
+# Run sphinx-apidoc at config time so the _api/ directory is always populated,
+# regardless of whether a pre-build script ran.
+
+_docs_dir = pathlib.Path(__file__).parent
+_src_dir = _docs_dir.parent / "src"
+_api_dir = _docs_dir / "_api"
+_anemoi_pkg = _src_dir / "anemoi"
+
+# Ensure the namespace package has an __init__.py for apidoc to traverse
+_ns_init = _anemoi_pkg / "__init__.py"
+_created_ns_init = False
+if not _ns_init.exists():
+    _ns_init.touch()
+    _created_ns_init = True
+
+try:
+    from sphinx.ext.apidoc import main as apidoc_main
+
+    apidoc_main(["-M", "-f", "-o", str(_api_dir), str(_anemoi_pkg)])
+finally:
+    if _created_ns_init:
+        _ns_init.unlink(missing_ok=True)
+
+# Write an index page that wraps the generated module tree under a proper
+# "API" heading so it appears as a single collapsible sidebar entry.
+(_api_dir / "index.rst").write_text("*****\n API\n*****\n\n.. toctree::\n   :maxdepth: 4\n\n   anemoi\n")
 
 source_suffix = ".rst"
 master_doc = "index"
@@ -60,6 +89,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinxcontrib.autodoc_pydantic",
     "sphinxarg.ext",
 ]
 
@@ -69,7 +99,13 @@ extensions = [
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "'**.ipynb_checkpoints'"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "'**.ipynb_checkpoints'",
+    "_api/modules.rst",
+]
 
 intersphinx_mapping = {
     "python": ("https://python.readthedocs.io/en/latest", None),
@@ -128,6 +164,28 @@ html_css_files = ["style.css"]
 todo_include_todos = not read_the_docs_build
 
 autodoc_member_order = "bysource"  # Keep file order
+
+# -- autodoc-pydantic configuration ------------------------------------------
+# Show field docstrings, defaults, aliases, and env variable names
+autodoc_pydantic_model_show_json = False
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_field_summary = True
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_show_validator_members = False
+autodoc_pydantic_model_member_order = "bysource"
+autodoc_pydantic_model_undoc_members = False
+
+autodoc_pydantic_settings_show_json = False
+autodoc_pydantic_settings_show_config_summary = False
+autodoc_pydantic_settings_show_field_summary = True
+autodoc_pydantic_settings_show_validator_summary = False
+autodoc_pydantic_settings_show_validator_members = False
+autodoc_pydantic_settings_member_order = "bysource"
+autodoc_pydantic_settings_undoc_members = False
+
+autodoc_pydantic_field_show_alias = True
+autodoc_pydantic_field_list_validators = False
+autodoc_pydantic_field_show_default = True
 
 html_context = {
     "display_github": True,
