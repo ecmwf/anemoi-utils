@@ -7,12 +7,16 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+from typing import Any
+
 from pydantic import BaseModel
 from pydantic import ConfigDict
 
 
 class AnemoiBaseSettingsSchema(BaseModel):
     """Base schema for Anemoi settings."""
+
+    __pydantic_extra__: dict[str, Any]
 
     model_config = ConfigDict(
         extra="allow",
