@@ -92,6 +92,9 @@ def _ensure_secure_file(path: Path) -> None:
 
 
 _WILDCARD = "*"
+# Top-level boolean key that can be set in the secrets file to opt out of
+# dropping non-secret keys found there. Accepts hyphen or underscore spelling.
+_KEEP_EXTRAS_KEYS = ("keep-extra-settings", "keep_extra_settings")
 # A SecretTree is a nested dict where leaves are True (SecretStr) and inner
 # nodes are sub-trees keyed by underscore-normalised field name. The special
 # key "*" represents typed extras (`__pydantic_extra__: dict[str, Model]`).
@@ -159,6 +162,22 @@ def _flatten_tree(d: DataTree, prefix: str = "") -> list[str]:
     return out
 
 
+def _deep_merge(base: DataTree, extra: DataTree) -> DataTree:
+    """Recursively merge *extra* into *base*, returning a new dict.
+
+    Values from *base* take precedence over *extra* on leaf conflicts; nested
+    dicts are merged key by key. Used to fold non-secret keys back into the
+    secret payload without clobbering already-resolved secret leaves.
+    """
+    out: DataTree = dict(base)
+    for k, v in extra.items():
+        if k in out and isinstance(out[k], dict) and isinstance(v, dict):
+            out[k] = _deep_merge(out[k], v)
+        elif k not in out:
+            out[k] = v
+    return out
+
+
 def _split_secrets(data: DataTree, tree: SecretTree) -> tuple[DataTree, DataTree]:
     """Partition *data* into (secret_part, non_secret_part) using *tree*."""
     secret: DataTree = {}
@@ -218,14 +237,23 @@ class AnemoiSecretsSource(PydanticBaseSettingsSource):
         data: dict[str, Any] = {**self._yaml_source(), **self._toml_source()}
         if not data:
             return {}
+        keep_extras = False
+        for key in _KEEP_EXTRAS_KEYS:
+            if key in data:
+                keep_extras = bool(data.pop(key))
         secret, rest = _split_secrets(data, self._secret_tree)
+        result = convert_to_secret(secret) if secret else {}
         if rest:
-            logger.warning(
-                "Ignoring non-secret keys in secrets file(s): %s. Move these to %s.",
-                sorted(_flatten_tree(rest)),
-                self._toml_path.with_name(self._toml_path.name.replace(".secrets", "")),
-            )
-        return convert_to_secret(secret) if secret else {}
+            if keep_extras:
+                result = _deep_merge(result, rest)
+            else:
+                logger.warning(
+                    "Ignoring non-secret keys in secrets file(s): %s. Move these to %s, "
+                    "or set `keep_extra_settings = true` in the secrets file to keep them.",
+                    sorted(_flatten_tree(rest)),
+                    self._toml_path.with_name(self._toml_path.name.replace(".secrets", "")),
+                )
+        return result
 
 
 class AnemoiNonSecretsSource(PydanticBaseSettingsSource):

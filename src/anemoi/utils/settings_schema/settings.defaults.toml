@@ -15,6 +15,13 @@
 #
 #     ~/.config/anemoi/settings.secrets.toml     (chmod 600)
 #
+# By default, only secret-typed keys are read from the secrets file; any
+# non-secret keys found there are ignored (with a warning) to encourage
+# separation of concerns. To keep them instead, add this top-level line to
+# the secrets file:
+#
+#     keep_extra_settings = true
+#
 # Environment variable overrides
 # --------------------------------
 # Settings use pydantic-settings with the prefix ANEMOI_SETTINGS_.
