@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.9](https://github.com/ecmwf/anemoi-utils/compare/0.5.8...0.5.9) (2026-06-23)
+
+
+### Features
+
+* Option to allow extra settings in anemoi config ([#319](https://github.com/ecmwf/anemoi-utils/issues/319)) ([070d3c7](https://github.com/ecmwf/anemoi-utils/commit/070d3c7efda593afa37286bfa403044d6863a727))
+
 ## [0.5.8](https://github.com/ecmwf/anemoi-utils/compare/0.5.7...0.5.8) (2026-06-18)
 
 
