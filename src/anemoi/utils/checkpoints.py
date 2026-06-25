@@ -16,10 +16,12 @@ import datetime
 import json
 import logging
 import os
+import re
 import threading
 import time
 import zipfile
 from collections.abc import Callable
+from collections.abc import Collection
 from tempfile import TemporaryDirectory
 from typing import Literal
 from typing import overload
@@ -434,11 +436,11 @@ def _todir(path, zip_file) -> str:
     return list(topdirs)[0]
 
 
-def _add__remove_embedded_files(
+def _add_remove_embedded_files(
     path: str,
     *,
-    files_to_add: dict[str, str],
-    files_to_remove: set[str],
+    files_to_add: Collection[str],
+    files_to_remove: Collection[str],
     overwrite: bool = False,
 ) -> None:
     """Add an embedded file to a checkpoint file."""
@@ -457,9 +459,32 @@ def _add__remove_embedded_files(
             # Calculate total files for progress bar
             total_files = len(file_list) + len(files_to_add)
 
-            embedded_name_to_add = {f"{prefix}{name}" for name in files_to_add.keys()}
+            for name in files_to_add:
+                if name.startswith("/") or name.startswith("\\"):
+                    raise ValueError(f"Invalid file name: {name}")
+                bits = name.split("/")
+                for bit in bits:
+                    if bit in ("..", ".", ""):
+                        raise ValueError(f"Invalid file name: {name}")
+                    if not re.match(r"^[\w\-.]+$", bit):
+                        raise ValueError(f"Invalid file name: {name}")
+
+                # File must have an extenions
+                _, ext = os.path.splitext(name)
+                if ext == "":
+                    raise ValueError(f"File must have an extension: {name}")
+
+            embedded_name_to_add = {f"{prefix}{name}" for name in files_to_add}
 
             embedded_name_to_remove = {f"{prefix}{name}" for name in files_to_remove}
+
+            if not overwrite:
+                already_present = set(file_list) & embedded_name_to_add
+                if already_present:
+                    raise ValueError(
+                        f"File(s) {sorted(already_present)} already exist in the checkpoint. "
+                        "Re-run with overwrite=True to replace them."
+                    )
 
             with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
                 with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
@@ -472,10 +497,8 @@ def _add__remove_embedded_files(
                             continue
 
                         if file_path in embedded_name_to_add:
-                            if not overwrite:
-                                raise ValueError(
-                                    f"File {file_path} already exists in the checkpoint. Re-run with overwrite=True to replace it."
-                                )
+                            # Already checked above; here overwrite is True, so skip
+                            # the old version and let the new one be written below.
                             continue
 
                         with source_zip.open(file_path) as source_file:
@@ -489,7 +512,10 @@ def _add__remove_embedded_files(
                         embedded_path = f"{prefix}{name}"
                         with open(file_path, "rb") as f:
                             data = f.read()
-                            new_zip.writestr(embedded_path, data)
+                        # Preserve the modification time of the original file
+                        mtime = time.localtime(os.path.getmtime(file_path))
+                        info = zipfile.ZipInfo(embedded_path, date_time=mtime[:6])
+                        new_zip.writestr(info, data)
                         pbar.update(1)
 
         os.rename(new_path, path)
@@ -501,7 +527,7 @@ def _add__remove_embedded_files(
 
 
 def add_embedded_files(path: str, files_to_add: dict[str, str], overwrite: bool = False) -> None:
-    _add__remove_embedded_files(
+    _add_remove_embedded_files(
         path,
         files_to_add=files_to_add,
         files_to_remove=set(),
@@ -509,8 +535,8 @@ def add_embedded_files(path: str, files_to_add: dict[str, str], overwrite: bool 
     )
 
 
-def remove_embedded_files(path: str, files_to_remove: set[str] | list[str]) -> None:
-    _add__remove_embedded_files(
+def remove_embedded_files(path: str, files_to_remove: Collection[str]) -> None:
+    _add_remove_embedded_files(
         path,
         files_to_add=dict(),
         files_to_remove=set(files_to_remove),
@@ -556,6 +582,12 @@ def extract_embedded_files(
 
         for name in files_to_extract:
             if name not in result:
+                LOG.error(f"File {name} not found in the checkpoint.")
+                LOG.error("Embedded files are:")
+                for name, *_ in list_embedded_files(path):
+                    LOG.error("%s", name)
+                LOG.error("----")
+
                 raise ValueError(f"File {name} not found in the checkpoint.")
 
         return result
@@ -566,12 +598,12 @@ LOCK = threading.Lock()
 TMPDIR = None
 
 
-def checkpoint_file(path: str, name: str) -> None:
+def extract_from_checkpoint(path: str, name: str) -> None:
     global TMPDIR
     scheme = "checkpoint://"
 
     if not name.startswith(scheme):
-        return name
+        raise ValueError(f"Invalid checkpoint file name: {name}, must start with {scheme}")
 
     name = name[len(scheme) :]
 
