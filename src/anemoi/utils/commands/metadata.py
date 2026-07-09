@@ -102,6 +102,12 @@ class Metadata(Command):
             help=("Extract the metadata from the checkpoint so it can be added to the test suite."),
         )
 
+        group.add_argument(
+            "--unpickle",
+            action="store_true",
+            help=("Unpickle the model."),
+        )
+
         command_parser.add_argument(
             "--name",
             default=DEFAULT_NAME,
@@ -110,7 +116,7 @@ class Metadata(Command):
 
         command_parser.add_argument(
             "--input",
-            help="The output file name to be used by the ``--load`` option.",
+            help="The input file name to be used by the ``--load`` option.",
         )
 
         command_parser.add_argument(
@@ -176,6 +182,9 @@ class Metadata(Command):
 
         if args.supporting_arrays:
             return self.supporting_arrays(args)
+
+        if args.unpickle:
+            return self.unpickle(args)
 
     def edit(self, args: Namespace) -> None:
         """Edit the metadata in place using the specified editor.
@@ -387,6 +396,22 @@ class Metadata(Command):
 
         for name, array in supporting_arrays.items():
             print(f"{name}: shape={array.shape} dtype={array.dtype}")
+
+    def unpickle(self, args: Namespace) -> None:
+        """Unpickle the model from the checkpoint.
+
+        Parameters
+        ----------
+        args : Namespace
+            The arguments passed to the command.
+        """
+        from anemoi.utils.checkpoints import unpickle_model
+
+        model = unpickle_model(args.path)
+        if args.yaml:
+            print(yaml.dump(model, indent=2))
+        else:
+            print(json.dumps(model, indent=2))
 
 
 command = Metadata
