@@ -393,7 +393,7 @@ def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
     return _edit_metadata(path, name, callback)
 
 
-def unpickle_model(path):
+def unpickle_model(path, **kwargs) -> dict:
     import io
 
     from peekle import Peekle
@@ -407,4 +407,4 @@ def unpickle_model(path):
         data = zipf.read(data_files[0])
 
     parsed = Peekle.parse(io.BytesIO(data))
-    return parsed.to_json(function_calls=True, shorten_strings=True, bytes_count=True)
+    return parsed.to_json(**kwargs)
