@@ -77,6 +77,36 @@ def test_sanitise_paths() -> None:
     assert sanitise("/home/johndoe/.ssh/id_rsa", level=3) == "hidden"
 
 
+def test_sanitise_dict_secret_keys() -> None:
+    """Test the sanitise function for hiding secret values in nested dicts."""
+    # Secret keys should have their values masked
+    assert sanitise({"sas_token": "sv=2021-06-08&ss=b"}) == {"sas_token": "***"}
+    assert sanitise({"access_key": "AKIAIOSFODNN7EXAMPLE"}) == {"access_key": "***"}
+    assert sanitise({"secret_key": "wJalrXUtnFEMI"}) == {"secret_key": "***"}
+    assert sanitise({"account_key": "abc123"}) == {"account_key": "***"}
+    assert sanitise({"password": "hunter2"}) == {"password": "***"}
+    assert sanitise({"client_secret": "cs-123"}) == {"client_secret": "***"}
+    assert sanitise({"api_token": "at-456"}) == {"api_token": "***"}
+
+    # Non-secret keys should be left alone
+    assert sanitise({"remote_protocol": "s3"}) == {"remote_protocol": "s3"}
+    assert sanitise({"token_expiry": 3600}) == {"token_expiry": 3600}
+    assert sanitise({"anon": True}) == {"anon": True}
+
+    # Nested dicts with mixed keys
+    assert sanitise({
+        "remote_options": {
+            "anon": False,
+            "sas_token": "my-secret",
+        }
+    }) == {
+        "remote_options": {
+            "anon": False,
+            "sas_token": "***",
+        }
+    }
+
+
 if __name__ == "__main__":
     for name, obj in list(globals().items()):
         if name.startswith("test_") and callable(obj):

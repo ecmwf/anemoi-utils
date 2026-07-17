@@ -22,6 +22,34 @@ from urllib.parse import urlunparse
 RE1 = re.compile(r"{([^}]*)}")  # {*}
 RE2 = re.compile(r"\(([^}]*)\)")  # (*)
 
+# Pattern matching keys that typically hold sensitive values.
+# Used for both URL query/param keys and dictionary keys.
+# Matched case-insensitively.
+
+# Words considered sensitive in URL query parameters
+_SECRET_URL_WORDS = (
+    r"pass|password|token|user|key|pwd|"
+    r"_key|_token|apikey|api_key|api_token|_api_token|_api_key|"
+    r"username|login|auth|auth_token|auth_key"
+)
+
+# Words considered sensitive in dictionary keys (secrets only, not identifiers).
+# Covers common fsspec backends: S3 (key, secret, token), Azure (account_key,
+# sas_token, client_secret, connection_string), GCS (token), SFTP/FTP/SMB (password).
+_SECRET_DICT_WORDS = (
+    r"password|passwd|pwd|"
+    r"token|secret|credential|"
+    r"access_key|secret_key|account_key|sas_token|connection_string|"
+    r"api_key|api_token|auth_key|auth_token|"
+    r"private_key|client_secret|refresh_token"
+)
+
+# For URL query params: exact match of the param name
+SECRET_PARAM_RE = re.compile(r"(?i)^(" + _SECRET_URL_WORDS + r")$")
+
+# For dict keys: the secret word must be at the end, preceded by start or underscore
+SECRET_KEY_RE = re.compile(r"(?i)(?:^|_)(" + _SECRET_DICT_WORDS + r")$")
+
 
 def sanitise(obj: Any, level=1) -> Any:
     """Sanitise an object by replacing all full paths with shortened versions and URL credentials with '***'.
@@ -44,18 +72,25 @@ def sanitise(obj: Any, level=1) -> Any:
     assert level in (1, 2, 3), "level must be 1, 2 or 3"
 
     if isinstance(obj, dict):
-        return {sanitise(k): sanitise(v) for k, v in obj.items()}
+        return {sanitise(k, level): _sanitise_dict_value(k, v, level) for k, v in obj.items()}
 
     if isinstance(obj, list):
-        return [sanitise(v) for v in obj]
+        return [sanitise(v, level) for v in obj]
 
     if isinstance(obj, tuple):
-        return tuple(sanitise(v) for v in obj)
+        return tuple(sanitise(v, level) for v in obj)
 
     if isinstance(obj, str):
         return _sanitise_string(obj, level)
 
     return obj
+
+
+def _sanitise_dict_value(key: Any, value: Any, level: int) -> Any:
+    """If a dict key looks like it holds a secret, mask the value."""
+    if isinstance(key, str) and SECRET_KEY_RE.search(key):
+        return "***"
+    return sanitise(value, level)
 
 
 def _sanitise_string(obj: str, level=1) -> str:
@@ -78,27 +113,6 @@ def _sanitise_string(obj: str, level=1) -> str:
 def _sanitise_url(parsed: Any, level=1) -> str:
     """Sanitise a URL by replacing passwords with '***'."""
 
-    LIST = [
-        "pass",
-        "password",
-        "token",
-        "user",
-        "key",
-        "pwd",
-        "_key",
-        "_token",
-        "apikey",
-        "api_key",
-        "api_token",
-        "_api_token",
-        "_api_key",
-        "username",
-        "login",
-        "auth",
-        "auth_token",
-        "auth_key",
-    ]
-
     scheme, netloc, path, params, query, fragment = parsed
 
     if parsed.password or parsed.username:
@@ -108,15 +122,15 @@ def _sanitise_url(parsed: Any, level=1) -> str:
 
     if query:
         qs = parse_qs(query)
-        for k in LIST:
-            if k in qs:
+        for k in list(qs):
+            if SECRET_PARAM_RE.match(k):
                 qs[k] = "hidden"
         query = urlencode(qs, doseq=True)
 
     if params:
         qs = parse_qs(params)
-        for k in LIST:
-            if k in qs:
+        for k in list(qs):
+            if SECRET_PARAM_RE.match(k):
                 qs[k] = "hidden"
         params = urlencode(qs, doseq=True)
 
