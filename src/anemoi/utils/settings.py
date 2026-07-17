@@ -11,6 +11,7 @@
 import logging
 import os
 import shutil
+import threading
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -79,15 +80,16 @@ def copy_default_settings(dest: Path | None = None, *, overwrite: bool = False) 
     return dest
 
 
-def _ensure_secure_file(path: Path) -> None:
-    """Verify a secrets file is not world/group readable (POSIX only)."""
+def _ensure_secure_file(path: Path, secret_keys: list[str] | None = None) -> None:
+    """Verify a file holding secrets is not world/group readable (POSIX only)."""
     if os.name != "posix" or not path.exists():
         return
     mode = path.stat().st_mode & 0o777
     if mode != _SECRETS_FILE_MODE:
+        keys = f" ({', '.join(secret_keys)})" if secret_keys else ""
         raise PermissionError(
-            f"Secrets file {path} must have permissions {oct(_SECRETS_FILE_MODE)}; got {oct(mode)}. "
-            f"Run: chmod 600 {path}"
+            f"Secrets found in {path}{keys}: this file must have permissions "
+            f"{oct(_SECRETS_FILE_MODE)}; got {oct(mode)}. Run: chmod 600 {path}"
         )
 
 
@@ -163,6 +165,18 @@ def _deep_merge(base: DataTree, extra: DataTree) -> DataTree:
     return out
 
 
+def _flatten_tree(d: DataTree, prefix: str = "") -> list[str]:
+    """Flatten a DataTree into a sorted list of dotted path strings."""
+    out: list[str] = []
+    for k, v in d.items():
+        path = f"{prefix}{k}"
+        if isinstance(v, dict):
+            out.extend(_flatten_tree(v, path + "."))
+        else:
+            out.append(path)
+    return sorted(out)
+
+
 def _split_secrets(data: DataTree, tree: SecretTree) -> tuple[DataTree, DataTree]:
     """Partition *data* into (secret_part, non_secret_part) using *tree*."""
     secret: DataTree = {}
@@ -234,7 +248,7 @@ class AnemoiConfigFileSource(PydanticBaseSettingsSource):
         if not secret:
             return rest
         # Any file holding secrets must be locked down.
-        _ensure_secure_file(path)
+        _ensure_secure_file(path, _flatten_tree(secret))
         return _deep_merge(convert_to_secret(secret), rest)
 
     def __call__(self) -> dict[str, Any]:
@@ -337,6 +351,9 @@ SETTINGS = AnemoiSettings()
 Use `AnemoiSettings()` to create separate instances if needed, but these will be runtime specific.
 """
 
+_SETTINGS_LOCK = threading.Lock()
+"""Guards reassignment of the global :data:`SETTINGS` instance."""
+
 try:
     copy_default_settings()  # Ensure the defaults file is present on disk for users to copy from
 except Exception as e:
@@ -349,4 +366,5 @@ def reload_settings():
     Is run in-place on the global SETTINGS instance.
     """
     global SETTINGS
-    SETTINGS = AnemoiSettings()
+    with _SETTINGS_LOCK:
+        SETTINGS = AnemoiSettings()

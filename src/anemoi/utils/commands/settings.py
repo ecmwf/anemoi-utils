@@ -15,8 +15,10 @@ from ..settings import SETTINGS
 from . import Command
 
 
-class Config(Command):
-    """Handle configuration related commands."""
+class Settings(Command):
+    """Handle settings related commands."""
+
+    aliases = ["config"]
 
     def add_arguments(self, command_parser: ArgumentParser) -> None:
         """Add arguments to the command parser.
@@ -26,7 +28,7 @@ class Config(Command):
         command_parser : ArgumentParser
             The argument parser to which the arguments will be added.
         """
-        command_parser.add_argument("--path", help="Print path to config file")
+        command_parser.add_argument("--path", help="Print path to settings file")
 
     def run(self, args: Namespace) -> None:
         """Execute the command with the provided arguments.
@@ -43,4 +45,4 @@ class Config(Command):
             print(SETTINGS.model_dump_json(indent=4))
 
 
-command = Config
+command = Settings
