@@ -28,7 +28,7 @@ class Settings(Command):
         command_parser : ArgumentParser
             The argument parser to which the arguments will be added.
         """
-        command_parser.add_argument("--path", help="Print path to settings file")
+        command_parser.add_argument("--path", action="store_true", help="Print path to settings file")
 
     def run(self, args: Namespace) -> None:
         """Execute the command with the provided arguments.
