@@ -7,39 +7,77 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from typing import Optional
+"""Pydantic models for object storage configuration."""
+
+import warnings
+from typing import Literal
 
 from pydantic import Field
 from pydantic import SecretStr
+from pydantic import field_validator
+from pydantic import model_validator
 
 from .base import AnemoiBaseSettingsSchema
 
+# ObjectStorageBucketConfig fields each backend consumes when building clients
+_COMMON_CLIENT_FIELDS = frozenset({"endpoint_url", "skip_signature"})
+_S3_ONLY_FIELDS = frozenset({"access_key_id", "secret_access_key", "region"})
+_AZURE_ONLY_FIELDS = frozenset({"account_name", "account_key", "sas_token"})
+S3_CLIENT_FIELDS = _COMMON_CLIENT_FIELDS | _S3_ONLY_FIELDS
+AZURE_CLIENT_FIELDS = _COMMON_CLIENT_FIELDS | _AZURE_ONLY_FIELDS
+
+
+def _reject_mixed_backends(instance: AnemoiBaseSettingsSchema) -> None:
+    """Raise if both S3-only and Azure-only fields are set on the same config."""
+    s3_set = {f for f in _S3_ONLY_FIELDS if getattr(instance, f, None) is not None}
+    az_set = {f for f in _AZURE_ONLY_FIELDS if getattr(instance, f, None) is not None}
+    if s3_set and az_set:
+        msg = (
+            f"Mixed S3 and Azure fields on the same object storage config: S3 fields = {sorted(s3_set)}, Azure fields "
+            f"= {sorted(az_set)}. Configure one backend per bucket/account."
+        )
+        raise ValueError(msg)
+
 
 class ObjectStorageBucketConfig(AnemoiBaseSettingsSchema):
-    """Per-bucket overrides for object storage configuration."""
+    """Object storage configuration for S3-compatible and Azure Blob services.
 
-    endpoint_url: Optional[str] = None
-    """Bucket-specific endpoint URL."""
+    At the top level (:class:`ObjectStorageConfig`) these fields act as global defaults. Under a named sub-section (e.g.
+    `[object-storage."my-bucket"]`) they act as per-bucket/account overrides.
+    """
 
-    access_key_id: Optional[SecretStr] = None
-    """Bucket-specific access key ID."""
+    # common fields
+    endpoint_url: str | None = None
+    """Endpoint URL. S3-compatible services, Azurite or sovereign clouds for Azure."""
+    skip_signature: bool | None = False
+    """Skip signature for public storage."""
 
-    secret_access_key: Optional[SecretStr] = None
-    """Bucket-specific secret access key."""
+    # S3 fields
+    access_key_id: SecretStr | None = None
+    """S3 bucket access key ID."""
+    secret_access_key: SecretStr | None = None
+    """S3 bucket secret access key."""
+    region: str | None = None
+    """S3 bucket region."""
 
-    region: Optional[str] = None
-    """Bucket-specific region."""
+    # Azure Blob Storage fields
+    account_name: SecretStr | None = None
+    """Azure Blob Storage account name."""
+    account_key: SecretStr | None = None
+    """Azure Blob Storage account key."""
+    sas_token: SecretStr | None = None
+    """Azure Blob Storage SAS token. May include or omit the leading '?'."""
 
-    skip_signature: Optional[bool] = False
-    """Skip signature for public buckets."""
+    @model_validator(mode="after")
+    def _no_mixed_backends(self) -> "ObjectStorageBucketConfig":
+        _reject_mixed_backends(self)
+        return self
 
-    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get(self, key: str, default: str | None = None) -> str | None:
         """Get a configuration value with fallback to the global setting."""
-        import warnings
-
         warnings.warn(
-            "ObjectStorageBucketConfig.get() is deprecated and will be removed in a future version. "
-            "Access bucket-specific settings directly as attributes, rather than viewing this as a dictionary.",
+            f"{type(self).__name__}.get() is deprecated and will be removed in a future version. Access settings "
+            "directly as attributes, rather than viewing this as a dictionary.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -49,34 +87,25 @@ class ObjectStorageBucketConfig(AnemoiBaseSettingsSchema):
         return default
 
 
-class ObjectStorageConfig(AnemoiBaseSettingsSchema):
-    """Object storage configuration for S3-compatible services."""
+class ObjectStorageConfig(ObjectStorageBucketConfig):
+    """Top-level, global object storage configuration.
 
-    type: str = "s3"
-    """Default storage type (only 's3' is currently supported)."""
+    Inherits all backend fields from :class:`ObjectStorageBucketConfig` used for per-bucket/account overrides under
+    `__pydantic_extra__` (named sub-sections, e.g. `[object-storage."my-bucket"]`).
+    """
 
-    endpoint_url: Optional[str] = None
-    """Global endpoint URL (leave empty for default AWS endpoint)."""
-
-    access_key_id: Optional[SecretStr] = None
-    """Global access key ID."""
-
-    secret_access_key: Optional[SecretStr] = None
-    """Global secret access key."""
+    type: Literal["s3", "az"] | None = None
+    """Deprecated: retained for backwards compatibility. Backends are dispatched by URL scheme (`s3://`, `abfs://`)."""
 
     __pydantic_extra__: dict[str, ObjectStorageBucketConfig] = Field(init=False)  # type: ignore[assignment]
 
-    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
-        """Get a configuration value with fallback to the global setting."""
-        import warnings
-
-        warnings.warn(
-            "ObjectStorageConfig.get() is deprecated and will be removed in a future version. "
-            "Access settings directly as attributes, rather than viewing this as a dictionary.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        value = getattr(self, key)
-        if value is not None and value != "":
-            return value
-        return default
+    @field_validator("type", mode="after")
+    @classmethod
+    def _warn_deprecated_type(cls, value: str | None) -> None:
+        if value is not None:
+            warnings.warn(
+                "The 'type' field on [object-storage] is deprecated and ignored. Backend is chosen by URL scheme "
+                "('s3://' or 'abfs://'). Remove it from your settings file.",
+                DeprecationWarning,
+                stacklevel=2,
+            )

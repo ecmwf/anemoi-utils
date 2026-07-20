@@ -604,12 +604,15 @@ def _find_transfer_class(source: str, target: str) -> type:
     from_s3 = source.startswith("s3://")
     into_s3 = target.startswith("s3://")
 
-    from_local = not from_ssh and not from_s3
-    into_local = not into_ssh and not into_s3
+    from_az = source.startswith("abfs://")
+    into_az = target.startswith("abfs://")
+
+    from_local = not any([from_ssh, from_s3, from_az])
+    into_local = not any([into_ssh, into_s3, into_az])
 
     # check that exactly one source type and one target type is specified
-    assert sum([into_ssh, into_local, into_s3]) == 1, (into_ssh, into_local, into_s3)
-    assert sum([from_ssh, from_local, from_s3]) == 1, (from_ssh, from_local, from_s3)
+    assert sum([into_ssh, into_local, into_s3, into_az]) == 1, (into_ssh, into_local, into_s3, into_az)
+    assert sum([from_ssh, from_local, from_s3, from_az]) == 1, (from_ssh, from_local, from_s3, from_az)
 
     if from_local and into_ssh:  # local -> ssh
         from .ssh import RsyncUpload
@@ -621,10 +624,20 @@ def _find_transfer_class(source: str, target: str) -> type:
 
         return S3Download
 
+    if from_az and into_local:  # local <- Azure
+        from .az import AzureDownload
+
+        return AzureDownload
+
     if from_local and into_s3:  # local -> S3
         from .s3 import S3Upload
 
         return S3Upload
+
+    if from_local and into_az:  # local -> Azure
+        from .az import AzureUpload
+
+        return AzureUpload
 
     raise TransferMethodNotImplementedError(f"Transfer from {source} to {target} is not implemented")
 
@@ -638,16 +651,17 @@ def transfer(
     Parameters
     ----------
     source : str
-        A path to a local file or folder or a URL to a file or a folder on S3.
-        The url should start with 's3://'.
+        A path to a local file or folder or a URL to a file or a folder on S3 or Azure Blob Storage.
+        The url should start with 's3://' or 'abfs://', respectively.
     target : str
-        A path to a local file or folder or a URL to a file or a folder on S3 or a remote folder.
-        The url should start with 's3://' or 'ssh://'.
+        A path to a local file or folder or a URL to a file or a folder on S3, Azure Blob Storage, or a remote folder.
+        The url should start with 's3://', 'abfs://', or 'ssh://', respectively.
     overwrite : bool, optional
         If the data is already on in the target location it will be overwritten.
         By default False
     resume : bool, optional
-        If the data is already on S3 it will not be uploaded, unless the remote file has a different size
+        If the data is already on S3 or Azure Blob Storage it will not be uploaded, unless the remote file has a
+        different size.
         Ignored if the target is an SSH remote folder (ssh://).
         By default False
     verbosity : int, optional
@@ -660,7 +674,8 @@ def transfer(
     temporary_target : bool, optional
         Experimental feature
         If True and if the target location supports it, the data will be uploaded to a temporary location
-        then renamed to the final location. Supported by SSH and local targets, not supported by S3.
+        then renamed to the final location. Supported by SSH and local targets, not supported by S3 or Azure Blob
+        Storage.
         By default False.
 
     Returns

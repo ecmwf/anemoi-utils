@@ -15,7 +15,10 @@ import pytest
 from anemoi.utils.remote import TransferMethodNotImplementedError
 from anemoi.utils.remote import _find_transfer_class
 from anemoi.utils.remote import transfer
-from anemoi.utils.testing import packages_installed
+from anemoi.utils.testing import skip_missing_packages
+from tests.helpers.azurite import AZURITE_CONTAINER
+from tests.helpers.azurite import AZURITE_ENDPOINT
+from tests.helpers.azurite import azurite_reachable
 
 IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("IN_CI_HPC") is not None)
 
@@ -33,6 +36,7 @@ LOCAL = [
     "/dir",
     "/file",
 ]
+AZ = ["abfs://container/path/", "abfs://container@account.blob.core.windows.net/path"]
 S3 = ["s3://bucket/key/", "s3://bucket/key"]
 SSH = [
     "ssh://hostname:/absolute/file",
@@ -63,6 +67,23 @@ def test_transfer_find_s3_upload(source: str, target: str) -> None:
     assert _find_transfer_class(source, target) == S3Upload
 
 
+@pytest.mark.parametrize("source", LOCAL)
+@pytest.mark.parametrize("target", AZ)
+def test_transfer_find_az_upload(source: str, target: str) -> None:
+    """Test finding the Azure Blob Storage upload transfer class.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
+    from anemoi.utils.remote.az import AzureUpload
+
+    assert _find_transfer_class(source, target) == AzureUpload
+
+
 @pytest.mark.parametrize("source", S3)
 @pytest.mark.parametrize("target", LOCAL)
 def test_transfer_find_s3_download(source: str, target: str) -> None:
@@ -78,6 +99,23 @@ def test_transfer_find_s3_download(source: str, target: str) -> None:
     from anemoi.utils.remote.s3 import S3Download
 
     assert _find_transfer_class(source, target) == S3Download
+
+
+@pytest.mark.parametrize("source", AZ)
+@pytest.mark.parametrize("target", LOCAL)
+def test_transfer_find_az_download(source: str, target: str) -> None:
+    """Test finding the Azure Blob Storage download transfer class.
+
+    Parameters
+    ----------
+    source : str
+        The source path
+    target : str
+        The target path
+    """
+    from anemoi.utils.remote.az import AzureDownload
+
+    assert _find_transfer_class(source, target) == AzureDownload
 
 
 @pytest.mark.parametrize("source", LOCAL)
@@ -97,8 +135,8 @@ def test_transfer_find_ssh_upload(source: str, target: str) -> None:
     assert _find_transfer_class(source, target) == RsyncUpload
 
 
-@pytest.mark.parametrize("source", S3 + SSH)
-@pytest.mark.parametrize("target", S3 + SSH)
+@pytest.mark.parametrize("source", AZ + S3 + SSH)
+@pytest.mark.parametrize("target", AZ + S3 + SSH)
 def test_transfer_find_none(source: str, target: str) -> None:
     """Test that no transfer class is found for unsupported transfers.
 
@@ -114,7 +152,7 @@ def test_transfer_find_none(source: str, target: str) -> None:
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
+@skip_missing_packages("obstore")
 def test_transfer_zarr_s3_to_local(tmpdir: pytest.TempPathFactory) -> None:
     """Test transferring a Zarr file from S3 to local.
 
@@ -135,7 +173,7 @@ def test_transfer_zarr_s3_to_local(tmpdir: pytest.TempPathFactory) -> None:
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
+@skip_missing_packages("obstore")
 def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
     """Test transferring a Zarr file from local to S3.
 
@@ -204,7 +242,7 @@ def compare(local1: str, local2: str) -> None:
 
 
 @pytest.mark.skipif(IN_CI, reason="Test requires access to S3")
-@pytest.mark.skipif(not packages_installed("obstore"), reason="obstore is not installed")
+@skip_missing_packages("obstore")
 @pytest.mark.parametrize("path", ["directory/", "file"])
 def test_transfer_local_to_s3_to_local(path: str) -> None:
     """Test transferring a file or directory from local to S3 and back to local.
@@ -239,6 +277,54 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
 
         compare(local, local2)
 
+        _delete_file_or_directory(local2)
+
+    finally:
+        delete(remote)
+
+    if remote.endswith("/"):
+        assert len(list(list_folder(remote))) == 0
+    else:
+        assert object_exists(remote) is False
+
+
+@pytest.mark.skipif(IN_CI, reason="Test requires access to Azurite not available in CI")
+@skip_missing_packages("obstore")
+@pytest.mark.skipif(not azurite_reachable(), reason=f"Azurite not reachable at endpoint: {AZURITE_ENDPOINT}")
+@pytest.mark.parametrize("path", ["directory/", "file"])
+def test_transfer_local_to_az_to_local(azurite: None, path: str) -> None:
+    """Test transferring a file or directory from local to Azure Blob Storage and back to local.
+
+    Parameters
+    ----------
+    azurite : None
+        Fixture to set up Azurite and anemoi configuration for testing, see conftest.py.
+    path : str
+        Path to the file or directory to round-trip.
+
+    """
+    from anemoi.utils.remote.az import delete
+    from anemoi.utils.remote.az import list_folder
+    from anemoi.utils.remote.az import object_exists
+
+    local = LOCAL_TEST_DATA + "/" + path
+    remote = f"abfs://{AZURITE_CONTAINER}" + f"/{uuid.uuid4()}/" + path
+    local2 = LOCAL_TEST_DATA + "-copy-" + path
+
+    try:
+        transfer(local, remote, overwrite=True)
+        transfer(local, remote, resume=True)
+        with pytest.raises(ValueError, match="already exists"):
+            transfer(local, remote)
+
+        _delete_file_or_directory(local2)
+        transfer(remote, local2)
+        with pytest.raises(ValueError, match="already exists"):
+            transfer(remote, local2)
+        transfer(local, remote, overwrite=True)
+        transfer(local, remote, resume=True)
+
+        compare(local, local2)
         _delete_file_or_directory(local2)
 
     finally:

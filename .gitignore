@@ -151,3 +151,6 @@ trace.txt
 *.prof
 prof/
 *.gz
+
+# Azure tests
+__blobstorage__/

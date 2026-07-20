@@ -37,6 +37,7 @@ import tqdm
 
 from ..humanize import bytes_to_human
 from ..settings import SETTINGS
+from ..settings_schema.object_storage import S3_CLIENT_FIELDS
 from ..settings_schema.object_storage import ObjectStorageBucketConfig
 from . import BaseDownload
 from . import BaseUpload
@@ -117,21 +118,14 @@ def _s3_options(obj: str | S3Object) -> ObjectStorageBucketConfig:
     # Use anemoi.utils.settings to get the configuration
 
     object_storage_cfg = SETTINGS.object_storage
-    keys_of_buckets = [
-        k
-        for k in object_storage_cfg.model_dump(by_alias=False).keys()
-        if k not in ("type", "endpoint_url", "access_key_id", "secret_access_key")
-    ]
+    bucket_overrides = object_storage_cfg.__pydantic_extra__ or {}
 
     candidate: ObjectStorageBucketConfig | None = None
-    for key in keys_of_buckets:
+    for key in bucket_overrides:
         if fnmatch.fnmatch(obj.bucket, key):
             if candidate is not None:
                 raise ValueError(f"Multiple object storage configurations match {obj.bucket}: {candidate} and {key}")
-            candidate = getattr(object_storage_cfg, key)
-
-    if object_storage_cfg.type != "s3":
-        raise ValueError(f"Unsupported object storage type {object_storage_cfg.type}")
+            candidate = bucket_overrides[key]
 
     def _drop_empty(d: dict[str, Any]) -> dict[str, Any]:
         return {k: v for k, v in d.items() if v is not None}
@@ -140,13 +134,7 @@ def _s3_options(obj: str | S3Object) -> ObjectStorageBucketConfig:
         config = _drop_empty(candidate.model_dump(by_alias=False, exclude_none=True))
     else:
         LOG.debug(f"No specific object storage configuration found for bucket {obj.bucket}, using global settings")
-        config = _drop_empty(
-            {
-                k: v
-                for k, v in object_storage_cfg.model_dump(by_alias=False, exclude_none=True).items()
-                if k in ("endpoint_url", "access_key_id", "secret_access_key")
-            }
-        )
+        config = object_storage_cfg.model_dump(by_alias=False, exclude_none=True, include=set(S3_CLIENT_FIELDS))
 
     resolved_object_config = ObjectStorageBucketConfig(**config)
 
@@ -175,7 +163,7 @@ def s3_client(obj: str | S3Object) -> Any:
     import obstore
 
     def resolve_secrets(options: ObjectStorageBucketConfig) -> dict[str, Any]:
-        resolved_keys = options.model_dump(by_alias=False, exclude_none=True)
+        resolved_keys = options.model_dump(by_alias=False, exclude_none=True, include=set(S3_CLIENT_FIELDS))
         if options.access_key_id is not None:
             resolved_keys["access_key_id"] = options.access_key_id.get_secret_value()
         if options.secret_access_key is not None:
