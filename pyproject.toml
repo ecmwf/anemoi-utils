@@ -74,6 +74,7 @@ urls.Repository = "https://github.com/ecmwf/anemoi-utils/"
 scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools]
+package-data."anemoi.utils" = [ "py.typed" ]
 package-data."anemoi.utils.mars" = [ "*.yaml" ]
 package-data."anemoi.utils.settings_schema" = [ "*.toml" ]
 
