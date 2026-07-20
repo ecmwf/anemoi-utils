@@ -88,7 +88,13 @@ class Metadata(Command):
         group.add_argument(
             "--supporting-arrays",
             action="store_true",
-            help="Print the supporting arrays.",
+            help="List the supporting arrays.",
+        )
+
+        group.add_argument(
+            "--embedded-files",
+            action="store_true",
+            help="List the embedded files.",
         )
 
         group.add_argument(
