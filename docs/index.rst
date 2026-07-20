@@ -91,7 +91,7 @@ Text & table formatting
    :caption: CLI
    :hidden:
 
-   cli/config
+   cli/settings
    cli/metadata
    cli/requests
    cli/transfer

@@ -55,6 +55,7 @@ optional-dependencies.docs = [
   "autodoc-pydantic>=2.2",
   "nbsphinx",
   "pandoc",
+  "pytest",
   "requests",
   "sphinx",
   "sphinx-argparse",
