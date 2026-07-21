@@ -26,8 +26,8 @@ There is no free-standing ``build`` function: object construction always goes th
 The abstract base lives in ``anemoi.utils`` because it is the lowest layer shared by
 ``anemoi.graphs``, ``anemoi.models`` and ``anemoi.training``. A :class:`Parametrisation`
 must be JSON-serialisable via :meth:`Parametrisation.to_dict`. The concrete
-:class:`DictParametrisation` can be recreated from a JSON file; training provides its own
-subclass (``TrainingParametrisation``), built from the dataset.
+:class:`DictParametrisation` can be recreated from a JSON file. Concrete dict-backed
+parametrisations subclass :class:`DictParametrisationBase` (never each other).
 """
 
 from __future__ import annotations
@@ -42,6 +42,7 @@ from typing import Any
 
 __all__ = [
     "Parametrisation",
+    "DictParametrisationBase",
     "DictParametrisation",
     "ParametrisationError",
     "MISSING",
@@ -68,7 +69,8 @@ class ParametrisationError(Exception):
 def get_object(path: str) -> Any:
     """Resolve a dotted import path (``"pkg.mod.attr"``) to the object it names."""
     if not isinstance(path, str) or not path:
-        raise ParametrisationError(f"_target_ must be a non-empty dotted path, got {path!r}")
+        msg = f"_target_ must be a non-empty dotted path, got {path!r}"
+        raise ParametrisationError(msg)
 
     parts = path.split(".")
     for split in range(len(parts) - 1, 0, -1):
@@ -81,17 +83,20 @@ def get_object(path: str) -> Any:
             for attr in parts[split:]:
                 obj = getattr(obj, attr)
         except AttributeError as err:
-            raise ParametrisationError(f"Could not resolve attribute path {path!r}: {err}") from err
+            msg = f"Could not resolve attribute path {path!r}: {err}"
+            raise ParametrisationError(msg) from err
         return obj
 
-    raise ParametrisationError(f"Could not import any module prefix of {path!r}")
+    msg = f"Could not import any module prefix of {path!r}"
+    raise ParametrisationError(msg)
 
 
 def get_class(path: str) -> type:
     """Resolve a dotted path to a class."""
     obj = get_object(path)
     if not isinstance(obj, type):
-        raise ParametrisationError(f"{path!r} resolved to {type(obj)!r}, expected a class")
+        msg = f"{path!r} resolved to {type(obj)!r}, expected a class"
+        raise ParametrisationError(msg)
     return obj
 
 
@@ -190,7 +195,8 @@ def _construct(spec: Any, *args: Any, **kwargs: Any) -> Any:
     except ParametrisationError:
         raise
     except Exception as err:  # noqa: BLE001 - re-wrap with the offending target for clarity
-        raise ParametrisationError(f"Error building {target_path!r}: {err}") from err
+        msg = f"Error building {target_path!r}: {err}"
+        raise ParametrisationError(msg) from err
 
 
 # --------------------------------------------------------------------------------------
@@ -213,45 +219,62 @@ class Parametrisation(ABC):
         """Return a JSON-serialisable representation of this parametrisation."""
 
     def create_module(self, spec: Any, *args: Any, **kwargs: Any) -> Any:
-        """Build an object from ``spec`` (a dotted-path string or a ``_target_`` mapping).
+        """Build (or return) a sub-module from ``spec`` -- the single construction entry point.
 
-        This is the single entry point for module construction; a Hydra backend can be
-        reattached here (e.g. in a subclass) without touching call sites.
+        Dispatch:
+
+        * a **class** -> instantiated with the runtime args (this is the default sub-module,
+          chosen in the constructor signature, i.e. *in the code* rather than the parameters);
+        * a **dotted-path string** or a ``_target_`` **mapping** / **list** -> built through
+          :meth:`_build_spec` (Hydra-free by default; :class:`HydraParametrisation` overrides
+          it to use ``hydra.utils.instantiate``);
+        * ``None`` -> ``None``;
+        * anything else (an **already-built instance**) -> returned unchanged.
+        """
+        if isinstance(spec, type):
+            kwargs.pop("_recursive_", None)  # spec-build directives don't apply to a class
+            kwargs.pop("_partial_", None)
+            return spec(*args, **kwargs)
+        if spec is None or isinstance(spec, str) or _is_mapping(spec) or _is_sequence(spec):
+            return self._build_spec(spec, *args, **kwargs)
+        return spec
+
+    def _build_spec(self, spec: Any, *args: Any, **kwargs: Any) -> Any:
+        """Construct from a spec (dotted-path string / ``_target_`` mapping / list).
+
+        Hydra-free by default; overridden by :class:`HydraParametrisation`.
         """
         return _construct(spec, *args, **kwargs)
 
-    def resolve(self, value: Any, default_factory, *args: Any, **kwargs: Any) -> Any:
-        """Resolve a constructor-injected sub-module argument.
+    @classmethod
+    def from_dict(cls, data: Any = None) -> "Parametrisation":
+        """Build the default (Hydra-free) dict-backed parametrisation from a mapping.
 
-        * ``value is None`` -> ``default_factory()`` (the module's default class);
-        * ``value`` is a string -> :meth:`create_module` with the remaining args;
-        * otherwise -> ``value`` unchanged (an already-built instance).
+        Callers should use this factory rather than referencing a concrete subclass, so the
+        choice of implementation stays behind :class:`Parametrisation`.
         """
-        if value is None:
-            return default_factory()
-        if isinstance(value, str):
-            return self.create_module(value, *args, **kwargs)
-        return value
+        return DictParametrisation(data)
 
 
-class DictParametrisation(Parametrisation):
-    """Concrete :class:`Parametrisation` backed by a JSON-serialisable mapping.
+class DictParametrisationBase(Parametrisation):
+    """Common base for dict-backed parametrisations -- **not instantiated directly**.
 
-    Keys may be dotted to reach nested values (``params.get("model.num_channels")``). This
-    is the parametrisation that can be recreated from a JSON file (inference), and the base
-    for training's ``TrainingParametrisation``.
+    Holds a JSON-serialisable mapping; keys may be dotted to reach nested values
+    (``params.get("model.num_channels")``). Concrete leaves (:class:`DictParametrisation`,
+    ``HydraParametrisation``, ``LayerKernels``) subclass this rather than each other, so no
+    class that gets instantiated is ever subclassed.
     """
 
     def __init__(self, data: Any = None) -> None:
         self._data: dict = dict(data) if data is not None else {}
 
     @classmethod
-    def from_json(cls, text: str) -> "DictParametrisation":
+    def from_json(cls, text: str) -> "DictParametrisationBase":
         """Build from a JSON document (string)."""
         return cls(json.loads(text))
 
     @classmethod
-    def from_file(cls, path: str | Path) -> "DictParametrisation":
+    def from_file(cls, path: str | Path) -> "DictParametrisationBase":
         """Build from a JSON file on disk."""
         return cls.from_json(Path(path).read_text())
 
@@ -262,7 +285,8 @@ class DictParametrisation(Parametrisation):
                 node = node[part]
             else:
                 if default is MISSING:
-                    raise ParametrisationError(f"Missing parameter {key!r}")
+                    msg = f"Missing parameter {key!r}"
+                    raise ParametrisationError(msg)
                 return default
         return node
 
@@ -272,3 +296,11 @@ class DictParametrisation(Parametrisation):
     def to_json(self, **kwargs: Any) -> str:
         """Serialise to a JSON document (string)."""
         return json.dumps(self.to_dict(), **kwargs)
+
+
+class DictParametrisation(DictParametrisationBase):
+    """Concrete, Hydra-free parametrisation (recreatable from a JSON file for inference).
+
+    Prefer constructing it via :meth:`Parametrisation.from_dict`. This leaf is instantiated
+    and therefore never subclassed.
+    """
