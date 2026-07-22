@@ -25,19 +25,18 @@ There is no free-standing ``build`` function: object construction always goes th
 
 The abstract base lives in ``anemoi.utils`` because it is the lowest layer shared by
 ``anemoi.graphs``, ``anemoi.models`` and ``anemoi.training``. A :class:`Parametrisation`
-must be JSON-serialisable via :meth:`Parametrisation.to_dict`. The concrete
-:class:`DictParametrisation` can be recreated from a JSON file. Concrete dict-backed
-parametrisations subclass :class:`DictParametrisationBase` (never each other).
+round-trips through a plain (JSON-serialisable) dict via :meth:`Parametrisation.to_dict` and
+:meth:`Parametrisation.from_dict`; the concrete :class:`DictParametrisation` can be recreated
+from that dict. Concrete dict-backed parametrisations subclass
+:class:`DictParametrisationBase` (never each other).
 """
 
 from __future__ import annotations
 
 import functools
 import importlib
-import json
 from abc import ABC
 from abc import abstractmethod
-from pathlib import Path
 from typing import Any
 
 __all__ = [
@@ -268,16 +267,6 @@ class DictParametrisationBase(Parametrisation):
     def __init__(self, data: Any = None) -> None:
         self._data: dict = dict(data) if data is not None else {}
 
-    @classmethod
-    def from_json(cls, text: str) -> "DictParametrisationBase":
-        """Build from a JSON document (string)."""
-        return cls(json.loads(text))
-
-    @classmethod
-    def from_file(cls, path: str | Path) -> "DictParametrisationBase":
-        """Build from a JSON file on disk."""
-        return cls.from_json(Path(path).read_text())
-
     def get(self, key: str, default: Any = MISSING) -> Any:
         node: Any = self._data
         for part in key.split("."):
@@ -293,13 +282,9 @@ class DictParametrisationBase(Parametrisation):
     def to_dict(self) -> dict:
         return _to_plain(self._data)
 
-    def to_json(self, **kwargs: Any) -> str:
-        """Serialise to a JSON document (string)."""
-        return json.dumps(self.to_dict(), **kwargs)
-
 
 class DictParametrisation(DictParametrisationBase):
-    """Concrete, Hydra-free parametrisation (recreatable from a JSON file for inference).
+    """Concrete, Hydra-free parametrisation (recreatable from its dict for inference).
 
     Prefer constructing it via :meth:`Parametrisation.from_dict`. This leaf is instantiated
     and therefore never subclassed.
