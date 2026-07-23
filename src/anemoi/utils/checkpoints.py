@@ -391,3 +391,20 @@ def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
         os.remove(full)
 
     return _edit_metadata(path, name, callback)
+
+
+def unpickle_model(path, **kwargs) -> dict:
+    import io
+
+    from peekle import Peekle
+
+    with zipfile.ZipFile(path, "r") as zipf:
+        data_files = [name for name in zipf.namelist() if os.path.basename(name) == "data.pkl"]
+        if len(data_files) == 0:
+            raise FileNotFoundError(f"Could not find 'data.pkl' in {path}.")
+        if len(data_files) > 1:
+            raise ValueError(f"Found two or more 'data.pkl' in {path}.")
+        data = zipf.read(data_files[0])
+
+    parsed = Peekle.parse(io.BytesIO(data))
+    return parsed.to_json(**kwargs)
