@@ -293,7 +293,6 @@ class AnemoiSettings(BaseSettings):
         env_prefix="ANEMOI_SETTINGS_",
         env_nested_delimiter="__",
         extra="ignore",
-        alias_generator=lambda key: key.replace("_", "-"),
         serialize_by_alias=True,
         populate_by_name=True,
     )
