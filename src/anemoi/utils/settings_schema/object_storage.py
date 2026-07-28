@@ -73,6 +73,18 @@ class ObjectStorageBucketConfig(AnemoiBaseSettingsSchema):
         _reject_mixed_backends(self)
         return self
 
+    @model_validator(mode="before")
+    def _reject_old_entries(cls, values: dict) -> dict:
+        errors = []
+        for key in values:
+            if key.startswith("aws_"):
+                errors.append(
+                    f"[object-storage] entry `{key}` is no longer supported. Replace it with `{key.removeprefix('aws_')}`."
+                )
+        if errors:
+            raise ValueError("\n" + "\n".join(errors))
+        return values
+
     def get(self, key: str, default: str | None = None) -> str | None:
         """Get a configuration value with fallback to the global setting."""
         warnings.warn(

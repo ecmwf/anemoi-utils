@@ -295,6 +295,7 @@ class AnemoiSettings(BaseSettings):
         extra="ignore",
         serialize_by_alias=True,
         populate_by_name=True,
+        hide_input_in_errors=True,  # prevent secrets from leaking on validation errors
     )
 
     ## ---------- Setting fields ---------- ##
