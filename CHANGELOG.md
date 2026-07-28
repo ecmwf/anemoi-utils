@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.11](https://github.com/ecmwf/anemoi-utils/compare/0.5.10...0.5.11) (2026-07-28)
+
+
+### Features
+
+* Fix timezone corner case ([#330](https://github.com/ecmwf/anemoi-utils/issues/330)) ([1ebb009](https://github.com/ecmwf/anemoi-utils/commit/1ebb009637f3336844489d7c3ea5dc5d0040b853))
+
+
+### Bug Fixes
+
+* Remove alias generator ([#332](https://github.com/ecmwf/anemoi-utils/issues/332)) ([dd8373a](https://github.com/ecmwf/anemoi-utils/commit/dd8373a24d5e2f65caadccf8d595191773390660)), closes [#331](https://github.com/ecmwf/anemoi-utils/issues/331)
+
 ## [0.5.10](https://github.com/ecmwf/anemoi-utils/compare/0.5.9...0.5.10) (2026-07-23)
 
 
