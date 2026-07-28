@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.12](https://github.com/ecmwf/anemoi-utils/compare/0.5.11...0.5.12) (2026-07-28)
+
+
+### Features
+
+* **settings:** Reject old object-storage entries and hide input in errors ([#334](https://github.com/ecmwf/anemoi-utils/issues/334)) ([04e0a37](https://github.com/ecmwf/anemoi-utils/commit/04e0a37a47476059ab5fbeb950010b343b690f34))
+
 ## [0.5.11](https://github.com/ecmwf/anemoi-utils/compare/0.5.10...0.5.11) (2026-07-28)
 
 
