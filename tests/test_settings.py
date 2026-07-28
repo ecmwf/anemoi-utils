@@ -251,6 +251,38 @@ class TestEnvVarOverrides:
 
 
 # ---------------------------------------------------------------------------
+# Environment prefix isolation (regression)
+# ---------------------------------------------------------------------------
+
+
+class TestEnvPrefixIsolation:
+    """Only ``ANEMOI_SETTINGS_``-prefixed env vars may configure settings.
+
+    Regression guard: a bare environment variable whose name collides with a
+    top-level field (e.g. ``DATASETS``) must be ignored.
+    """
+
+    def test_bare_field_named_env_var_does_not_break_loading(self, isolated_settings):
+        """A bare ``DATASETS`` (non-JSON) must not raise and must not set the field."""
+        s = isolated_settings.load(DATASETS="/scratch/some/path")
+        assert s.datasets.path == []  # unchanged default, bare var ignored
+
+    def test_bare_field_named_env_var_does_not_override_file(self, isolated_settings):
+        """A bare env var must not override a value coming from the config file."""
+        isolated_settings.toml.write_text(textwrap.dedent("""\
+                [paramdb]
+                default_origin = "destine"
+            """))
+        s = isolated_settings.load(PARAMDB="not-json")
+        assert s.paramdb.default_origin == "destine"
+
+    def test_prefixed_env_var_still_configures_field(self, isolated_settings):
+        """The documented ``ANEMOI_SETTINGS_`` prefix must remain effective."""
+        s = isolated_settings.load(ANEMOI_SETTINGS_DATASETS__IGNORE_NAMING_CONVENTIONS="1")
+        assert s.datasets.ignore_naming_conventions is True
+
+
+# ---------------------------------------------------------------------------
 # Secrets separation
 # ---------------------------------------------------------------------------
 
