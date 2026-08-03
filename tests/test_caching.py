@@ -48,12 +48,12 @@ def check(f: callable, data: Data) -> None:
         assert data.n == i
 
         res = f(x)
-        assert type(res) == type(data[x])  # noqa: E721
+        assert type(res) == type(data[x])
         assert str(res) == str(data[x])
         assert data.n == i + 1
 
         res = f(x)
-        assert type(res) == type(data[x])  # noqa: E721
+        assert type(res) == type(data[x])
         assert str(res) == str(data[x])
         assert data.n == i + 1
 

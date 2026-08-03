@@ -59,7 +59,7 @@ def _no_time_zone(date: datetime.datetime) -> datetime.datetime:
     """
 
     if date.tzinfo is not None:
-        date = date.astimezone(datetime.timezone.utc)
+        date = date.astimezone(datetime.UTC)
     return date.replace(tzinfo=None)
 
 

@@ -73,7 +73,7 @@ def test_auth(mocker: pytest.MockerFixture) -> None:
     auth = TokenAuth("https://test.url")
 
     assert auth.access_token is None
-    assert auth.refresh_token == "old_refresh_token"  # noqa: S105
+    assert auth.refresh_token == "old_refresh_token"
 
     auth.authenticate()
     # test that no new token is requested the second time
@@ -81,9 +81,9 @@ def test_auth(mocker: pytest.MockerFixture) -> None:
 
     mock_token_request.assert_called_once()
 
-    assert auth.access_token == "access_token"  # noqa: S105
+    assert auth.access_token == "access_token"
     assert auth.access_expires > time.time()
-    assert auth.refresh_token == "new_refresh_token"  # noqa: S105
+    assert auth.refresh_token == "new_refresh_token"
 
 
 def test_not_logged_in(mocker: pytest.MockerFixture) -> None:

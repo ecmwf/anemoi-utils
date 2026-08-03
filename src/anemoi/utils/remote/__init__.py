@@ -43,7 +43,6 @@ def _ignore(number_of_files: int, total_size: int, total_transferred: int, trans
     transfering : bool
         Whether the transfer is in progress.
     """
-    pass
 
 
 class Loader:

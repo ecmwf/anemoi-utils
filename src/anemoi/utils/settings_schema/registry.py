@@ -7,7 +7,6 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from typing import Optional
 
 from pydantic import SecretStr
 
@@ -20,7 +19,7 @@ class RegistryConfig(AnemoiBaseSettingsSchema):
     api_url: str | None = None
     """API URL for the registry."""
 
-    api_token: Optional[SecretStr] = None
+    api_token: SecretStr | None = None
     """API token for authenticating with the registry."""
 
     allow_delete: bool = False

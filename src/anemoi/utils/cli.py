@@ -30,7 +30,6 @@ if os.environ.get("ANEMOI_SETTINGS_DEBUG_IMPORTS_IN_CLI"):
         def find_spec(self, fullname, path, target=None):
             now = datetime.now().isoformat(timespec="milliseconds")
             print(f"[{now}] Importing {fullname} from {path}")
-            return None  # allow normal import processing to continue
 
     sys.meta_path.insert(0, ImportTracer())
 
@@ -45,7 +44,6 @@ class Command:
 
     def check(self, parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         """Check the command arguments."""
-        pass
 
     def run(self, args: argparse.Namespace) -> None:
         """Run the command.

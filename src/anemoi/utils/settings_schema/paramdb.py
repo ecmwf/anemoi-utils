@@ -7,7 +7,6 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from typing import Optional
 
 from pydantic import FilePath
 
@@ -28,5 +27,5 @@ class ParamDBConfig(AnemoiBaseSettingsSchema):
     cache_length: int = 30
     """Cache length in days for GRIB parameter lookups."""
 
-    local_cache: Optional[FilePath] = None
+    local_cache: FilePath | None = None
     """Path to a local JSON cache file for GRIB parameters. If set, used instead of the online API."""
