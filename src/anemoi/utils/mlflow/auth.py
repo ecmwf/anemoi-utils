@@ -70,6 +70,7 @@ class UserInfo(BaseModel):
 class ServerConfig(BaseModel):
     refresh_token: str | None = None
     refresh_expires: int = 0
+    static_token: str | None = None
 
     @field_validator("refresh_expires", mode="before")
     def to_int(cls, value: float | int) -> int:
@@ -126,6 +127,8 @@ class ServerStore(RootModel):
 class AuthBase(ABC):
     """Base class for authentication implementations."""
 
+    _enabled: bool = False
+
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
@@ -164,6 +167,18 @@ class NoAuth(AuthBase):
 
     def user_info(self) -> UserInfo:
         return UserInfo()
+
+
+def enabled_guard(fn: Callable) -> Callable:
+    """Decorator to call or ignore a method based on the instance's `_enabled` flag."""
+
+    @wraps(fn)
+    def _wrapper(self: AuthBase, *args, **kwargs) -> Callable | None:
+        if self._enabled:
+            return fn(self, *args, **kwargs)
+        return None
+
+    return _wrapper
 
 
 class TokenAuth(AuthBase):
@@ -270,22 +285,12 @@ class TokenAuth(AuthBase):
         last = {}
         for url, cfg in store.items():
             if cfg.refresh_expires > last.get("refresh_expires", 0):
-                last = dict(url=url, **cfg.model_dump())
+                # exclude fields added after this deprecated API to preserve its contract
+                last = dict(url=url, **cfg.model_dump(exclude={"static_token"}))
 
         return last
 
-    def enabled(fn: Callable) -> Callable:  # noqa: N805
-        """Decorator to call or ignore a function based on the `enabled` flag."""
-
-        @wraps(fn)
-        def _wrapper(self: TokenAuth, *args, **kwargs) -> Callable | None:
-            if self._enabled:
-                return fn(self, *args, **kwargs)
-            return None
-
-        return _wrapper
-
-    @enabled
+    @enabled_guard
     def login(self, force_credentials: bool = False, **kwargs: dict) -> None:
         """Acquire a new refresh token and save it to disk.
 
@@ -333,7 +338,7 @@ class TokenAuth(AuthBase):
 
         self.log.info("✅ Successfully logged in to MLflow. Happy logging!")
 
-    @enabled
+    @enabled_guard
     def authenticate(self, **kwargs: dict) -> None:
         """Check the access token and refresh it if necessary. A new refresh token will also be acquired upon refresh.
 
@@ -367,7 +372,7 @@ class TokenAuth(AuthBase):
 
         os.environ[self.target_env_var] = self.access_token
 
-    @enabled
+    @enabled_guard
     def save(self, **kwargs: dict) -> None:
         """Save the latest refresh token to disk."""
         del kwargs  # unused
@@ -445,3 +450,141 @@ class TokenAuth(AuthBase):
         except HTTPError:
             self.log.exception("HTTP error occurred")
             raise
+
+
+class StaticTokenAuth(AuthBase):
+    """Authentication with a static, pre-issued bearer token.
+
+    Unlike `TokenAuth`, this class does not perform any refresh flow or talk to a
+    token server. It simply stores the supplied token in the target environment
+    variable (by default `MLFLOW_TRACKING_TOKEN`) so that MLflow sends it as an
+    `Authorization: Bearer <token>` header on every request.
+
+    The token is persisted to (and loaded from) the same on-disk store used by
+    `TokenAuth` (`~/.anemoi/mlflow-token.json`), keyed by server URL. This means a
+    token supplied once via `login()` is remembered across sessions, and multiple
+    servers can each hold their own static token.
+
+    This is useful for MLflow servers that accept a long-lived HTTP access token.
+
+    Note
+    ----
+    If the server sits behind a proxy/gateway that enforces per-method
+    permissions, the token must allow the HTTP methods the MLflow client uses.
+    The client issues several read operations as ``POST``, so a read-only token
+    may be insufficient.
+    """
+
+    _config_file = TokenAuth._config_file
+
+    def __init__(
+        self,
+        url: str | None,
+        token: str | None = None,
+        enabled: bool = True,
+        target_env_var: str = "MLFLOW_TRACKING_TOKEN",
+    ) -> None:
+        """Initialise the static token authentication object.
+
+        Parameters
+        ----------
+        url : str | None
+            URL of the MLflow server the token belongs to. Used as the storage key.
+        token : str | None, optional
+            The static bearer token to use. If not provided, a previously saved token
+            for this URL is loaded from disk. By default None.
+        enabled : bool, optional
+            Set this to False to turn off authentication, by default True.
+        target_env_var : str, optional
+            The environment variable to store the access token in,
+            by default `MLFLOW_TRACKING_TOKEN`.
+
+        """
+        self.access_token = token
+        self._enabled = enabled
+        self.target_env_var = target_env_var
+        self.log = logging.getLogger(__name__)
+
+        if not url:
+            self.url = None
+            assert not enabled, "URL must be provided if authentication is enabled."
+            return
+
+        self.url = url.rstrip("/")
+
+        # load a previously saved token if none was supplied
+        if self.access_token is None:
+            config = TokenAuth._get_store().get(self.url)
+            if config is not None:
+                self.access_token = config.static_token
+
+    def __call__(self) -> None:
+        self.authenticate()
+
+    @enabled_guard
+    def save(self, **kwargs: dict) -> None:
+        """Persist the static token to disk, keyed by server URL."""
+        del kwargs  # unused
+        if not self.access_token:
+            self.log.warning("No token to save.")
+            return
+
+        with CONFIG_LOCK:
+            store = TokenAuth._get_store()
+            existing = store.get(self.url)
+            config = existing.model_copy() if existing is not None else ServerConfig()
+            config.static_token = self.access_token
+            store.update(self.url, config)
+            save_config(self._config_file, store.model_dump())
+
+    @enabled_guard
+    def login(self, force_credentials: bool = False, **kwargs: dict) -> None:
+        """Acquire a static token and save it to disk.
+
+        If a token was supplied at construction (or a valid one is already on disk) it
+        is reused. Otherwise, or when `force_credentials` is set, the user is prompted
+        to paste one interactively.
+
+        Parameters
+        ----------
+        force_credentials : bool, optional
+            Force a prompt for a new token even if one is available, by default False.
+        kwargs : dict
+            Additional keyword arguments (unused).
+
+        """
+        del kwargs  # unused
+        self.log.info("🌐 Using static token authentication for %s", self.url)
+
+        if force_credentials or not self.access_token:
+            self.log.info("📝 Please paste your MLflow access token")
+            self.log.info("📝 (you will not see the output, just press enter after pasting):")
+            self.access_token = getpass("Access Token: ")
+
+        if not self.access_token:
+            msg = "❌ No token provided. Please try again."
+            raise RuntimeError(msg)
+
+        self.save()
+        self.authenticate()
+        self.log.info("✅ Static token stored. Happy logging!")
+
+    @enabled_guard
+    def authenticate(self, **kwargs: dict) -> None:
+        """Store the static token in the target environment variable."""
+        del kwargs  # unused
+        if not self.access_token:
+            msg = "You are not logged in to MLflow. Please log in first."
+            raise RuntimeError(msg)
+        os.environ[self.target_env_var] = self.access_token
+
+    def user_info(self) -> UserInfo:
+        """Get user info embedded in the token, if it is a JWT."""
+        if not self._enabled or not self.access_token:
+            return UserInfo()
+
+        try:
+            return UserInfo.from_jwt(self.access_token)
+        except Exception as e:
+            self.log.exception("Failed to decode access token.", exc_info=e)
+            return UserInfo()
