@@ -19,6 +19,7 @@ except ImportError:
         "The `mlflow` package is required to use AnemoiMLflowclient. Please install it with `pip install mlflow`."
     )
 
+from .auth import StaticTokenAuth
 from .auth import TokenAuth
 from .utils import health_check
 
@@ -31,6 +32,7 @@ class AnemoiMlflowClient(MlflowClient):
         tracking_uri: str,
         *args,
         authentication: bool = False,
+        static_token: str | bool | None = None,
         check_health: bool = True,
         **kwargs,
     ) -> None:
@@ -42,6 +44,12 @@ class AnemoiMlflowClient(MlflowClient):
             The URI of the MLflow tracking server.
         authentication : bool, optional
             Enable token authentication, by default False
+        static_token : str | bool | None, optional
+            Use a static, pre-issued bearer token instead of the interactive refresh-token flow.
+            Pass the token string to use it directly, or pass ``True`` to load a previously
+            saved static token for this server from disk (``~/.anemoi/mlflow-token.json``).
+            When set, the token is stored/loaded via `StaticTokenAuth`. Requires
+            `authentication=True` to take effect. By default None (use `TokenAuth`).
         check_health : bool, optional
             Check the health of the MLflow server on init, by default True
         *args : Any
@@ -50,7 +58,11 @@ class AnemoiMlflowClient(MlflowClient):
             Additional keyword arguments to pass to the MLflow client.
 
         """
-        self.anemoi_auth = TokenAuth(tracking_uri, enabled=authentication)
+        if static_token is not None and static_token is not False:
+            token = static_token if isinstance(static_token, str) else None
+            self.anemoi_auth = StaticTokenAuth(tracking_uri, token=token, enabled=authentication)
+        else:
+            self.anemoi_auth = TokenAuth(tracking_uri, enabled=authentication)
         if check_health:
             super().__getattribute__("anemoi_auth").authenticate()
             health_check(tracking_uri)

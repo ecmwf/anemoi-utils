@@ -19,6 +19,7 @@ import pytest
 from anemoi.utils.mlflow.auth import NoAuth
 from anemoi.utils.mlflow.auth import ServerConfig
 from anemoi.utils.mlflow.auth import ServerStore
+from anemoi.utils.mlflow.auth import StaticTokenAuth
 from anemoi.utils.mlflow.auth import TokenAuth
 from anemoi.utils.mlflow.auth import UserInfo
 
@@ -198,6 +199,7 @@ def test_legacy_format(mocker: pytest.MockerFixture) -> None:
         legacy_config["url"]: {
             "refresh_token": legacy_config["refresh_token"],
             "refresh_expires": legacy_config["refresh_expires"],
+            "static_token": None,
         }
     }
     mocker.patch(
@@ -349,3 +351,116 @@ def test_user_info(mocker: pytest.MockerFixture) -> None:
         assert info.name is None
         assert info.email is None
         assert info.username is None
+
+
+def static_mocks(mocker: pytest.MockerFixture, config: dict | None = None) -> pytest.Mock:
+    """Patch the on-disk store helpers for StaticTokenAuth tests."""
+    mocker.patch(
+        "anemoi.utils.mlflow.auth.load_raw_config",
+        return_value=config or {},
+    )
+    save = mocker.patch("anemoi.utils.mlflow.auth.save_config")
+    mocker.patch("os.environ")
+    return save
+
+
+def test_static_token_direct(mocker: pytest.MockerFixture) -> None:
+    save = static_mocks(mocker)
+    auth = StaticTokenAuth("https://test.url", token="my-static-token")
+
+    assert auth.access_token == "my-static-token"  # noqa: S105
+
+    auth.authenticate()
+    os.environ.__setitem__.assert_called_once_with("MLFLOW_TRACKING_TOKEN", "my-static-token")
+
+    # a direct token is not saved until login/save is called
+    save.assert_not_called()
+
+
+def test_static_token_loaded_from_disk(mocker: pytest.MockerFixture) -> None:
+    config = {"https://test.url": {"static_token": "saved-token"}}
+    static_mocks(mocker, config=config)
+
+    auth = StaticTokenAuth("https://test.url")
+    assert auth.access_token == "saved-token"  # noqa: S105
+
+
+def test_static_token_save(mocker: pytest.MockerFixture) -> None:
+    save = static_mocks(mocker)
+    auth = StaticTokenAuth("https://test.url", token="my-static-token")
+    auth.save()
+
+    _, saved = save.call_args.args
+    assert saved["https://test.url"]["static_token"] == "my-static-token"
+
+
+def test_static_token_save_preserves_refresh_token(mocker: pytest.MockerFixture) -> None:
+    # a server that already has a refresh token should keep it when a static token is added
+    config = {"https://test.url": {"refresh_token": "keep-me", "refresh_expires": 123}}
+    save = static_mocks(mocker, config=config)
+
+    auth = StaticTokenAuth("https://test.url", token="my-static-token")
+    auth.save()
+
+    _, saved = save.call_args.args
+    assert saved["https://test.url"]["static_token"] == "my-static-token"
+    assert saved["https://test.url"]["refresh_token"] == "keep-me"
+
+
+def test_static_token_login_prompts_when_missing(mocker: pytest.MockerFixture) -> None:
+    save = static_mocks(mocker)
+    mocker.patch("anemoi.utils.mlflow.auth.getpass", return_value="pasted-token")
+
+    auth = StaticTokenAuth("https://test.url")
+    auth.login()
+
+    assert auth.access_token == "pasted-token"  # noqa: S105
+    _, saved = save.call_args.args
+    assert saved["https://test.url"]["static_token"] == "pasted-token"
+    os.environ.__setitem__.assert_called_once_with("MLFLOW_TRACKING_TOKEN", "pasted-token")
+
+
+def test_static_token_login_force_credentials(mocker: pytest.MockerFixture) -> None:
+    static_mocks(mocker)
+    mocker.patch("anemoi.utils.mlflow.auth.getpass", return_value="new-token")
+
+    auth = StaticTokenAuth("https://test.url", token="old-token")
+    auth.login(force_credentials=True)
+
+    assert auth.access_token == "new-token"  # noqa: S105
+
+
+def test_static_token_not_logged_in(mocker: pytest.MockerFixture) -> None:
+    static_mocks(mocker)
+    auth = StaticTokenAuth("https://test.url")
+    pytest.raises(RuntimeError, auth.authenticate)
+
+
+def test_static_token_disabled(mocker: pytest.MockerFixture) -> None:
+    static_mocks(mocker)
+    auth = StaticTokenAuth("https://test.url", token="my-static-token", enabled=False)
+    auth.authenticate()
+    os.environ.__setitem__.assert_not_called()
+
+
+def test_static_token_target_env_var(mocker: pytest.MockerFixture) -> None:
+    static_mocks(mocker)
+    auth = StaticTokenAuth(
+        "https://test.url",
+        token="my-static-token",
+        target_env_var="MLFLOW_TEST_ENV_VAR",
+    )
+    auth.authenticate()
+    os.environ.__setitem__.assert_called_once_with("MLFLOW_TEST_ENV_VAR", "my-static-token")
+
+
+def test_static_token_user_info(mocker: pytest.MockerFixture) -> None:
+    static_mocks(mocker)
+    payload = {"name": "John Anemoi", "preferred_username": "anemoi1234", "email": "john@example.com"}
+    token = f"e30.{base64.b64encode(json.dumps(payload).encode()).decode()}.e30"
+
+    auth = StaticTokenAuth("https://test.url", token=token)
+    info = auth.user_info()
+    assert info
+    assert info.name == "John Anemoi"
+    assert info.username == "anemoi1234"

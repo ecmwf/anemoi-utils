@@ -16,12 +16,14 @@ import pytest
 if TYPE_CHECKING:
     import pytest_mock
 
+import anemoi.utils.mlflow.client as client_module
 from anemoi.utils.mlflow.client import AnemoiMlflowClient
 
 
 @pytest.fixture(autouse=True)
 def mocks(mocker: pytest_mock.MockerFixture) -> None:
     mocker.patch("anemoi.utils.mlflow.client.TokenAuth")
+    mocker.patch("anemoi.utils.mlflow.client.StaticTokenAuth")
     mocker.patch("anemoi.utils.mlflow.client.health_check")
     mocker.patch("anemoi.utils.mlflow.client.AnemoiMlflowClient.search_experiments")
 
@@ -45,3 +47,42 @@ def test_login_delegates_to_token_auth() -> None:
     client = AnemoiMlflowClient("http://localhost:5000", authentication=True, check_health=False)
     client.login(force_credentials=True)
     client.anemoi_auth.login.assert_called_once_with(force_credentials=True)
+
+
+def test_uses_token_auth_by_default() -> None:
+    AnemoiMlflowClient("http://localhost:5000", authentication=True, check_health=False)
+    client_module.TokenAuth.assert_called_once()
+    client_module.StaticTokenAuth.assert_not_called()
+
+
+def test_static_token_string_uses_static_auth() -> None:
+    AnemoiMlflowClient(
+        "http://localhost:5000",
+        authentication=True,
+        static_token="my-token",
+        check_health=False,
+    )
+    client_module.StaticTokenAuth.assert_called_once_with("http://localhost:5000", token="my-token", enabled=True)
+    client_module.TokenAuth.assert_not_called()
+
+
+def test_static_token_true_loads_from_disk() -> None:
+    AnemoiMlflowClient(
+        "http://localhost:5000",
+        authentication=True,
+        static_token=True,
+        check_health=False,
+    )
+    client_module.StaticTokenAuth.assert_called_once_with("http://localhost:5000", token=None, enabled=True)
+    client_module.TokenAuth.assert_not_called()
+
+
+def test_static_token_false_uses_token_auth() -> None:
+    AnemoiMlflowClient(
+        "http://localhost:5000",
+        authentication=True,
+        static_token=False,
+        check_health=False,
+    )
+    client_module.TokenAuth.assert_called_once()
+    client_module.StaticTokenAuth.assert_not_called()
