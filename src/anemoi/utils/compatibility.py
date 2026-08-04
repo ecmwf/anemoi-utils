@@ -1,4 +1,4 @@
-# (C) Copyright 2024 Anemoi contributors.
+# (C) Copyright 2024-2026 Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -39,14 +39,14 @@ def aliases(aliases: dict[str, str | list[str]] | None = None, **kwargs: Any) ->
 
     Examples
     --------
-    ```python
-    @aliases(a="b", c=["d", "e"])
-    def func(a, c):
-        return a, c
+    ::
 
-    func(a=1, c=2)  # (1, 2)
-    func(b=1, d=2)  # (1, 2)
-    ```
+        @aliases(a="b", c=["d", "e"])
+        def func(a, c):
+            return a, c
+
+        func(a=1, c=2)  # (1, 2)
+        func(b=1, d=2)  # (1, 2)
     """
 
     if aliases is None:

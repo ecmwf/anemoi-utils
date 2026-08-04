@@ -8,6 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.12](https://github.com/ecmwf/anemoi-utils/compare/0.5.11...0.5.12) (2026-07-28)
+
+
+### Features
+
+* **settings:** Reject old object-storage entries and hide input in errors ([#334](https://github.com/ecmwf/anemoi-utils/issues/334)) ([04e0a37](https://github.com/ecmwf/anemoi-utils/commit/04e0a37a47476059ab5fbeb950010b343b690f34))
+
+## [0.5.11](https://github.com/ecmwf/anemoi-utils/compare/0.5.10...0.5.11) (2026-07-28)
+
+
+### Features
+
+* Fix timezone corner case ([#330](https://github.com/ecmwf/anemoi-utils/issues/330)) ([1ebb009](https://github.com/ecmwf/anemoi-utils/commit/1ebb009637f3336844489d7c3ea5dc5d0040b853))
+
+
+### Bug Fixes
+
+* Remove alias generator ([#332](https://github.com/ecmwf/anemoi-utils/issues/332)) ([dd8373a](https://github.com/ecmwf/anemoi-utils/commit/dd8373a24d5e2f65caadccf8d595191773390660)), closes [#331](https://github.com/ecmwf/anemoi-utils/issues/331)
+
+## [0.5.10](https://github.com/ecmwf/anemoi-utils/compare/0.5.9...0.5.10) (2026-07-23)
+
+
+### Features
+
+* Add command to dump the model structure from a checkpoint ([#325](https://github.com/ecmwf/anemoi-utils/issues/325)) ([e0ba7f0](https://github.com/ecmwf/anemoi-utils/commit/e0ba7f07df5f307f73741eb7b94dc12cdc83d108))
+* Create and ship py.typed ([#328](https://github.com/ecmwf/anemoi-utils/issues/328)) ([05634bb](https://github.com/ecmwf/anemoi-utils/commit/05634bb015e727757087b8b86792310f8e6c0930))
+* Review handling of secret settings ([#327](https://github.com/ecmwf/anemoi-utils/issues/327)) ([1966a57](https://github.com/ecmwf/anemoi-utils/commit/1966a57e8aebd19bdec4dba582d906392c0674b8))
+* Support data in azure blob storage ([#324](https://github.com/ecmwf/anemoi-utils/issues/324)) ([a146276](https://github.com/ecmwf/anemoi-utils/commit/a14627690e3144485a63d0b7abbe9854ea4092db))
+
+## [0.5.9](https://github.com/ecmwf/anemoi-utils/compare/0.5.8...0.5.9) (2026-06-23)
+
+
+### Features
+
+* Option to allow extra settings in anemoi config ([#319](https://github.com/ecmwf/anemoi-utils/issues/319)) ([070d3c7](https://github.com/ecmwf/anemoi-utils/commit/070d3c7efda593afa37286bfa403044d6863a727))
+
 ## [0.5.8](https://github.com/ecmwf/anemoi-utils/compare/0.5.7...0.5.8) (2026-06-18)
 
 

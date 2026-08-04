@@ -1,4 +1,4 @@
-# (C) Copyright 2024 Anemoi contributors.
+# (C) Copyright 2024-2026 Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -41,6 +41,7 @@ class Command:
     """Base class for commands."""
 
     accept_unknown_args = False
+    aliases: list[str] = []
 
     def check(self, parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         """Check the command arguments."""
@@ -97,7 +98,9 @@ def make_parser(description: str, commands: dict[str, Command]) -> argparse.Argu
 
     subparsers = parser.add_subparsers(help="commands:", dest="command")
     for name, command in commands.items():
-        command_parser = subparsers.add_parser(name, description=command.__doc__, help=command.__doc__)
+        command_parser = subparsers.add_parser(
+            name, aliases=command.aliases, description=command.__doc__, help=command.__doc__
+        )
         command.add_arguments(command_parser)
 
     return parser
@@ -236,7 +239,12 @@ def cli_main(
         parser.print_help()
         return
 
-    cmd = commands[args.command]
+    cmd = commands.get(args.command)
+    if cmd is None:
+        # `args.command` may be an alias; look it up among the registered commands.
+        cmd = next((c for c in commands.values() if args.command in c.aliases), None)
+    if cmd is None:
+        parser.error(f"Unknown command: {args.command}")
 
     if args.rich:
         from .logs import get_rich_handler

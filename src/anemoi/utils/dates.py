@@ -1,4 +1,4 @@
-# (C) Copyright 2024 Anemoi contributors.
+# (C) Copyright 2024-2026 Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -41,6 +41,12 @@ def normalise_frequency(frequency: int | str) -> int:
 def _no_time_zone(date: datetime.datetime) -> datetime.datetime:
     """Remove time zone information from a date.
 
+    An explicitly-offset datetime is first converted to UTC, so its instant
+    is preserved rather than its wall-clock reading; the conversion is a pure
+    function of the datetime's own offset and never consults the local clock,
+    so the result is reproducible across machines. A naive datetime already
+    means UTC by convention and is returned unchanged.
+
     Parameters
     ----------
     date : datetime.datetime
@@ -52,6 +58,8 @@ def _no_time_zone(date: datetime.datetime) -> datetime.datetime:
         The datetime object without time zone information.
     """
 
+    if date.tzinfo is not None:
+        date = date.astimezone(datetime.timezone.utc)
     return date.replace(tzinfo=None)
 
 

@@ -1,4 +1,4 @@
-# (C) Copyright 2024 Anemoi contributors.
+# (C) Copyright 2024-2026 Anemoi contributors.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -103,6 +103,12 @@ class Metadata(Command):
             help=("Extract the metadata from the checkpoint so it can be added to the test suite."),
         )
 
+        group.add_argument(
+            "--peek",
+            action="store_true",
+            help=("Peek into the pickled model."),
+        )
+
         command_parser.add_argument(
             "--name",
             default=DEFAULT_NAME,
@@ -111,7 +117,7 @@ class Metadata(Command):
 
         command_parser.add_argument(
             "--input",
-            help="The output file name to be used by the ``--load`` option.",
+            help="The input file name to be used by the ``--load`` option.",
         )
 
         command_parser.add_argument(
@@ -181,6 +187,9 @@ class Metadata(Command):
 
         if args.supporting_arrays:
             return self.supporting_arrays(args)
+
+        if args.peek:
+            return self.peek(args)
 
     def edit(self, args: Namespace) -> None:
         """Edit the metadata in place using the specified editor.
@@ -392,6 +401,27 @@ class Metadata(Command):
 
         for name, array in supporting_arrays.items():
             print(f"{name}: shape={array.shape} dtype={array.dtype}")
+
+    def peek(self, args: Namespace) -> None:
+        """Peek into the pickled model from the checkpoint.
+
+        Parameters
+        ----------
+        args : Namespace
+            The arguments passed to the command.
+        """
+        from anemoi.utils.checkpoints import unpickle_model
+
+        kwargs = dict(
+            # function_calls=True,
+            bytes_count=True
+        )
+
+        model = unpickle_model(args.path, **kwargs)
+        if args.yaml:
+            print(yaml.dump(model, indent=2))
+        else:
+            print(json.dumps(model, indent=2))
 
 
 command = Metadata

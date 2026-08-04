@@ -251,12 +251,44 @@ class TestEnvVarOverrides:
 
 
 # ---------------------------------------------------------------------------
+# Environment prefix isolation (regression)
+# ---------------------------------------------------------------------------
+
+
+class TestEnvPrefixIsolation:
+    """Only ``ANEMOI_SETTINGS_``-prefixed env vars may configure settings.
+
+    Regression guard: a bare environment variable whose name collides with a
+    top-level field (e.g. ``DATASETS``) must be ignored.
+    """
+
+    def test_bare_field_named_env_var_does_not_break_loading(self, isolated_settings):
+        """A bare ``DATASETS`` (non-JSON) must not raise and must not set the field."""
+        s = isolated_settings.load(DATASETS="/scratch/some/path")
+        assert s.datasets.path == []  # unchanged default, bare var ignored
+
+    def test_bare_field_named_env_var_does_not_override_file(self, isolated_settings):
+        """A bare env var must not override a value coming from the config file."""
+        isolated_settings.toml.write_text(textwrap.dedent("""\
+                [paramdb]
+                default_origin = "destine"
+            """))
+        s = isolated_settings.load(PARAMDB="not-json")
+        assert s.paramdb.default_origin == "destine"
+
+    def test_prefixed_env_var_still_configures_field(self, isolated_settings):
+        """The documented ``ANEMOI_SETTINGS_`` prefix must remain effective."""
+        s = isolated_settings.load(ANEMOI_SETTINGS_DATASETS__IGNORE_NAMING_CONVENTIONS="1")
+        assert s.datasets.ignore_naming_conventions is True
+
+
+# ---------------------------------------------------------------------------
 # Secrets separation
 # ---------------------------------------------------------------------------
 
 
 class TestSecretsSeparation:
-    """Secrets and non-secrets must live in separate files."""
+    """Secrets may live in any file, as long as that file is mode 0600."""
 
     def test_secrets_loaded_from_secrets_file(self, isolated_settings):
         """SecretStr fields in the secrets file are loaded."""
@@ -270,28 +302,42 @@ class TestSecretsSeparation:
         assert isinstance(s.object_storage.access_key_id, SecretStr)
         assert s.object_storage.access_key_id.get_secret_value() == "AKIAIOSFODNN7EXAMPLE"
 
-    def test_secrets_in_config_file_are_rejected(self, isolated_settings):
-        """Putting SecretStr fields in the main config file should raise."""
+    @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions only")
+    def test_secrets_in_config_file_allowed_when_secure(self, isolated_settings):
+        """SecretStr fields in the main config file are accepted if it is 0600."""
         isolated_settings.toml.write_text(textwrap.dedent("""\
                 [object-storage]
                 access_key_id = "AKIAIOSFODNN7EXAMPLE"
             """))
-        with pytest.raises(ValueError, match="[Ss]ecret"):
+        isolated_settings.toml.chmod(0o600)
+        s = isolated_settings.load()
+        assert s.object_storage.access_key_id.get_secret_value() == "AKIAIOSFODNN7EXAMPLE"
+
+    @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions only")
+    def test_secrets_in_world_readable_config_file_raise(self, isolated_settings):
+        """A secret in a world-readable config file is a fatal error."""
+        isolated_settings.toml.write_text(textwrap.dedent("""\
+                [object-storage]
+                access_key_id = "AKIAIOSFODNN7EXAMPLE"
+            """))
+        isolated_settings.toml.chmod(0o644)
+        with pytest.raises(PermissionError, match="0o600"):
             isolated_settings.load()
 
-    def test_non_secrets_in_secrets_file_are_ignored(self, isolated_settings):
-        """Non-secret keys in the secrets file should be silently ignored."""
+    def test_non_secrets_in_secrets_file_are_loaded(self, isolated_settings):
+        """Non-secret keys in the secrets file are loaded, not partitioned away."""
         isolated_settings.secrets_toml.write_text(textwrap.dedent("""\
                 [paramdb]
-                default_origin = "should-be-ignored"
+                default_origin = "from-secrets-file"
 
                 [object-storage]
                 access_key_id = "AKIAEXAMPLE"
             """))
         isolated_settings.secrets_toml.chmod(0o600)
         s = isolated_settings.load()
-        # The non-secret key should NOT have been applied
-        assert s.paramdb.default_origin != "should-be-ignored"
+        # Keys may live anywhere; the non-secret key is applied.
+        assert s.paramdb.default_origin == "from-secrets-file"
+        assert s.object_storage.access_key_id.get_secret_value() == "AKIAEXAMPLE"
 
 
 # ---------------------------------------------------------------------------
@@ -418,6 +464,53 @@ class TestBucketOverrides:
         assert bucket_cfg.skip_signature is True
         # Global is untouched
         assert s.object_storage.endpoint_url == "https://global.example.com"
+
+
+class TestObjectStorageConfig:
+    """Tests for the ObjectStorageConfig class."""
+
+    @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions only")
+    def test_object_storage_raises_on_mixed_backends(self, isolated_settings) -> None:
+        """A bucket config that mixes S3 and Azure fields should raise."""
+        isolated_settings.secrets_toml.write_text(
+            textwrap.dedent(
+                """\
+                [object-storage]
+                access_key_id = "AKIAEXAMPLE"
+                account_name = "azureaccount"
+                """,
+            ),
+        )
+        isolated_settings.secrets_toml.chmod(0o600)
+        with pytest.raises(ValueError, match="Mixed S3 and Azure"):
+            isolated_settings.load()
+
+    def test_object_storage_warns_on_type_field(self, isolated_settings) -> None:
+        """Setting the 'type' field in the config should warn."""
+        isolated_settings.toml.write_text(
+            textwrap.dedent(
+                """\
+                [object-storage]
+                type = "s3"
+                """,
+            ),
+        )
+        with pytest.warns(DeprecationWarning, match="is deprecated"):
+            isolated_settings.load()
+
+    def test_object_storage_warns_on_get_method(self, isolated_settings) -> None:
+        """Accessing the 'get' method should warn."""
+        isolated_settings.toml.write_text(
+            textwrap.dedent(
+                """\
+                [object-storage]
+                endpoint_url = "https://global.example.com"
+                """,
+            ),
+        )
+        s = isolated_settings.load()
+        with pytest.warns(DeprecationWarning, match="is deprecated"):
+            s.object_storage.get("endpoint_url")
 
 
 # ---------------------------------------------------------------------------
