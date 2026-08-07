@@ -16,24 +16,46 @@ Use `PARAMDB` for direct access.
 See https://codes.ecmwf.int/grib/param-db/ for more information.
 """
 
+import logging
 from datetime import timedelta
+from functools import cache
+from typing import Any
 
 from pymetkit import ParamDB
 
-from .settings import AnemoiSettings
+from .settings import SETTINGS
 
-SETTINGS = AnemoiSettings()
 """Anemoi settings, loaded on module import."""
 
-PARAMDB = ParamDB(
-    mode=SETTINGS.paramdb.mode,
-    cache_ttl=timedelta(days=SETTINGS.paramdb.cache_length),
-    yaml_path=SETTINGS.paramdb.local_data,
-)
+PARAMDB_SETTINGS = SETTINGS.paramdb
+LOG = logging.getLogger(__name__)
 
 
-def shortname_to_paramid(shortname: str, **filters) -> int:
+@cache
+def get_paramdb() -> ParamDB:
+    """Return the global ParamDB instance.
+
+    Returns
+    -------
+    ParamDB
+        The global ParamDB instance.
+    """
+
+    return ParamDB(
+        mode=PARAMDB_SETTINGS.mode,
+        cache_path=PARAMDB_SETTINGS.cache_path,
+        cache_ttl=timedelta(days=PARAMDB_SETTINGS.cache_length),
+        yaml_path=PARAMDB_SETTINGS.local_data,
+    )
+
+
+def shortname_to_paramid(shortname: str, **filters: Any) -> int:
     """Return the GRIB parameter id given its shortname.
+
+    SETTINGS.paramdb.default_filters can be used to provide default filters for disambiguation.
+
+    If a collision is detected (i.e. multiple parameters with the same shortname), a warning will be logged and the first parameter id will be returned.
+    Additional filters can be provided to disambiguate.
 
     Parameters
     ----------
@@ -50,18 +72,31 @@ def shortname_to_paramid(shortname: str, **filters) -> int:
     >>> shortname_to_paramid("2t")
     167
     """
-    return PARAMDB.shortname_to_param_id(shortname, **filters)
+    filters = filters or PARAMDB_SETTINGS.default_filters or {}
+
+    if get_paramdb().shortname_has_collisions(shortname) and not filters:
+        candidates = get_paramdb().shortname_to_param_id_candidates(shortname)
+        log_message = (
+            f"Shortname '{shortname}' has collisions. Candidates: {[c.param_id for c in candidates]}. "
+            "Consider providing additional filters to disambiguate, will use empty context by default."
+            f"\nTo select one of the ids use: \n"
+            + "\n".join(
+                f"  - {c.param_id}: {f'context = {c.mars_request_context}' if c.mars_request_context is not None else c.hard_filter_selector}"
+                for c in candidates
+            )
+        )
+        LOG.warning(log_message)
+        filters = {"context": {}}
+    return get_paramdb().shortname_to_param_id(shortname, **filters)
 
 
-def paramid_to_shortname(paramid: int, **filters) -> str:
+def paramid_to_shortname(paramid: int) -> str:
     """Return the shortname of a GRIB parameter given its id.
 
     Parameters
     ----------
     paramid : int
         Parameter id.
-    filters : Any
-        Additional filters to disambiguate parameters with the same shortname (e.g. origin, access, table, discipline, category).
 
     Returns
     -------
@@ -71,7 +106,7 @@ def paramid_to_shortname(paramid: int, **filters) -> str:
     >>> paramid_to_shortname(167)
     '2t'
     """
-    return PARAMDB.param_id_to_shortname(paramid, **filters)  # type: ignore[reportReturnType]
+    return get_paramdb().param_id_to_shortname(paramid)
 
 
 def units(param: int | str) -> str:
@@ -90,7 +125,7 @@ def units(param: int | str) -> str:
     >>> units(167)
     'K'
     """
-    return PARAMDB.get_units(param)
+    return get_paramdb().get_units(param)
 
 
 def must_be_positive(param: int | str) -> bool:

@@ -41,6 +41,18 @@ def _offline_paramdb():
     return ParamDB(mode="offline")
 
 
+def _install_paramdb(monkeypatch, db):
+    """Install *db* as the active ParamDB and neutralise settings-level filters.
+
+    Returns the patched ``anemoi.utils.grib`` module.
+    """
+    import anemoi.utils.grib as grib_mod
+
+    monkeypatch.setattr(grib_mod, "get_paramdb", lambda: db)
+    monkeypatch.setattr(grib_mod.PARAMDB_SETTINGS, "default_filters", None, raising=False)
+    return grib_mod
+
+
 @pytest.fixture(params=["local", "bundled"])
 def grib(request, monkeypatch, _local_paramdb, _offline_paramdb):
     """Swap anemoi.utils.grib.PARAMDB to the requested backend.
@@ -48,12 +60,14 @@ def grib(request, monkeypatch, _local_paramdb, _offline_paramdb):
     'local' reuses a session-scoped ParamDB pointing at our test YAML.
     'bundled' constructs one from pymetkit's default YAML lookup (which may
     not exist, in which case the test xfails on FileNotFoundError).
-    """
-    import anemoi.utils.grib as grib_mod
 
+    Tests can restrict to a single backend via indirect parametrisation, e.g.::
+
+        @pytest.mark.parametrize("grib", ["local"], indirect=True)
+        class TestOnlyLocal: ...
+    """
     db = _local_paramdb if request.param == "local" else _offline_paramdb
-    monkeypatch.setattr(grib_mod, "PARAMDB", db)
-    return grib_mod
+    return _install_paramdb(monkeypatch, db)
 
 
 # ---------------------------------------------------------------------------
@@ -174,3 +188,97 @@ class TestMustBePositive:
     def test_accepts_paramid(self, grib):
         assert grib.must_be_positive(228) is True  # tp, units: m
         assert grib.must_be_positive(167) is False  # 2t, units: K
+
+
+# ---------------------------------------------------------------------------
+# Shortname collision handling
+# ---------------------------------------------------------------------------
+
+
+class TestShortnameCollisions:
+    """The fixture YAML contains a colliding shortname 't' (paramids 130 and 500014).
+
+    Restricted to the ``local`` backend: the bundled pymetkit DB does not
+    contain the same candidate set for 't' (e.g. no ``origin=7`` variant).
+
+    - No filter and no default_filters -> WARN and fall back to ``context={}``
+      (returns 130 in the fixture).
+    - Explicit disambiguating filter -> no warning, correct paramid.
+    - Settings-level ``default_filters`` -> used when no explicit filter passed.
+    """
+
+    pytestmark = pytest.mark.parametrize("grib", ["local"], indirect=True)
+
+    COLLIDING_SHORTNAME = "t"
+    DEFAULT_CONTEXT_PARAMID = 130  # what ``context={}`` resolves to
+    ALT_ORIGIN = 7
+    ALT_ORIGIN_PARAMID = 500014
+
+    def test_collision_warns_and_returns_default(self, grib, caplog):
+        import logging
+
+        # Ensure no default filters interfere.
+        grib.PARAMDB_SETTINGS.default_filters = None
+
+        with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
+            result = grib.shortname_to_paramid(self.COLLIDING_SHORTNAME)
+
+        assert result == self.DEFAULT_CONTEXT_PARAMID
+        assert any(
+            "collisions" in rec.message and self.COLLIDING_SHORTNAME in rec.message for rec in caplog.records
+        ), "expected a warning listing candidates for the colliding shortname"
+
+    def test_explicit_filter_disambiguates_without_warning(self, grib, caplog):
+        import logging
+
+        grib.PARAMDB_SETTINGS.default_filters = None
+
+        with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
+            result = grib.shortname_to_paramid(self.COLLIDING_SHORTNAME, origin=self.ALT_ORIGIN)
+
+        assert result == self.ALT_ORIGIN_PARAMID
+        assert not any("collisions" in rec.message for rec in caplog.records)
+
+    def test_default_filters_from_settings_used(self, grib, caplog, monkeypatch):
+        import logging
+
+        monkeypatch.setattr(
+            grib.PARAMDB_SETTINGS,
+            "default_filters",
+            {"origin": self.ALT_ORIGIN},
+            raising=False,
+        )
+
+        with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
+            result = grib.shortname_to_paramid(self.COLLIDING_SHORTNAME)
+
+        assert result == self.ALT_ORIGIN_PARAMID
+        assert not any("collisions" in rec.message for rec in caplog.records)
+
+    def test_shipped_default_disambiguates_local_fixture(self, grib, caplog):
+        """The shipped defaults.toml sets ``access = "dissemination"``.
+
+        Verify it silently disambiguates our fixture's 't' collision without
+        needing an explicit filter at the call site.
+        """
+        import logging
+
+        from anemoi.utils.settings_schema.paramdb import ParamDBConfig
+
+        grib.PARAMDB_SETTINGS.default_filters = ParamDBConfig().default_filters
+        assert grib.PARAMDB_SETTINGS.default_filters == {"access": "dissemination"}
+
+        with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
+            result = grib.shortname_to_paramid(self.COLLIDING_SHORTNAME)
+
+        assert result == self.DEFAULT_CONTEXT_PARAMID
+        assert not any("collisions" in rec.message for rec in caplog.records)
+
+    def test_non_colliding_shortname_no_warning(self, grib, caplog):
+        import logging
+
+        grib.PARAMDB_SETTINGS.default_filters = None
+        with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
+            grib.shortname_to_paramid("2t")
+
+        assert not any("collisions" in rec.message for rec in caplog.records)
