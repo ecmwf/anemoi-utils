@@ -127,6 +127,9 @@ ignore_naming_conventions = false
 # Mode for GRIB parameter lookups. 'online' uses the ECMWF API, 'offline' uses a local cache file.
 mode = "offline"
 
+# Path to store cached entries when using online mode, defaults to the OS-appropriate user cache directory
+# cache_path = "/tmp"
+
 # Cache length in days for GRIB parameter lookups.
 cache_length = 30
 
@@ -134,6 +137,14 @@ cache_length = 30
 # If set, used instead of the offline metkit cache.
 # Leave empty / unset to use the online / offline ECMWF API.
 # local_data = "/path/to/parameters.yaml"
+
+# Change the default filters to prevent conflicting shortname to paramid lookups
+# Default is access = "dissemination"
+# Set context with class, stream, type, or levtype
+# or origin, table, access directly
+
+[paramdb.default_filters]
+access = "dissemination"
 
 
 # =============================================================================
