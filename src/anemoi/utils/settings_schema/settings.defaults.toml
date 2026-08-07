@@ -124,17 +124,16 @@ ignore_naming_conventions = false
 # =============================================================================
 [paramdb]
 
-# Default origin to use when disambiguating parameters with the same shortname.
-# Common values: "ecmf", "destine".
-default_origin = "ecmf"
+# Mode for GRIB parameter lookups. 'online' uses the ECMWF API, 'offline' uses a local cache file.
+mode = "offline"
 
-# Cache length in days for GRIB parameter lookups from the online API.
+# Cache length in days for GRIB parameter lookups.
 cache_length = 30
 
-# Path to a local JSON cache file for GRIB parameters.
-# If set, this will be used instead of making online API calls.
-# Leave empty / unset to use the online API.
-# local_cache = "/path/to/parameters.json"
+# Path to a local YAML cache file for GRIB parameters.
+# If set, used instead of the offline metkit cache.
+# Leave empty / unset to use the online / offline ECMWF API.
+# local_data = "/path/to/parameters.yaml"
 
 
 # =============================================================================
