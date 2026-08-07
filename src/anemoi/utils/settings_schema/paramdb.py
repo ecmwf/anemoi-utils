@@ -7,6 +7,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+from typing import Literal
 from typing import Optional
 
 from pydantic import FilePath
@@ -22,11 +23,11 @@ class ParamDBConfig(AnemoiBaseSettingsSchema):
     and cache lifetime).
     """
 
-    default_origin: str = "ecmf"
-    """Default origin to use when disambiguating parameters with the same shortname."""
+    mode: Literal["online", "offline"] = "offline"
+    """Mode for GRIB parameter lookups. 'online' uses the ECMWF API, 'offline' uses a local cache file."""
 
     cache_length: int = 30
     """Cache length in days for GRIB parameter lookups."""
 
-    local_cache: Optional[FilePath] = None
-    """Path to a local JSON cache file for GRIB parameters. If set, used instead of the online API."""
+    local_data: Optional[FilePath] = None
+    """Path to a local YAML cache file for GRIB parameters. If set, used instead of the online API."""

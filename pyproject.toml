@@ -43,6 +43,7 @@ dependencies = [
   "peekle",
   "pydantic>=2.9",
   "pydantic-settings>=2.14.1",
+  "pymetkit",
   "python-dateutil",
   "pyyaml",
   "rich",
