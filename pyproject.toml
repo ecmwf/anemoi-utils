@@ -40,7 +40,6 @@ dependencies = [
   "filelock",
   "multiurl",
   "numpy",
-  "peekle",
   "pydantic>=2.9",
   "pydantic-settings>=2.14.1",
   "python-dateutil",
@@ -48,14 +47,13 @@ dependencies = [
   "rich",
   "tqdm",
 ]
-optional-dependencies.all = [ "anemoi-utils[grib,mlflow,provenance,remote,text]" ]
+optional-dependencies.all = [ "anemoi-utils[grib,mlflow,provenance,s3,text]" ]
 optional-dependencies.dev = [ "anemoi-utils[all,docs,tests]" ]
 optional-dependencies.docs = [
   "anemoi-utils[all]",
   "autodoc-pydantic>=2.2",
   "nbsphinx",
   "pandoc",
-  "pytest",
   "requests",
   "sphinx",
   "sphinx-argparse",
@@ -65,8 +63,9 @@ optional-dependencies.docs = [
 optional-dependencies.grib = [ "requests" ]
 optional-dependencies.mlflow = [ "mlflow-skinny>=2.11.1", "requests" ]
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
-optional-dependencies.remote = [ "obstore" ]
-optional-dependencies.s3 = [ "anemoi-utils[remote]" ]  # deprecated, use "remote"
+optional-dependencies.s3 = [
+  "obstore",
+]
 optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance]", "pytest", "pytest-mock>=3" ]
 optional-dependencies.text = [ "termcolor", "wcwidth" ]
 urls.Documentation = "https://anemoi-utils.readthedocs.io/"
@@ -76,17 +75,11 @@ urls.Repository = "https://github.com/ecmwf/anemoi-utils/"
 scripts.anemoi-utils = "anemoi.utils.__main__:main"
 
 [tool.setuptools]
-package-data."anemoi.utils" = [ "py.typed" ]
 package-data."anemoi.utils.mars" = [ "*.yaml" ]
 package-data."anemoi.utils.settings_schema" = [ "*.toml" ]
 
 [tool.setuptools_scm]
 version_file = "src/anemoi/utils/_version.py"
-
-[tool.ruff]
-line-length = 120
-extend-exclude = [ "docs/**/*_.py" ]
-lint.isort.force-single-line = true
 
 [tool.mypy]
 mypy_path = "src"

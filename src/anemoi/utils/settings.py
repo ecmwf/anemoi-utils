@@ -11,7 +11,6 @@
 import logging
 import os
 import shutil
-import threading
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -80,20 +79,22 @@ def copy_default_settings(dest: Path | None = None, *, overwrite: bool = False) 
     return dest
 
 
-def _ensure_secure_file(path: Path, secret_keys: list[str] | None = None) -> None:
-    """Verify a file holding secrets is not world/group readable (POSIX only)."""
+def _ensure_secure_file(path: Path) -> None:
+    """Verify a secrets file is not world/group readable (POSIX only)."""
     if os.name != "posix" or not path.exists():
         return
     mode = path.stat().st_mode & 0o777
     if mode != _SECRETS_FILE_MODE:
-        keys = f" ({', '.join(secret_keys)})" if secret_keys else ""
         raise PermissionError(
-            f"Secrets found in {path}{keys}: this file must have permissions "
-            f"{oct(_SECRETS_FILE_MODE)}; got {oct(mode)}. Run: chmod 600 {path}"
+            f"Secrets file {path} must have permissions {oct(_SECRETS_FILE_MODE)}; got {oct(mode)}. "
+            f"Run: chmod 600 {path}"
         )
 
 
 _WILDCARD = "*"
+# Top-level boolean key that can be set in the secrets file to opt out of
+# dropping non-secret keys found there. Accepts hyphen or underscore spelling.
+_KEEP_EXTRAS_KEYS = ("keep-extra-settings", "keep_extra_settings")
 # A SecretTree is a nested dict where leaves are True (SecretStr) and inner
 # nodes are sub-trees keyed by underscore-normalised field name. The special
 # key "*" represents typed extras (`__pydantic_extra__: dict[str, Model]`).
@@ -149,6 +150,18 @@ def _collect_secret_paths(model_cls: type, seen: frozenset[type] = frozenset()) 
     return tree
 
 
+def _flatten_tree(d: DataTree, prefix: str = "") -> list[str]:
+    """Flatten a DataTree into a list of dotted path strings."""
+    out: list[str] = []
+    for k, v in d.items():
+        path = f"{prefix}{k}"
+        if isinstance(v, dict):
+            out.extend(_flatten_tree(v, path + "."))
+        else:
+            out.append(path)
+    return out
+
+
 def _deep_merge(base: DataTree, extra: DataTree) -> DataTree:
     """Recursively merge *extra* into *base*, returning a new dict.
 
@@ -163,18 +176,6 @@ def _deep_merge(base: DataTree, extra: DataTree) -> DataTree:
         elif k not in out:
             out[k] = v
     return out
-
-
-def _flatten_tree(d: DataTree, prefix: str = "") -> list[str]:
-    """Flatten a DataTree into a sorted list of dotted path strings."""
-    out: list[str] = []
-    for k, v in d.items():
-        path = f"{prefix}{k}"
-        if isinstance(v, dict):
-            out.extend(_flatten_tree(v, path + "."))
-        else:
-            out.append(path)
-    return sorted(out)
 
 
 def _split_secrets(data: DataTree, tree: SecretTree) -> tuple[DataTree, DataTree]:
@@ -214,49 +215,77 @@ def convert_to_secret(
     raise ValueError(f"Unsupported type for secret value: {type(val)}")
 
 
-class AnemoiConfigFileSource(PydanticBaseSettingsSource):
-    """Loads settings from a TOML/YAML config file pair.
+class AnemoiSecretsSource(PydanticBaseSettingsSource):
+    """Loads SecretStr-typed fields from secured TOML/YAML files."""
 
-    Secret (``SecretStr``) values may live in *any* settings file, provided
-    that file has mode ``0600``. A file that contains no secrets has no
-    permission requirement. There is therefore no need to partition secret and
-    non-secret keys into separate files: keys may go anywhere as long as any
-    file holding a secret is mode ``0600``.
-    """
-
-    def __init__(
-        self,
-        settings_cls: type[BaseSettings],
-        toml_file: Path,
-        yaml_file: Path,
-    ) -> None:
+    def __init__(self, settings_cls: type[BaseSettings]) -> None:
         super().__init__(settings_cls)
-        self._toml_file = toml_file
-        self._yaml_file = yaml_file
-        self._toml_source = TomlConfigSettingsSource(settings_cls, toml_file=toml_file)
-        self._yaml_source = YamlConfigSettingsSource(settings_cls, yaml_file=yaml_file)
+        self._toml_path = ANEMOI_SETTINGS_FILE_LOCATION.with_suffix(".secrets.toml")
+        self._yaml_path = ANEMOI_SETTINGS_FILE_LOCATION.with_suffix(".secrets.yaml")
+
+        _ensure_secure_file(self._toml_path)
+        _ensure_secure_file(self._yaml_path)
+
+        self._toml_source = TomlConfigSettingsSource(settings_cls, toml_file=self._toml_path)
+        self._yaml_source = YamlConfigSettingsSource(settings_cls, yaml_file=self._yaml_path)
         self._secret_tree = _collect_secret_paths(settings_cls)
 
     def get_field_value(self, field: Any, field_name: str) -> tuple[Any, str, bool]:
         raise NotImplementedError
 
-    def _load(self, path: Path, source: PydanticBaseSettingsSource) -> dict[str, Any]:
-        data: dict[str, Any] = source()
+    def __call__(self) -> dict[str, Any]:
+        data: dict[str, Any] = {**self._yaml_source(), **self._toml_source()}
+        if not data:
+            return {}
+        keep_extras = False
+        for key in _KEEP_EXTRAS_KEYS:
+            if key in data:
+                keep_extras = bool(data.pop(key))
+        secret, rest = _split_secrets(data, self._secret_tree)
+        result = convert_to_secret(secret) if secret else {}
+        if rest:
+            if keep_extras:
+                result = _deep_merge(result, rest)
+            else:
+                logger.warning(
+                    "Ignoring non-secret keys in secrets file(s): %s. Move these to %s, "
+                    "or set `keep_extra_settings = true` in the secrets file to keep them.",
+                    sorted(_flatten_tree(rest)),
+                    self._toml_path.with_name(self._toml_path.name.replace(".secrets", "")),
+                )
+        return result
+
+
+class AnemoiNonSecretsSource(PydanticBaseSettingsSource):
+    """Loads non-secret fields from TOML/YAML files; rejects any SecretStr leaves."""
+
+    def __init__(self, settings_cls: type[BaseSettings]) -> None:
+        super().__init__(settings_cls)
+        self._toml_source = TomlConfigSettingsSource(
+            settings_cls,
+            toml_file=ANEMOI_SETTINGS_FILE_LOCATION.with_suffix(".toml"),
+        )
+        self._yaml_source = YamlConfigSettingsSource(
+            settings_cls,
+            yaml_file=ANEMOI_SETTINGS_FILE_LOCATION.with_suffix(".yaml"),
+        )
+        self._secret_tree = _collect_secret_paths(settings_cls)
+
+    def get_field_value(self, field: Any, field_name: str) -> tuple[Any, str, bool]:
+        raise NotImplementedError
+
+    def __call__(self) -> dict[str, Any]:
+        data: dict[str, Any] = {**self._yaml_source(), **self._toml_source()}
         if not data:
             return {}
         secret, rest = _split_secrets(data, self._secret_tree)
-        if not secret:
-            return rest
-        # Any file holding secrets must be locked down.
-        _ensure_secure_file(path, _flatten_tree(secret))
-        return _deep_merge(convert_to_secret(secret), rest)
-
-    def __call__(self) -> dict[str, Any]:
-        # TOML takes precedence over YAML for the same key.
-        return {
-            **self._load(self._yaml_file, self._yaml_source),
-            **self._load(self._toml_file, self._toml_source),
-        }
+        if secret:
+            stem = ANEMOI_SETTINGS_FILE_LOCATION.stem
+            raise ValueError(
+                f"Secret keys {sorted(_flatten_tree(secret))} found in non-secret config files; "
+                f"move them to the {stem}.secrets.toml/{stem}.secrets.yaml file (mode 0600)."
+            )
+        return rest
 
 
 class AnemoiSettings(BaseSettings):
@@ -267,15 +296,12 @@ class AnemoiSettings(BaseSettings):
     (default: ``~/.config/anemoi/settings.toml``).
 
     The main settings file can be in either TOML or YAML format; the extension
-    is ignored. Keys may be placed in any settings file, secret or not: there
-    is no requirement to partition secret and non-secret keys into separate
-    files. The only rule is that **any file containing a ``SecretStr`` value
-    must have permissions ``0600``**; a secret found in a file that is readable
-    by group or others is a fatal error (:class:`PermissionError`).
-
-    An optional secrets file with the same name but suffixed with ``.secrets``
-    (e.g. ``settings.secrets.toml``) is also read. It is the natural place to
-    keep secrets when the main settings file must stay readable by others.
+    is ignored.  ``SecretStr``-typed fields should be placed in a separate
+    secrets file with the same name but suffixed with ``.secrets``
+    (e.g. ``settings.secrets.toml``) and must have permissions set to ``0600``.
+    Non-secret fields will be ignored if found in the secrets file, and secret
+    fields will be rejected if found in the main settings file, to encourage
+    proper separation of concerns.
 
     **Note:** Init kwargs are intentionally disabled as a source of settings.
 
@@ -283,8 +309,8 @@ class AnemoiSettings(BaseSettings):
 
     1. Environment variables (with prefix ``ANEMOI_SETTINGS_`` and keys in
        upper case with underscores)
-    2. Values from the ``.secrets.(toml|yaml)`` file
-    3. Values from the ``.(toml|yaml)`` file
+    2. Secret values from the ``.secrets.(toml|yaml)`` file
+    3. Non-secret values from the ``.(toml|yaml)`` file
     4. Default values defined in the ``AnemoiSettings`` class and its nested
        models
     """
@@ -293,15 +319,15 @@ class AnemoiSettings(BaseSettings):
         env_prefix="ANEMOI_SETTINGS_",
         env_nested_delimiter="__",
         extra="ignore",
+        alias_generator=lambda key: key.replace("_", "-"),
         serialize_by_alias=True,
         populate_by_name=True,
-        hide_input_in_errors=True,  # prevent secrets from leaking on validation errors
     )
 
     ## ---------- Setting fields ---------- ##
 
     object_storage: ObjectStorageConfig = Field(default_factory=ObjectStorageConfig, alias="object-storage")
-    """Configuration for cloud (S3-compatible and Azure Blob) object storage."""
+    """Configuration for S3-compatible object storage."""
 
     datasets: DatasetsConfig = Field(default_factory=DatasetsConfig)
     """Dataset discovery and validation settings."""
@@ -327,21 +353,12 @@ class AnemoiSettings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        location = ANEMOI_SETTINGS_FILE_LOCATION
         return (
-            # init_settings, # Disable init kwargs to encourage use of env vars for overrides
+            # init_settings, # Disable init kwargs to enforce separation of secrets/non-secrets and encourage use of env vars for overrides
             env_settings,
             dotenv_settings,
-            AnemoiConfigFileSource(
-                settings_cls,
-                toml_file=location.with_suffix(".secrets.toml"),
-                yaml_file=location.with_suffix(".secrets.yaml"),
-            ),
-            AnemoiConfigFileSource(
-                settings_cls,
-                toml_file=location.with_suffix(".toml"),
-                yaml_file=location.with_suffix(".yaml"),
-            ),
+            AnemoiSecretsSource(settings_cls),
+            AnemoiNonSecretsSource(settings_cls),
         )
 
 
@@ -350,9 +367,6 @@ SETTINGS = AnemoiSettings()
 
 Use `AnemoiSettings()` to create separate instances if needed, but these will be runtime specific.
 """
-
-_SETTINGS_LOCK = threading.Lock()
-"""Guards reassignment of the global :data:`SETTINGS` instance."""
 
 try:
     copy_default_settings()  # Ensure the defaults file is present on disk for users to copy from
@@ -366,5 +380,4 @@ def reload_settings():
     Is run in-place on the global SETTINGS instance.
     """
     global SETTINGS
-    with _SETTINGS_LOCK:
-        SETTINGS = AnemoiSettings()
+    SETTINGS = AnemoiSettings()

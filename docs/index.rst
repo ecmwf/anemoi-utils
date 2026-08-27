@@ -87,16 +87,6 @@ Text & table formatting
    modules/text
 
 .. toctree::
-   :maxdepth: 1
-   :caption: CLI
-   :hidden:
-
-   cli/settings
-   cli/metadata
-   cli/requests
-   cli/transfer
-
-.. toctree::
    :maxdepth: 2
    :caption: API Reference
    :hidden:

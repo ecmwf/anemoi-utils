@@ -338,7 +338,7 @@ def cli_testing(package: str, cmd: str, *args: str) -> None:
 
 
 def run_tests(globals: dict[str, Callable[[], None]]) -> None:
-    """Run all test functions that start with ``test_``.
+    """Run all test functions that start with 'test_'.
 
     Parameters
     ----------
@@ -347,11 +347,14 @@ def run_tests(globals: dict[str, Callable[[], None]]) -> None:
 
     Example
     -------
-    Call from a test file to run all tests in that file::
 
-        if __name__ == "__main__":
-            from anemoi.utils.testing import run_tests
-            run_tests(globals())
+    Call from a test file to run all tests in that file:
+
+    ```python
+    if __name__ == "__main__":
+        from anemoi.utils.testing import run_tests
+        run_tests(globals())
+    ```
 
     Useful for debugging or running tests in an interactive environment.
 

@@ -39,14 +39,14 @@ def aliases(aliases: dict[str, str | list[str]] | None = None, **kwargs: Any) ->
 
     Examples
     --------
-    ::
+    ```python
+    @aliases(a="b", c=["d", "e"])
+    def func(a, c):
+        return a, c
 
-        @aliases(a="b", c=["d", "e"])
-        def func(a, c):
-            return a, c
-
-        func(a=1, c=2)  # (1, 2)
-        func(b=1, d=2)  # (1, 2)
+    func(a=1, c=2)  # (1, 2)
+    func(b=1, d=2)  # (1, 2)
+    ```
     """
 
     if aliases is None:

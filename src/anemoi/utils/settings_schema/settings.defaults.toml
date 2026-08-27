@@ -47,10 +47,10 @@
 # =============================================================================
 [object-storage]
 
-# Cloud storage type, deprecated - backend now inferred from URL scheme (e.g., s3://, abfs://).
+# Default storage type (only "s3" is currently supported).
 type = "s3"
 
-# Global endpoint URL. Leave empty to use the default endpoint for the storage service.
+# Global endpoint URL.  Leave empty to use the default AWS endpoint.
 endpoint_url = ""
 
 # Global credentials.
@@ -78,13 +78,7 @@ endpoint_url = ""
 # secret_access_key = ""
 # region = "eu-north-1"
 # skip_signature = true
-#
-# [object-storage."some-public-bucket-on-azure"]
-# endpoint_url = ""
-# account_name = ""
-# account_key = ""
-# sas_token = ""
-# skip_signature = true
+
 
 # =============================================================================
 # [datasets]  —  Dataset discovery & validation
