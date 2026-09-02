@@ -11,8 +11,10 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import subprocess
+import sys
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
@@ -202,6 +204,34 @@ class ObjType(Protocol):
     def __getitem__(self, key: Any, /) -> Any: ...
 
 
+def _import_file(location: Path, package: str | None = None) -> ModuleType:
+    """Import a module from a file path.
+
+    Parameters
+    ----------
+    location : Path
+        Path to the Python file
+    package : str | None
+        Optional package context for namespacing in sys.modules
+
+    Returns
+    -------
+    ModuleType
+        The imported module
+    """
+    spec = importlib.util.spec_from_file_location(location.stem, location)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"{location} does not point to a valid Python file.")
+
+    module = importlib.util.module_from_spec(spec)
+
+    module_name = f"{package}.{location.stem}" if package else location.stem
+    sys.modules[module_name] = module
+
+    spec.loader.exec_module(module)
+    return module
+
+
 _M = TypeVar("_M", bound=Migration)
 _O = TypeVar("_O", bound=ObjType)
 
@@ -259,10 +289,10 @@ class Migrator(ABC, Generic[_M, _O]):
         migrations: list[_M] = []
 
         for file in sorted(Path(location).iterdir()):
-            if not file.is_file() and file.suffix != ".py" or file.name == "__init__.py":
+            if not file.is_file() or file.suffix != ".py" or file.name == "__init__.py":
                 continue
             LOGGER.debug("Loading migration file .%s from %s.", file.stem, package)
-            migration = importlib.import_module(f".{file.stem}", package)
+            migration = _import_file(file, package)
             migrations.append(migration_type.from_migration(file.stem, migration))
         return migrations
 
