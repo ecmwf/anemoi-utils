@@ -18,6 +18,7 @@ import sys
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
+from collections.abc import Iterable
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC
@@ -236,6 +237,10 @@ _M = TypeVar("_M", bound=Migration)
 _O = TypeVar("_O", bound=ObjType)
 
 
+def _is_valid_migration_file(file: Path) -> bool:
+    return file.is_file() and file.suffix == ".py" and file.name != "__init__.py"
+
+
 class Migrator(ABC, Generic[_M, _O]):
     def __init__(self, migrations: Sequence[_M], obj_migration_key: str) -> None:
         """Create the migrator object
@@ -269,15 +274,15 @@ class Migrator(ABC, Generic[_M, _O]):
         self._compatibility_groups.append(current_group)
 
     @classmethod
-    def _migrations_from_path(cls, migration_type: type[_M], location: str | PathLike, package: str) -> list[_M]:
+    def _migrations_from_files(cls, migration_type: type[_M], locations: Iterable[Path], package: str) -> list[_M]:
         """Returns the migrations from a given folder.
 
         Parameters
         ----------
         migration_type : type[_M]
             The migration type.
-        location : str | PathLike
-            Path to the migration folder.
+        locations : Iterable[Path]
+            Paths to the migration file to load. They must be sorted in migration order.
         package : str
             Reference package for the import of the migrations.
 
@@ -288,13 +293,16 @@ class Migrator(ABC, Generic[_M, _O]):
         """
         migrations: list[_M] = []
 
-        for file in sorted(Path(location).iterdir()):
-            if not file.is_file() or file.suffix != ".py" or file.name == "__init__.py":
-                continue
+        for file in locations:
             LOGGER.debug("Loading migration file .%s from %s.", file.stem, package)
             migration = _import_file(file, package)
             migrations.append(migration_type.from_migration(file.stem, migration))
         return migrations
+
+    @classmethod
+    def _migrations_from_path(cls, migration_type: type[_M], location: str | PathLike, package: str) -> list[_M]:
+        files = sorted(filter(_is_valid_migration_file, Path(location).iterdir()))
+        return cls._migrations_from_files(migration_type, files, package)
 
     @classmethod
     def from_path(
