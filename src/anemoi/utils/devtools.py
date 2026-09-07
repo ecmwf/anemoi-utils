@@ -13,8 +13,8 @@ from typing import Any
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
-import matplotlib.tri as tri
 import numpy as np
+from matplotlib import tri
 
 """FOR DEVELOPMENT PURPOSES ONLY.
 

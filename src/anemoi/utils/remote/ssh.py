@@ -127,7 +127,6 @@ class SshBaseUpload(BaseUpload):
         target : str
             The target path to delete.
         """
-        pass
         # hostname, path = self._parse_target(target)
         # LOGGER.info(f"Deleting {target}")
         # call_process("ssh", hostname, "rm", "-rf", shlex.quote(path))

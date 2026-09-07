@@ -167,7 +167,7 @@ class Registry(Generic[T]):
             return Wrapper(name, self)
 
         if source is None:
-            source = getattr(factory, "_source") if hasattr(factory, "_source") else factory
+            source = factory._source if hasattr(factory, "_source") else factory
 
         if name in self.__registered:
             warnings.warn(f"Factory '{name}' is already registered in {self.package}")
