@@ -32,6 +32,7 @@ from pydantic_settings import YamlConfigSettingsSource
 from anemoi.utils.config import LOG
 
 from .settings_schema.datasets import DatasetsConfig
+from .settings_schema.nexus import NexusConfig
 from .settings_schema.object_storage import ObjectStorageConfig
 from .settings_schema.paramdb import ParamDBConfig
 from .settings_schema.registry import RegistryConfig
@@ -311,6 +312,9 @@ class AnemoiSettings(BaseSettings):
 
     registry: RegistryConfig = Field(default_factory=RegistryConfig)
     """Configuration for access to the Anemoi registry."""
+
+    nexus: NexusConfig = Field(default_factory=NexusConfig)
+    """Configuration for access to the Anemoi Nexus."""
 
     utils: UtilsConfig = Field(default_factory=UtilsConfig)
     """Miscellaneous anemoi-utils settings."""
