@@ -815,7 +815,7 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
 class AzureDownload(BaseDownload):
     """Transfer implementation for downloading blobs and prefixes from Azure Blob Storage."""
 
-    def copy(self, source: str, target: str, **kwargs: Any) -> None:  # noqa: ANN401
+    def copy(self, source: str, target: str, **kwargs: Any) -> None:
         """Copy a single blob or all blobs under a prefix to a local path.
 
         Dispatches to transfer_folder if source ends with '/', otherwise transfer_file.

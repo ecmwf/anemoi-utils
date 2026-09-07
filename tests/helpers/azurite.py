@@ -60,7 +60,7 @@ def create_container(name: str) -> None:
     signature = base64.b64encode(hmac.new(key, string_to_sign.encode("utf-8"), hashlib.sha256).digest()).decode()
 
     url = f"{AZURITE_ENDPOINT.rstrip('/')}/{AZURITE_ACCOUNT_NAME}/{name}?restype=container"
-    req = Request(  # noqa: S310
+    req = Request(
         url,
         method="PUT",
         headers={
@@ -74,7 +74,7 @@ def create_container(name: str) -> None:
     created_code = 201
     url_return = None
     try:
-        url_return = urlopen(req, timeout=5)  # noqa: S310
+        url_return = urlopen(req, timeout=5)
     except HTTPError as e:
         if e.code != exists_code:
             raise

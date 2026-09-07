@@ -42,7 +42,7 @@ pytestmark = [
 )
 def test_assert_azure_url_valid(azurite: None, url: str) -> None:
     """Test detection of supported Azure Blob Storage URLs."""
-    az._assert_azure_url(url)  # noqa: SLF001
+    az._assert_azure_url(url)
 
 
 @pytest.mark.parametrize(
@@ -57,7 +57,7 @@ def test_assert_azure_url_valid(azurite: None, url: str) -> None:
 def test_assert_azure_url_invalid(azurite: None, url: str) -> None:
     """Test detection of unsupported Azure Blob Storage URLs."""
     with pytest.raises(ValueError, match="Invalid Azure URL:"):
-        az._assert_azure_url(url)  # noqa: SLF001
+        az._assert_azure_url(url)
 
 
 def test_object_exists(azurite: None) -> None:
