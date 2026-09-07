@@ -165,6 +165,19 @@ weights_platform = ""
 
 
 # =============================================================================
+# [nexus]  —  Anemoi Nexus Configuration
+# =============================================================================
+[nexus]
+
+# API URL for nexus.
+api_url = ""
+
+# API token for authenticating with nexus.
+# IMPORTANT: move this to ~/.config/anemoi/settings.secrets.toml (chmod 600).
+api_token = ""
+
+
+# =============================================================================
 # [utils]  —  Miscellaneous anemoi-utils settings
 # =============================================================================
 [utils]
