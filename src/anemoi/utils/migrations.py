@@ -36,8 +36,12 @@ from typing import TypeVar
 LOGGER = logging.getLogger(__name__)
 
 
-class IncompleteMigrationScript(BaseException):
+class IncompleteMigrationScriptError(BaseException):
     """The migration script is missing some mandatory content (metadata)."""
+
+
+class IncompatibleObjectError(BaseException):
+    """The provided object cannot be migrated because it is to old/recent."""
 
 
 def get_migration_name(name: str) -> str:
@@ -330,8 +334,38 @@ class Migrator(ABC, Generic[_M, _O]):
         return cls(cls._migrations_from_path(migration_type, location, package), obj_migration_key)
 
     @abstractmethod
-    def _current_group(self, obj: _O) -> int:
+    def _migration_state(self, obj: _O) -> list[str] | None:
+        """The migration state of the object.
+
+        Parameters
+        ----------
+        obj : _O
+            The object to extract the migration state from.
+
+        Returns
+        -------
+        list[str] | None
+            The migration state. It contains the migration already executed.
+            If None, the object doesn't have any migration state and is assumed too
+            old to be migratable.
+
+        """
+
+    def _current_group(self, migration_state: list[str] | None) -> int:
         """Returns the current index of the object's compatibility group."""
+
+        if migration_state is None:
+            msg = "Object is too old and cannot be migrated."
+            raise IncompatibleObjectError(msg)
+        # Empty state means no migration done yet => first group
+        if not len(migration_state):
+            return 0
+
+        if migration_state[-1] not in self._migration_groups:
+            msg = f"Registered migration {migration_state[-1]} is unknown."
+            raise IncompatibleObjectError(msg)
+
+        return self._migration_groups[migration_state[-1]]
 
     def is_compatible(self, obj: _O) -> bool:
         """Checks whether the object is compatible with the current version.
@@ -346,12 +380,79 @@ class Migrator(ABC, Generic[_M, _O]):
         bool
             Whether it is compatible
         """
+        migration_state = self._migration_state(obj)
         # No migration means checkpoint too old, no migrations available.
-        if self._obj_migration_key not in obj:
+        if migration_state is None:
             return False
-        # If empty, means first group
-        if not len(obj[self._obj_migration_key]):
-            return not len(self._compatibility_groups) > 1
 
-        obj_compat_group = self._current_group(obj)
-        return obj_compat_group == len(self._compatibility_groups) - 1
+        return self._current_group(migration_state) == len(self._compatibility_groups) - 1
+
+    def registered_migrations(self, obj: _O) -> list[_M]:
+        """Lists the registered migrations in the object.
+
+        Parameters
+        ----------
+        obj : _O
+            The object to list the migrations from.
+
+        Returns
+        -------
+        list[_M]
+            The registered migrations.
+        """
+        migration_state = self._migration_state(obj)
+        if migration_state is None:
+            return []
+        compat_group = self._compatibility_groups[self._current_group(migration_state)]
+        migrations: list[_M] = []
+        for registered_migration in migration_state:
+            if registered_migration not in self._migration_refs:
+                raise IncompatibleObjectError(
+                    f"Object cannot be migrated. Extra migrations are registered. ({','.join(registered_migration)})."
+                )
+            migrations.append(compat_group[self._migration_refs[registered_migration]])
+        return migrations
+
+    def missing_migrations(self, obj: _O) -> list[_M]:
+        """Lists the missing migrations in the object.
+
+        Parameters
+        ----------
+        obj : _O
+            The object to list the missing migrations from.
+
+        Returns
+        -------
+        list[_M]
+            The missing migrations.
+        """
+        migration_state = self._migration_state(obj)
+        compat_group = self._compatibility_groups[self._current_group(migration_state)]
+        assert migration_state is not None
+        if not len(migration_state):
+            return compat_group
+        if migration_state[-1] not in self._migration_refs:
+            raise IncompatibleObjectError(
+                f"Checkpoint cannot be migrated. Extra migrations are registered. ({','.join(migration_state)})"
+            )
+        last_registered_migration = self._migration_refs[migration_state[-1]]
+        return compat_group[last_registered_migration + 1 :]
+
+    def get_first_incompatible_migration(self, obj: _O) -> _M | None:
+        """Get the first migration where you cannot update the object
+
+        Parameters
+        ----------
+        obj : _O
+            The object to check
+
+        Returns
+        -------
+        _M | None
+            If None, no incompatibility (you can update to any version). Otherwise,
+            the first migration where your object would not be compatible.
+        """
+        group = self._current_group(self._migration_state(obj))
+        if group == len(self._compatibility_groups) - 1:
+            return None
+        return self._compatibility_groups[group + 1][0]
