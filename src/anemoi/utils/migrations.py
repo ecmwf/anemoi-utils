@@ -13,6 +13,7 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import logging
+import shlex
 import subprocess
 import sys
 from abc import ABC
@@ -23,7 +24,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
-from os import PathLike
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -81,7 +81,7 @@ def added_migrations_compared_to_main_branch(root_folder: Path, migration_path: 
     run_new_migrations = subprocess.run(
         "git diff --name-only --diff-filter=A "
         '$(git log -n 1 origin/main --pretty=format:"%H") '
-        f"HEAD {migration_path.resolve()}",
+        f"HEAD {shlex.quote(str(migration_path.resolve()))}",
         check=True,
         capture_output=True,
         shell=True,
@@ -92,9 +92,9 @@ def added_migrations_compared_to_main_branch(root_folder: Path, migration_path: 
 
 
 def migrations_in_incorrect_order(all_migrations: list[str], new_migrations: list[str]) -> tuple[list[str], str | None]:
-    """Tests whether the order of the new migrations is correct.
+    """List migrations files that are in incorret order.
 
-    All new migrations should be at the end of all_migrations.
+    All new migrations should be at the end of existing migrations.
 
     Parameters
     ----------
@@ -106,7 +106,7 @@ def migrations_in_incorrect_order(all_migrations: list[str], new_migrations: lis
     Returns
     -------
     tuple[list[str], str | None]
-        * The list of name in incorrect order,
+        * The list of migration name in incorrect order,
         * the name of the last migration in main.
     """
     stop_new = False
@@ -150,7 +150,7 @@ _U = TypeVar("_U")
 
 
 class Migration(ABC, Generic[_T, _U, _Version]):
-    """Represents a migration"""
+    """Represents a migration."""
 
     def __init__(
         self,
@@ -166,30 +166,34 @@ class Migration(ABC, Generic[_T, _U, _Version]):
 
     @classmethod
     @abstractmethod
-    def from_migration(cls, name: str, migration: ModuleType) -> Self: ...
+    def from_migration(cls, name: str, migration: ModuleType) -> Self:
+        """Create the migration object from the migration script."""
 
     @property
     def name(self) -> str:
-        """Name of the migration"""
+        """Name of the migration."""
         return self._name
 
     @property
     def metadata(self) -> MigrationMetadata[_Version]:
-        """Tracked metadata"""
+        """Tracked metadata."""
         return self._metadata
 
     @property
     def signature(self) -> str:
-        """Signature of the migration. Can be used to detect if the script changed"""
+        """Signature of the migration.
+
+        Can be used to detect if the script changed.
+        """
         return self._signature
 
     @property
     def migrate(self) -> Callable[[_T], _U] | None:
-        """Callback to execute the migration"""
+        """Callback to execute the migration."""
         return self._migrate
 
     def serialize(self) -> SerializedMigration[_Version]:
-        """Serialize this migration
+        """Serialize this migration.
 
         Returns
         -------
@@ -205,6 +209,8 @@ class Migration(ABC, Generic[_T, _U, _Version]):
 
 
 class ObjType(Protocol):
+    """Protocol to describe a migratable object."""
+
     def __contains__(self, x: Any, /) -> bool: ...
     def __getitem__(self, key: Any, /) -> Any: ...
 
@@ -215,14 +221,14 @@ def _import_file(location: Path, package: str | None = None) -> ModuleType:
     Parameters
     ----------
     location : Path
-        Path to the Python file
+        Path to the Python file.
     package : str | None
-        Optional package context for namespacing in sys.modules
+        Optional package context for namespacing in sys.modules.
 
     Returns
     -------
     ModuleType
-        The imported module
+        The imported module.
     """
     module_name = f"{package}.{location.stem}" if package else location.stem
     spec = importlib.util.spec_from_file_location(module_name, location)
@@ -242,6 +248,10 @@ _O = TypeVar("_O", bound=ObjType)
 
 
 def _is_valid_migration_file(file: Path) -> bool:
+    """Whether the given file is a valid migration file.
+
+    A valid file is any python file except __init__.py.
+    """
     return file.is_file() and file.suffix == ".py" and file.name != "__init__.py"
 
 
@@ -279,14 +289,14 @@ class Migrator(ABC, Generic[_M, _O]):
 
     @classmethod
     def _migrations_from_files(cls, migration_type: type[_M], locations: Iterable[Path], package: str) -> list[_M]:
-        """Returns the migrations from a given folder.
+        """Returns the migrations associated to the given files.
 
         Parameters
         ----------
         migration_type : type[_M]
             The migration type.
         locations : Iterable[Path]
-            Paths to the migration file to load. They must be sorted in migration order.
+            Paths to the migration file to load. They must be sorted in correct migration order.
         package : str
             Reference package for the import of the migrations.
 
@@ -304,21 +314,35 @@ class Migrator(ABC, Generic[_M, _O]):
         return migrations
 
     @classmethod
-    def _migrations_from_path(cls, migration_type: type[_M], location: str | PathLike, package: str) -> list[_M]:
+    def _migrations_from_path(cls, migration_type: type[_M], location: str | Path, package: str) -> list[_M]:
+        """Returns the migrations from a given folder.
+
+        Parameters
+        ----------
+        migration_type : type[_M]
+            The migration type.
+        location : str | Path
+            Path to the folder containing the migration files.
+        package : str
+            Reference package used for the migration modules.
+
+        Returns
+        -------
+        list[Migration]
+            The migrations from the given path.
+        """
         files = sorted(filter(_is_valid_migration_file, Path(location).iterdir()))
         return cls._migrations_from_files(migration_type, files, package)
 
     @classmethod
-    def from_path(
-        cls, migration_type: type[_M], location: str | PathLike, package: str, obj_migration_key: str
-    ) -> Self:
+    def from_path(cls, migration_type: type[_M], location: str | Path, package: str, obj_migration_key: str) -> Self:
         """Load from a given folder.
 
         Parameters
         ----------
         migration_type : type[_M]
             The type of the Migration object to use.
-        location : str | PathLike
+        location : str | Path
             Path to the migration folder.
         package : str
             Reference package for the import of the migrations.
@@ -373,12 +397,12 @@ class Migrator(ABC, Generic[_M, _O]):
         Parameters
         ----------
         obj : _T
-            The object
+            The object.
 
         Returns
         -------
         bool
-            Whether it is compatible
+            Whether it is compatible.
         """
         migration_state = self._migration_state(obj)
         # No migration means checkpoint too old, no migrations available.
@@ -439,12 +463,12 @@ class Migrator(ABC, Generic[_M, _O]):
         return compat_group[last_registered_migration + 1 :]
 
     def get_first_incompatible_migration(self, obj: _O) -> _M | None:
-        """Get the first migration where you cannot update the object
+        """Get the first migration where you cannot update the object.
 
         Parameters
         ----------
         obj : _O
-            The object to check
+            The object to check.
 
         Returns
         -------
