@@ -462,6 +462,24 @@ class Migrator(ABC, Generic[_M, _O]):
         last_registered_migration = self._migration_refs[migration_state[-1]]
         return compat_group[last_registered_migration + 1 :]
 
+    def extra_migrations(self, obj: _O) -> list[str]:
+        """Lists the extra migrations names in the object.
+
+        Parameters
+        ----------
+        obj : _O
+            The object to list the missing migrations from.
+
+        Returns
+        -------
+        list[str]
+            The missing migrations.
+        """
+        migration_state = self._migration_state(obj)
+        if migration_state is None:
+            return []
+        return [migration for migration in migration_state if migration not in self._migration_refs]
+
     def get_first_incompatible_migration(self, obj: _O) -> _M | None:
         """Get the first migration where you cannot update the object.
 
