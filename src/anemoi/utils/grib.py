@@ -21,14 +21,19 @@ from datetime import timedelta
 from functools import cache
 from typing import Any
 
-from pymetkit import ParamDB
+from pymetkit.paramdb import ParamDB
 
-from .settings import SETTINGS
+from .settings import AnemoiSettings
+from .settings import ParamDBConfig
 
 """Anemoi settings, loaded on module import."""
 
-PARAMDB_SETTINGS = SETTINGS.paramdb
 LOG = logging.getLogger(__name__)
+
+
+@cache
+def paramdb_settings() -> ParamDBConfig:
+    return AnemoiSettings().paramdb
 
 
 @cache
@@ -40,12 +45,13 @@ def get_paramdb() -> ParamDB:
     ParamDB
         The global ParamDB instance.
     """
+    db_settings = paramdb_settings()
 
     return ParamDB(
-        mode=PARAMDB_SETTINGS.mode,
-        cache_path=PARAMDB_SETTINGS.cache_path,
-        cache_ttl=timedelta(days=PARAMDB_SETTINGS.cache_length),
-        yaml_path=PARAMDB_SETTINGS.local_data,
+        mode=db_settings.mode,
+        cache_path=db_settings.cache_path,
+        cache_ttl=timedelta(days=db_settings.cache_length),
+        yaml_path=db_settings.local_data,
     )
 
 
@@ -72,7 +78,7 @@ def shortname_to_paramid(shortname: str, **filters: Any) -> int:
     >>> shortname_to_paramid("2t")
     167
     """
-    filters = filters or PARAMDB_SETTINGS.default_filters or {}
+    filters = filters or paramdb_settings().default_filters or {}
 
     if get_paramdb().shortname_has_collisions(shortname) and not filters:
         candidates = get_paramdb().shortname_to_param_id_candidates(shortname)

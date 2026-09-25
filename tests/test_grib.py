@@ -22,7 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from pymetkit import ParamDB
+from pymetkit.paramdb import ParamDB
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -48,8 +48,9 @@ def _install_paramdb(monkeypatch, db):
     """
     import anemoi.utils.grib as grib_mod
 
+    dummy_settings = type("Dummy", (), {"default_filters": None})()
     monkeypatch.setattr(grib_mod, "get_paramdb", lambda: db)
-    monkeypatch.setattr(grib_mod.PARAMDB_SETTINGS, "default_filters", None, raising=False)
+    monkeypatch.setattr(grib_mod, "paramdb_settings", lambda: dummy_settings, raising=False)
     return grib_mod
 
 
@@ -218,7 +219,7 @@ class TestShortnameCollisions:
         import logging
 
         # Ensure no default filters interfere.
-        grib.PARAMDB_SETTINGS.default_filters = None
+        grib.paramdb_settings().default_filters = None
 
         with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
             result = grib.shortname_to_paramid(self.COLLIDING_SHORTNAME)
@@ -231,7 +232,7 @@ class TestShortnameCollisions:
     def test_explicit_filter_disambiguates_without_warning(self, grib, caplog):
         import logging
 
-        grib.PARAMDB_SETTINGS.default_filters = None
+        grib.paramdb_settings().default_filters = None
 
         with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
             result = grib.shortname_to_paramid(self.COLLIDING_SHORTNAME, origin=self.ALT_ORIGIN)
@@ -243,7 +244,7 @@ class TestShortnameCollisions:
         import logging
 
         monkeypatch.setattr(
-            grib.PARAMDB_SETTINGS,
+            grib.paramdb_settings(),
             "default_filters",
             {"origin": self.ALT_ORIGIN},
             raising=False,
@@ -265,8 +266,8 @@ class TestShortnameCollisions:
 
         from anemoi.utils.settings_schema.paramdb import ParamDBConfig
 
-        grib.PARAMDB_SETTINGS.default_filters = ParamDBConfig().default_filters
-        assert grib.PARAMDB_SETTINGS.default_filters == {"access": "dissemination"}
+        grib.paramdb_settings().default_filters = ParamDBConfig().default_filters
+        assert grib.paramdb_settings().default_filters == {"access": "dissemination"}
 
         with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
             result = grib.shortname_to_paramid(self.COLLIDING_SHORTNAME)
@@ -277,7 +278,7 @@ class TestShortnameCollisions:
     def test_non_colliding_shortname_no_warning(self, grib, caplog):
         import logging
 
-        grib.PARAMDB_SETTINGS.default_filters = None
+        grib.paramdb_settings().default_filters = None
         with caplog.at_level(logging.WARNING, logger="anemoi.utils.grib"):
             grib.shortname_to_paramid("2t")
 

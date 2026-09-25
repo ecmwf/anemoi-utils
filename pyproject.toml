@@ -43,7 +43,7 @@ dependencies = [
   "peekle",
   "pydantic>=2.9",
   "pydantic-settings>=2.14.1",
-  "pymetkit",
+  "pymetkit>=1.21",
   "python-dateutil",
   "pyyaml",
   "rich",
@@ -68,7 +68,7 @@ optional-dependencies.mlflow = [ "mlflow-skinny>=2.11.1", "requests" ]
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
 optional-dependencies.remote = [ "obstore" ]
 optional-dependencies.s3 = [ "anemoi-utils[remote]" ]  # deprecated, use "remote"
-optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance]", "pytest", "pytest-mock>=3" ]
+optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance,remote]", "pytest", "pytest-mock>=3" ]
 optional-dependencies.text = [ "termcolor", "wcwidth" ]
 urls.Documentation = "https://anemoi-utils.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/anemoi-utils/"
