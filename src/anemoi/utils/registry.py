@@ -39,11 +39,14 @@ class Wrapper(Generic[T]):
         The name of the wrapper.
     registry : Registry
         The registry to wrap.
+    aliases : list[str] | None
+        Alias names for the wrapper to be passed through.
     """
 
-    def __init__(self, name: str, registry: "Registry"):
+    def __init__(self, name: str, registry: "Registry", aliases: list[str] | None = None):
         self.name = name
         self.registry = registry
+        self.aliases = aliases
 
     def __call__(self, factory: T) -> T:
         """Register a factory with the registry.
@@ -58,7 +61,7 @@ class Wrapper(Generic[T]):
         Callable
             The registered factory.
         """
-        self.registry.register(self.name, factory)
+        self.registry.register(self.name, factory, aliases=self.aliases)
         return factory
 
 
@@ -164,7 +167,7 @@ class Registry(Generic[T]):
 
         if factory is None:
             # This happens when the @register decorator is used
-            return Wrapper(name, self)
+            return Wrapper(name, self, aliases=aliases)
 
         if source is None:
             source = getattr(factory, "_source") if hasattr(factory, "_source") else factory
