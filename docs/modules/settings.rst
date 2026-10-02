@@ -106,8 +106,12 @@ List fields are set as JSON-encoded arrays:
 
 .. code-block:: bash
 
-   # Change the default GRIB parameter origin
-   export ANEMOI_SETTINGS_PARAMDB__DEFAULT_ORIGIN="ecmf"
+   # Change the default filters
+   export ANEMOI_SETTINGS_PARAMDB__DEFAULT_FILTERS='{"origin":98}'
+
+   # Add context
+   export ANEMOI_SETTINGS_PARAMDB__DEFAULT_FILTERS='{"context": {"class":"ai","levtype":"sfc","type":"fc","stream":"oper"}}'
+
 
    # Extend the parameter cache lifetime to 90 days
    export ANEMOI_SETTINGS_PARAMDB__CACHE_LENGTH="90"
