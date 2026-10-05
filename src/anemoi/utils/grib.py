@@ -69,6 +69,7 @@ def _get_local_db(local_db: str) -> list[dict[str, str | int | list[str]]]:
     if not os.path.exists(local_db):
         raise FileNotFoundError(f"Local cache file {local_db} not found.")
 
+    LOG.info(f"Using local GRIB parameter database: {local_db}")
     return json.load(open(local_db, "r"))
 
 
