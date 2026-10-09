@@ -12,6 +12,7 @@
 
 import contextvars
 import logging
+import threading
 
 LOGGING_NAME = contextvars.ContextVar("logging_name", default="main")
 
@@ -94,3 +95,50 @@ def get_rich_handler() -> logging.Handler:
             return text
 
     return CustomRichHandler(log_time_format="[%X]")
+
+
+class OnceLogger:
+    """Wrap a logger so each distinct message is only emitted once.
+
+    Usage:
+    ```python
+        logger = logging.getLogger(__name__)
+        once_logger = OnceLogger(logger)
+        once_logger.info("This message will only be logged once.")
+    ```
+    """
+
+    _seen = set()
+    _lock = threading.Lock()
+
+    def __init__(self, logger: logging.Logger) -> None:
+        self.logger = logger
+
+    def log(self, level: int, message: str, *args, **kwargs) -> None:
+        if not self.logger.isEnabledFor(level):
+            return
+        key = (self.logger.name, level, str(message) % args if args else str(message))
+        with self._lock:
+            if key in self._seen:
+                return
+            self._seen.add(key)
+        kwargs.setdefault("stacklevel", 2)  # report caller location
+        self.logger.log(level, message, *args, **kwargs)
+
+    def debug(self, message, *args, **kwargs):
+        self.log(logging.DEBUG, message, *args, stacklevel=3, **kwargs)
+
+    def info(self, message, *args, **kwargs):
+        self.log(logging.INFO, message, *args, stacklevel=3, **kwargs)
+
+    def warning(self, message, *args, **kwargs):
+        self.log(logging.WARNING, message, *args, stacklevel=3, **kwargs)
+
+    def error(self, message, *args, **kwargs):
+        self.log(logging.ERROR, message, *args, stacklevel=3, **kwargs)
+
+    @classmethod
+    def reset(cls) -> None:
+        """Forget all messages seen so far (mainly for tests)."""
+        with cls._lock:
+            cls._seen.clear()
