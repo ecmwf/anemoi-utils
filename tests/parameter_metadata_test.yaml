@@ -1,0 +1,83 @@
+- id: 167
+  shortname: 2t
+  longname: 2 metre temperature
+  units: K
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 228
+  shortname: tp
+  longname: Total precipitation
+  units: m
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 130
+  shortname: t
+  longname: Temperature
+  units: K
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 500014
+  shortname: t
+  longname: Temperature
+  units: K
+  origin_ids: [7]
+  access_ids: []
+
+- id: 134
+  shortname: sp
+  longname: Surface pressure
+  units: Pa
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 151
+  shortname: msl
+  longname: Mean sea level pressure
+  units: Pa
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 165
+  shortname: 10u
+  longname: 10 metre U wind component
+  units: m s**-1
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 166
+  shortname: 10v
+  longname: 10 metre V wind component
+  units: m s**-1
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 31
+  shortname: ci
+  longname: Sea ice area fraction
+  units: (0 - 1)
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 260048
+  shortname: sf
+  longname: Snowfall
+  units: m of water equivalent
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 59
+  shortname: cape
+  longname: Convective available potential energy
+  units: J kg**-1
+  origin_ids: [98]
+  access_ids: [dissemination]
+
+- id: 75
+  shortname: crwc
+  longname: Specific rain water content
+  units: kg kg**-1
+  origin_ids: [98]
+  access_ids: [dissemination]
