@@ -35,7 +35,6 @@ LOG = logging.getLogger(__name__)
 def paramdb_settings() -> ParamDBConfig:
     return AnemoiSettings().paramdb
 
-
 @cache
 def get_paramdb() -> ParamDB:
     """Return the global ParamDB instance.
@@ -46,6 +45,8 @@ def get_paramdb() -> ParamDB:
         The global ParamDB instance.
     """
     db_settings = paramdb_settings()
+    if db_settings.local_data:
+        LOG.info(f"Using local GRIB parameter database: {db_settings.local_data}")
 
     return ParamDB(
         mode=db_settings.mode,

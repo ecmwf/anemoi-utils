@@ -23,6 +23,10 @@ def test_registry() -> None:
 
     reg = Registry("anemoi.utils", key="name")
 
+    @reg.register("test-class", aliases=["tc"])
+    class Test:
+        pass
+
     def factory_a():
         return "Factory A"
 
@@ -36,10 +40,12 @@ def test_registry() -> None:
     # Retrieve factories by name
     assert reg.lookup("factory-a") == factory_a
     assert reg.lookup("factory-b") == factory_b
+    assert reg.lookup("test-class") is Test
 
     # Retrieve factories by alias
     assert reg.lookup("fa") == factory_a
     assert reg.lookup("alpha") == factory_a
+    assert reg.lookup("tc") is Test
 
     # Attempt to retrieve a non-existent factory
     assert reg.lookup("non-existent", return_none=True) is None

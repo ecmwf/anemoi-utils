@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Please add your functional changes to the appropriate section in the PR.
 Keep it human-readable, your future self will thank you!
 
+## [0.5.14](https://github.com/ecmwf/anemoi-utils/compare/0.5.13...0.5.14) (2026-10-09)
+
+
+### Features
+
+* **grib:** Log path to local param db if used ([#348](https://github.com/ecmwf/anemoi-utils/issues/348)) ([6895b44](https://github.com/ecmwf/anemoi-utils/commit/6895b44c34c2da4e65006853a1e50a573fc2080e))
+* **logs:** Add OnceLogger ([#349](https://github.com/ecmwf/anemoi-utils/issues/349)) ([0452bf1](https://github.com/ecmwf/anemoi-utils/commit/0452bf164d8598777b9908c991962544e0f44346))
+
+## [0.5.13](https://github.com/ecmwf/anemoi-utils/compare/0.5.12...0.5.13) (2026-10-01)
+
+
+### Bug Fixes
+
+* **registry:** Fix alias pass-through when registered through a decorator ([#345](https://github.com/ecmwf/anemoi-utils/issues/345)) ([7ea558f](https://github.com/ecmwf/anemoi-utils/commit/7ea558f2f02a1be1467a6773ed9603f23fd92a7a))
+
 ## [0.5.12](https://github.com/ecmwf/anemoi-utils/compare/0.5.11...0.5.12) (2026-07-28)
 
 
