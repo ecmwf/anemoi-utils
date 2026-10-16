@@ -35,6 +35,7 @@ LOG = logging.getLogger(__name__)
 def paramdb_settings() -> ParamDBConfig:
     return AnemoiSettings().paramdb
 
+
 @cache
 def get_paramdb() -> ParamDB:
     """Return the global ParamDB instance.
