@@ -81,6 +81,7 @@ Text & table formatting
    modules/dates
    modules/grib
    modules/humanize
+   modules/nexus
    modules/provenance
    modules/s3
    modules/testing
