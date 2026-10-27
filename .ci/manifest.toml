@@ -1,0 +1,45 @@
+[package]
+name = "anemoi-utils"
+repo = "ecmwf/anemoi-utils"
+visibility = "public"
+compiler-inputs = []
+
+# The wheel downstream packages install: pure Python, so one leg without a
+# python-version (deps are requested without one).
+[matrix.wheel]
+triggers = ["upstream-change", "rebuild-request"]
+
+[[matrix.wheel.include]]
+job-script = "./.ci/test.sh.j2"
+runs-on = "arc-runner-normal"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-base:latest"
+platform = "ubuntu-24.04"
+tests = false
+
+[matrix.test]
+triggers = ["upstream-change", "rebuild-request"]
+publishes = false
+
+[matrix.test.defaults]
+job-script = "./.ci/test.sh.j2"
+runs-on = "arc-runner-normal"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-base:latest"
+platform = "ubuntu-24.04"
+extras = "all,tests"
+
+[[matrix.test.include]]
+python-version = "3.11"
+
+[[matrix.test.include]]
+python-version = "3.12"
+
+[[matrix.test.include]]
+python-version = "3.13"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-transform"
+ref = "main"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-datasets"
+ref = "main"
