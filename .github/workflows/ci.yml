@@ -49,7 +49,6 @@ jobs:
       image: eccr.ecmwf.int/public-ci-images/ubuntu24.04-base:latest
     outputs:
       # resolve-deps declares matrix-<kind> outputs only for some kinds; json holds them all.
-      wheel-matrix: ${{ toJSON(fromJSON(steps.r.outputs.json).wheel) }}
       test-matrix: ${{ toJSON(fromJSON(steps.r.outputs.json).test) }}
     steps:
       - name: Announce image
@@ -64,61 +63,10 @@ jobs:
       - id: r
         uses: ecmwf/ci-infrastructure/actions/resolve-deps@main
         with:
-          matrix: wheel,test
+          matrix: test
           token: ${{ steps.mint.outputs.token }}
           client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
           app-private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-
-  wheel:
-    needs: [ci-approval, resolve]
-    name: wheel (${{ matrix._resolved['job-name'] }})
-    runs-on: ${{ matrix['runs-on'] }}
-    container:
-      image: ${{ matrix.container || '' }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.resolve.outputs.wheel-matrix) }}
-    steps:
-      - name: Announce image
-        uses: ecmwf/ci-infrastructure/actions/announce-image@main
-      - id: mint
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-          private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-      - uses: ecmwf/ci-infrastructure/actions/checkout-under-test@main
-        with:
-          # The version comes from the git tags (setuptools-scm).
-          fetch-depth: 0
-
-      - name: Fetch resolved deps
-        id: deps
-        uses: ecmwf/ci-infrastructure/actions/fetch-deps@main
-        with:
-          deps-json: ${{ toJSON(matrix._resolved.deps) }}
-          token: ${{ steps.mint.outputs.token }}
-
-      - name: Build the wheel
-        id: build
-        uses: ecmwf/ci-infrastructure/actions/run-job-script@main
-        with:
-          job-script: ${{ matrix.job-script }}
-          matrix-leg: ${{ toJSON(matrix) }}
-          package: anemoi-utils
-          cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
-
-      - name: Publish the wheel
-        uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
-        with:
-          install-path: ${{ steps.build.outputs.install-path }}
-          artifact-name: ${{ matrix._resolved.own-artifact-name }}
-
-      - name: Print dependency table
-        if: always()
-        uses: ecmwf/ci-infrastructure/actions/print-dep-table@main
-        with:
-          resolved: ${{ toJSON(matrix._resolved) }}
 
   test:
     needs: [ci-approval, resolve]
@@ -150,7 +98,7 @@ jobs:
           deps-json: ${{ toJSON(matrix._resolved.deps) }}
           token: ${{ steps.mint.outputs.token }}
 
-      - name: Test
+      - name: Build and test the wheel
         id: build
         uses: ecmwf/ci-infrastructure/actions/run-job-script@main
         with:
@@ -158,6 +106,12 @@ jobs:
           matrix-leg: ${{ toJSON(matrix) }}
           package: anemoi-utils
           cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
+
+      - name: Publish the wheel
+        uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
+        with:
+          install-path: ${{ steps.build.outputs.install-path }}
+          artifact-name: ${{ matrix._resolved.own-artifact-name }}
 
       - name: Print dependency table
         if: always()
@@ -168,7 +122,7 @@ jobs:
   ci-result:
     name: collect results
     if: always()
-    needs: [ci-approval, pre-commit, resolve, wheel, test]
+    needs: [ci-approval, pre-commit, resolve, test]
     runs-on: ubuntu-slim
     permissions:
       statuses: write

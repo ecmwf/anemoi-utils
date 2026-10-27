@@ -4,21 +4,10 @@ repo = "ecmwf/anemoi-utils"
 visibility = "public"
 compiler-inputs = []
 
-# The wheel downstream packages install: pure Python, so one leg without a
-# python-version (deps are requested without one).
-[matrix.wheel]
-triggers = ["upstream-change", "rebuild-request"]
-
-[[matrix.wheel.include]]
-job-script = "./.ci/test.sh.j2"
-runs-on = "arc-runner-normal"
-container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-base:latest"
-platform = "ubuntu-24.04"
-tests = false
-
+# Each leg publishes its wheel, so a consumer's leg takes the one tested on
+# its own Python (python-version-input).
 [matrix.test]
 triggers = ["upstream-change", "rebuild-request"]
-publishes = false
 
 [matrix.test.defaults]
 job-script = "./.ci/test.sh.j2"
