@@ -110,20 +110,26 @@ class GetTestData:
 
         if gzipped:
             url += ".gz"
-            target += ".gz"
+
+        # Written to a .part file and renamed once complete: a broken download must not
+        # leave a truncated `target`, which the next call would return as if it were whole.
+        partial = target + ".part"
 
         LOG.info(f"Downloading test data from {url} to {target}")
 
-        download(url, target, maximum_retries=5, retry_after=60, timeout=60)
+        download(url, partial, maximum_retries=5, retry_after=60, timeout=60)
 
         if gzipped:
             import gzip
 
-            with gzip.open(target, "rb") as f_in:
-                with open(target[:-3], "wb") as f_out:
+            gunzipped = target + ".gunzipped.part"
+            with gzip.open(partial, "rb") as f_in:
+                with open(gunzipped, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
-            os.remove(target)
-            target = target[:-3]
+            os.remove(partial)
+            partial = gunzipped
+
+        os.replace(partial, target)
 
         return target
 
