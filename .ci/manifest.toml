@@ -32,3 +32,7 @@ ref = "main"
 [[trigger-downstream]]
 repo = "ecmwf/anemoi-datasets"
 ref = "main"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-core"
+ref = "main"
