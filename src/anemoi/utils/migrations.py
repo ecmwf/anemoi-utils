@@ -188,6 +188,11 @@ class Migration(ABC, Generic[_T, _U, _Version]):
         return self._signature
 
     @property
+    @abstractmethod
+    def migration_state_key(self) -> str:
+        """Key to use for the migration state."""
+
+    @property
     def migrate(self) -> Callable[[_T], _U] | None:
         """Callback to execute the migration."""
         return self._migrate
@@ -409,6 +414,20 @@ class Migrator(ABC, Generic[_M, _O]):
         if migration_state is None:
             return False
 
+        missing_older_migrations = self.missing_older_migrations(obj)
+        if len(missing_older_migrations):
+            missing_migrations = ", ".join([migration.name for migration in missing_older_migrations])
+            msg = (
+                "The checkpoint is missing some older migration scripts that are not part "
+                f"of the current object: {missing_migrations}."
+            )
+            raise IncompatibleObjectError(msg)
+        extra_migrations = self.extra_migrations(obj)
+        if len(extra_migrations):
+            extra_migrations = ", ".join([migration.name for migration in missing_older_migrations])
+            msg = f"The checkpoint has extra migrations scripts registered: {extra_migrations}."
+            raise IncompatibleObjectError(msg)
+
         return self._current_group(migration_state) == len(self._compatibility_groups) - 1
 
     def registered_migrations(self, obj: _O) -> list[_M]:
@@ -436,6 +455,34 @@ class Migrator(ABC, Generic[_M, _O]):
                 )
             migrations.append(compat_group[self._migration_refs[registered_migration]])
         return migrations
+
+    def missing_older_migrations(self, obj: _O) -> list[_M]:
+        """Lists missing migrations from the same group but that are not after the last
+        registered migration.
+
+        This finds gap in the registered migration that reveals a problem with the current
+        checkoint.
+
+        Parameters
+        ----------
+        obj : _O
+            The object to list the missing migrations from.
+
+        Returns
+        -------
+        list[_M]
+            The missing migrations.
+        """
+        migration_state = self._migration_state(obj)
+        compat_group = self._compatibility_groups[self._current_group(migration_state)]
+        assert migration_state is not None
+        if not len(migration_state):
+            return []
+        missing_migrations: list[_M] = []
+        for k, migration_state_key in enumerate(migration_state):
+            if migration_state_key != compat_group[k].migration_state_key:
+                missing_migrations.append(compat_group[k])
+        return missing_migrations
 
     def missing_migrations(self, obj: _O) -> list[_M]:
         """Lists the missing migrations in the object.
