@@ -14,7 +14,7 @@ import pytest
 from anemoi.utils.humanize import make_list_int
 from anemoi.utils.humanize import when
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 
 # Fixed reference points
 NOW_NAIVE = datetime.datetime(2024, 6, 15, 12, 0, 0)
@@ -126,7 +126,7 @@ def test_make_list_int_to_range():
 
 def test_make_list_int_to_range_inclusive_end():
     """End value must be included even when it falls exactly on a step boundary."""
-    assert make_list_int("0/to/24") == list(range(0, 25))
+    assert make_list_int("0/to/24") == list(range(25))
 
 
 def test_make_list_int_to_by_range():

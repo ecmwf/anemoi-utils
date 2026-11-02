@@ -238,13 +238,12 @@ def upload_file(source: str, target: str, overwrite: bool, resume: bool, verbosi
     ) as pbar:
         chunk_size = 1024 * 1024 * 10
         total = size
-        with open(source, "rb") as f:
-            with closing(obstore.open_writer(s3, obj.key, buffer_size=chunk_size)) as g:
-                while total > 0:
-                    chunk = f.read(min(chunk_size, total))
-                    g.write(chunk)
-                    pbar.update(len(chunk))
-                    total -= len(chunk)
+        with open(source, "rb") as f, closing(obstore.open_writer(s3, obj.key, buffer_size=chunk_size)) as g:
+            while total > 0:
+                chunk = f.read(min(chunk_size, total))
+                g.write(chunk)
+                pbar.update(len(chunk))
+                total -= len(chunk)
 
     return size
 
@@ -317,7 +316,7 @@ def download_file(source: str, target: str, overwrite: bool, resume: bool, verbo
             last_exc = e
             LOG.warning(f"Download attempt {attempt + 1}/3 failed for {source}: {e}")
 
-    raise IOError(f"Failed to download {source} after 3 attempts: {last_exc}")
+    raise OSError(f"Failed to download {source} after 3 attempts: {last_exc}")
 
 
 def _list_objects(target: str, batch: bool = False) -> Iterable[list[dict]] | Iterable[dict]:
@@ -506,7 +505,7 @@ def get_objects_parallel(targets: list[str]) -> list[bytes]:
             except Exception as e:
                 last_exc = e
                 LOG.warning(f"Fetch attempt {attempt + 1}/3 failed for {target}: {e}")
-        raise IOError(f"Failed to fetch {target} after 3 attempts: {last_exc}")
+        raise OSError(f"Failed to fetch {target} after 3 attempts: {last_exc}")
 
     with ThreadPoolExecutor(max_workers=len(targets)) as ex:
         return list(ex.map(_fetch, targets))
@@ -582,7 +581,6 @@ class S3Upload(BaseUpload):
         temporary_target : str
             Temporary target path.
         """
-        pass
 
     def delete_target(self, target: str) -> None:
         """Delete target from S3.
@@ -593,7 +591,6 @@ class S3Upload(BaseUpload):
             S3 target URL.
         """
 
-        pass
 
     def _transfer_file(self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, **kwargs) -> int:
         """Transfer a file to S3.
