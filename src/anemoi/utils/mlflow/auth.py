@@ -18,8 +18,8 @@ import time
 import warnings
 from abc import ABC
 from abc import abstractmethod
+from datetime import UTC
 from datetime import datetime
-from datetime import timezone
 from functools import wraps
 from getpass import getpass
 from typing import TYPE_CHECKING
@@ -54,7 +54,7 @@ class UserInfo(BaseModel):
     username: str | None = Field(default=None, validation_alias="preferred_username")
 
     @classmethod
-    def from_jwt(cls, token: str) -> "UserInfo":
+    def from_jwt(cls, token: str) -> UserInfo:
         """Create a UserInfo object from a JWT. The token payload must contain the user info fields."""
         payload = token.split(".")[1]
         padded = payload + "=" * (-len(payload) % 4)
@@ -72,7 +72,7 @@ class ServerConfig(BaseModel):
     refresh_expires: int = 0
 
     @field_validator("refresh_expires", mode="before")
-    def to_int(cls, value: float | int) -> int:
+    def to_int(cls, value: float) -> int:
         if not isinstance(value, int):
             return int(value)
         return value
@@ -274,7 +274,7 @@ class TokenAuth(AuthBase):
 
         return last
 
-    def enabled(fn: Callable) -> Callable:  # noqa: N805
+    def enabled(fn: Callable) -> Callable:
         """Decorator to call or ignore a function based on the `enabled` flag."""
 
         @wraps(fn)
@@ -385,7 +385,7 @@ class TokenAuth(AuthBase):
             store.update(self.url, server_config)
             save_config(self._config_file, store.model_dump())
 
-        expire_date = datetime.fromtimestamp(self.refresh_expires, tz=timezone.utc)
+        expire_date = datetime.fromtimestamp(self.refresh_expires, tz=UTC)
         self.log.info(
             "Your MLflow login token is valid until %s UTC",
             expire_date.strftime("%Y-%m-%d %H:%M:%S"),

@@ -30,7 +30,7 @@ def azurite() -> Generator[None]:
 
     Seeds a known blob for testing existence, listing and metadata retrieval.
     """
-    import obstore  # noqa: PLC0415
+    import obstore
 
     create_container(AZURITE_CONTAINER)
 
