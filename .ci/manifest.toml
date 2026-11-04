@@ -1,0 +1,44 @@
+[package]
+name = "anemoi-utils"
+repo = "ecmwf/anemoi-utils"
+visibility = "public"
+compiler-inputs = []
+
+# Each leg publishes its wheel, so a consumer's leg takes the one tested on
+# its own Python (python-version-input).
+[matrix.test]
+triggers = ["upstream-change", "rebuild-request"]
+
+[matrix.test.defaults]
+job-script = "./.ci/test.sh.j2"
+runs-on = "ubuntu-24.04"
+platform = "gh-ubuntu-24.04"
+extras = "all,tests"
+
+[[matrix.test.include]]
+python-version = "3.11"
+
+[[matrix.test.include]]
+python-version = "3.12"
+
+[[matrix.test.include]]
+python-version = "3.13"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-transform"
+ref = "main"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-datasets"
+ref = "main"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-core"
+ref = "main"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-inference"
+ref = "main"
+
+[downstream]
+run-default = "all"
