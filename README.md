@@ -15,8 +15,6 @@
 > \[!IMPORTANT\]
 > This software is **Incubating** and subject to ECMWF's guidelines on [Software Maturity](https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity).
 
-
-
 ## Documentation
 
 The documentation can be found at https://anemoi-utils.readthedocs.io/.
