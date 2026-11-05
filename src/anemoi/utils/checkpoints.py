@@ -36,6 +36,10 @@ DEPRECATED_NAME = "ai-models.json"
 def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
     """Check if a checkpoint file has a metadata file.
 
+    When *name* is the default metadata name and no matching entry is found,
+    this also falls back to the deprecated name (``ai-models.json``) so that
+    legacy checkpoints are still detected.
+
     Parameters
     ----------
     path : str
@@ -48,6 +52,15 @@ def has_metadata(path: str, *, name: str = DEFAULT_NAME) -> bool:
     bool
         True if the metadata file is found
     """
+    if _has_exact_metadata(path, name=name):
+        return True
+    if name == DEFAULT_NAME:
+        return _has_exact_metadata(path, name=DEPRECATED_NAME)
+    return False
+
+
+def _has_exact_metadata(path: str, *, name: str) -> bool:
+    """Check whether a metadata entry with exactly *name* exists (no fallback)."""
     with zipfile.ZipFile(path, "r") as f:
         return any(os.path.basename(b) == name for b in f.namelist())
 
@@ -85,8 +98,8 @@ def get_metadata_path(path: str, *, name: str = DEFAULT_NAME) -> str:
 
 def _support_metadata_name_deprecation(path: str, name: str) -> str:
     """Support deprecated metadata name, automatically switching if needed and logging a warning."""
-    if name == DEFAULT_NAME and not has_metadata(path, name=DEFAULT_NAME):
-        if has_metadata(path, name=DEPRECATED_NAME):
+    if name == DEFAULT_NAME and not _has_exact_metadata(path, name=DEFAULT_NAME):
+        if _has_exact_metadata(path, name=DEPRECATED_NAME):
             LOG.warning(
                 "The metadata file '%s' is deprecated. New versions of checkpoints will write to '%s' instead.",
                 DEPRECATED_NAME,
@@ -98,7 +111,9 @@ def _support_metadata_name_deprecation(path: str, name: str) -> str:
 
 # TODO: Refactor this function to reduce complexity
 @overload
-def load_metadata(path: str, *, supporting_arrays: Literal[False] = False, name: str = DEFAULT_NAME) -> dict:  # type: ignore[reportOverlappingOverload]
+def load_metadata(
+    path: str, *, supporting_arrays: Literal[False] = False, name: str = DEFAULT_NAME
+) -> dict:  # type: ignore[reportOverlappingOverload]
     ...
 
 
@@ -234,7 +249,6 @@ def save_metadata(
         The folder where the metadata file will be saved
     """
     with zipfile.ZipFile(path, "a") as zipf:
-
         directories = set()
 
         for b in zipf.namelist():
@@ -267,7 +281,38 @@ def save_metadata(
         _write_array_to_bytes(supporting_arrays, "", metadata["supporting_arrays_paths"], zipf)
 
 
-def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: dict | None = None) -> None:
+def _collect_supporting_array_paths(entry: dict) -> list[str]:
+    """Recursively collect the in-archive paths of supporting arrays.
+
+    Parameters
+    ----------
+    entry : dict
+        A ``supporting_arrays_paths`` structure (possibly nested).
+
+    Returns
+    -------
+    list[str]
+        The list of ``.numpy`` archive paths referenced by *entry*.
+    """
+    paths: list[str] = []
+    if isinstance(entry, dict):
+        if "path" in entry:
+            paths.append(entry["path"])
+        else:
+            for value in entry.values():
+                paths.extend(_collect_supporting_array_paths(value))
+    return paths
+
+
+def _edit_metadata(
+    path: str,
+    name: str,
+    callback: Callable,
+    supporting_arrays: dict | None = None,
+    *,
+    target_file: str | None = None,
+    remove_old_arrays: bool = False,
+) -> None:
     """Edit metadata in a checkpoint file.
 
     Parameters
@@ -280,12 +325,24 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
         A callback function to edit the metadata
     supporting_arrays : dict, optional
         A dictionary of supporting NumPy arrays
+    target_file : str, optional
+        The in-archive path where the edited metadata should be written. When
+        ``None`` (default) the metadata is written back to its original
+        location. Set this to migrate a deprecated metadata entry to the
+        canonical path.
+    remove_old_arrays : bool, optional
+        If True, the supporting arrays referenced by the *old* metadata are
+        removed from the archive. This is used by :func:`replace_metadata` and
+        :func:`remove_metadata` so that stale arrays do not linger.
     """
     new_path = f"{path}.anemoi-edit-{time.time()}-{os.getpid()}.tmp"
 
-    target_file = get_metadata_path(path, name=name)
-    if target_file is None:
+    source_file = get_metadata_path(path, name=name)
+    if source_file is None:
         raise FileNotFoundError(f"Could not find '{name}' in {path}")
+
+    if target_file is None:
+        target_file = source_file
 
     directory = os.path.dirname(target_file)
 
@@ -305,35 +362,47 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
                     p = f"{key}.numpy"
                     array_paths[os.path.join(directory, p) if directory else p] = entry
 
-        # Skip set for the copy loop
-        skip_paths = {target_file} | array_paths.keys()
+        # Skip set for the copy loop: the (old) metadata file and the new
+        # array locations (which are re-written below).
+        skip_paths = {source_file} | array_paths.keys()
+
+        # Optionally drop the arrays referenced by the old metadata so that
+        # stale arrays do not survive a replace/remove.
+        if remove_old_arrays:
+            try:
+                with source_zip.open(source_file) as old_meta_file:
+                    old_metadata = json.load(old_meta_file)
+                old_array_paths = old_metadata.get("supporting_arrays_paths", {})
+                skip_paths.update(_collect_supporting_array_paths(old_array_paths))
+            except (json.JSONDecodeError, KeyError):
+                pass
 
         # Calculate total files for progress bar
         total_files = len(file_list) + len(array_paths)
 
         with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
             with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
-
                 # Copy all files except those being replaced
                 for file_path in file_list:
                     if file_path not in skip_paths:
-                        with source_zip.open(file_path) as source_file:
-                            data = source_file.read()
+                        with source_zip.open(file_path) as source_file_handle:
+                            data = source_file_handle.read()
                             new_zip.writestr(file_path, data)
                         pbar.update(1)
 
                 # Handle the target file with callback
                 with TemporaryDirectory() as temp_dir:
-                    # Extract only the target file
-                    source_zip.extract(target_file, temp_dir)
-                    target_full_path = os.path.join(temp_dir, target_file)
+                    # Extract only the source metadata file
+                    source_zip.extract(source_file, temp_dir)
+                    source_full_path = os.path.join(temp_dir, source_file)
 
                     # Apply the callback
-                    callback(target_full_path)
+                    callback(source_full_path)
 
-                    # Add the modified file to the new zip (if it still exists)
-                    if os.path.exists(target_full_path):
-                        new_zip.write(target_full_path, target_file)
+                    # Add the modified file to the new zip (if it still exists),
+                    # writing it at the (possibly migrated) target path.
+                    if os.path.exists(source_full_path):
+                        new_zip.write(source_full_path, target_file)
                     pbar.update(1)
 
                 # Add supporting arrays if provided
@@ -346,7 +415,11 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
 
 
 def replace_metadata(
-    path: str, metadata: dict, supporting_arrays: dict | None = None, *, name: str = DEFAULT_NAME
+    path: str,
+    metadata: dict,
+    supporting_arrays: dict | None = None,
+    *,
+    name: str = DEFAULT_NAME,
 ) -> None:
     """Replace metadata in a checkpoint file.
 
@@ -371,8 +444,30 @@ def replace_metadata(
         with open(full, "w") as f:
             json.dump(metadata, f)
 
+    requested_name = name
     name = _support_metadata_name_deprecation(path, name)
-    return _edit_metadata(path, name, callback, supporting_arrays)
+
+    # Unless a custom name was requested, always (re)write the new metadata to
+    # the canonical location `<dir>/<folder>/<DEFAULT_NAME>`. This migrates
+    # deprecated names (``ai-models.json``) and non-canonical layouts (e.g. a
+    # flat ``<dir>/anemoi.json``) to the standard `anemoi-metadata` folder.
+    # The top-level directory is the first path component of the existing
+    # metadata entry.
+    target_file = None
+    if requested_name == DEFAULT_NAME:
+        source_file = get_metadata_path(path, name=name)
+        directory = source_file.split("/")[0]
+        if directory:
+            target_file = f"{directory}/{DEFAULT_FOLDER}/{DEFAULT_NAME}"
+
+    return _edit_metadata(
+        path,
+        name,
+        callback,
+        supporting_arrays,
+        target_file=target_file,
+        remove_old_arrays=True,
+    )
 
 
 def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
@@ -390,7 +485,7 @@ def remove_metadata(path: str, *, name: str = DEFAULT_NAME) -> None:
     def callback(full):
         os.remove(full)
 
-    return _edit_metadata(path, name, callback)
+    return _edit_metadata(path, name, callback, remove_old_arrays=True)
 
 
 def unpickle_model(path, **kwargs) -> dict:

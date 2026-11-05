@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import subprocess
+import warnings
 from argparse import ArgumentParser
 from argparse import Namespace
 from tempfile import TemporaryDirectory
@@ -28,7 +29,7 @@ EDITOR_OPTIONS = {"code": ["--wait"]}
 
 
 class Metadata(Command):
-    """Edit, remove, dump or load metadata from a checkpoint file."""
+    """DEPRECATED (use anemoi-metadata): Edit, remove, dump or load metadata from a checkpoint file."""
 
     def add_arguments(self, command_parser: ArgumentParser) -> None:
         """Add command line arguments to the parser.
@@ -162,6 +163,10 @@ class Metadata(Command):
         args : Namespace
             The arguments passed to the command.
         """
+        warnings.warn(
+            "The 'metadata' command is deprecated. Please use the 'anemoi-metadata' package instead.",
+            DeprecationWarning,
+        )
         if args.edit:
             return self.edit(args)
 
