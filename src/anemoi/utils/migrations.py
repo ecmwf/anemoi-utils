@@ -97,7 +97,7 @@ def added_migrations_compared_to_main_branch(root_folder: Path, migration_path: 
     Parameters
     ----------
     root_folder : Path
-        Path to the root folder of the project (the path to ./src).
+        Path to the root folder of the git repository (the path that contains ``.git``).
     migration_path : Path
         Path to the migration script folder.
 
@@ -107,7 +107,7 @@ def added_migrations_compared_to_main_branch(root_folder: Path, migration_path: 
         The list of added migration in this branch compared to origin/main.
     """
     last_commit_on_main = subprocess.run(
-        ("git", "log", "-n", "1", "origin/main", '--pretty=fromat:"%H"'),
+        ("git", "log", "-n", "1", "origin/main", "--pretty=format:%H"),
         cwd=root_folder,
         check=True,
         capture_output=True,
