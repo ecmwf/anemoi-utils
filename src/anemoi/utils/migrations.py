@@ -20,6 +20,7 @@ from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
 from collections.abc import Iterable
+from collections.abc import Mapping
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC
@@ -36,12 +37,40 @@ from typing import TypeVar
 LOGGER = logging.getLogger(__name__)
 
 
-class IncompleteMigrationScriptError(BaseException):
+class IncompleteMigrationScriptError(Exception):
     """The migration script is missing some mandatory content (metadata)."""
 
 
-class IncompatibleObjectError(BaseException):
+class IncompatibleObjectError(Exception):
     """The provided object cannot be migrated because it is to old/recent."""
+
+
+class ObjectTooOldError(IncompatibleObjectError):
+    """The object is too old to be migrated."""
+
+    def __init__(self, version_restrictions: list[str]) -> None:
+        message = "No compatible migration available: the object is too old."
+        if len(version_restrictions):
+            message += " Version restrictions: \n" + "\n".join(version_restrictions)
+
+        super().__init__(message)
+
+
+class ObjectMissingOlderMigrationsError(IncompatibleObjectError):
+    """The object is missing older migrations."""
+
+    def __init__(self, missing_migrations: str) -> None:
+        super().__init__(
+            "The checkpoint is missing some older migration scripts that are not part "
+            f"of the current object: {missing_migrations}."
+        )
+
+
+class ObjectHasExtraMigrationsError(IncompatibleObjectError):
+    """The object is missing older migrations."""
+
+    def __init__(self, extra_migrations: str) -> None:
+        super().__init__(f"The checkpoint has extra migrations scripts registered: {extra_migrations}.")
 
 
 def get_migration_name(name: str) -> str:
@@ -122,7 +151,7 @@ def migrations_in_incorrect_order(all_migrations: list[str], new_migrations: lis
     return list(reversed(incorrect_order)), last_name
 
 
-_Version = TypeVar("_Version")
+_Version = TypeVar("_Version", bound=Mapping)
 
 
 @dataclass
@@ -211,6 +240,12 @@ class Migration(ABC, Generic[_T, _U, _Version]):
             "metadata": self.metadata,
             "signature": self.signature,
         }
+
+    def __repr__(self) -> str:
+        return (
+            f'{self.__class__.__name__}(migration_state_key="{self.migration_state_key}" '
+            f'name="{self.name}", signature="{self.signature}", metadata="{self.metadata}")'
+        )
 
 
 class ObjType(Protocol):
@@ -391,8 +426,7 @@ class Migrator(ABC, Generic[_M, _O]):
             return 0
 
         if migration_state[-1] not in self._migration_groups:
-            msg = f"Registered migration {migration_state[-1]} is unknown."
-            raise IncompatibleObjectError(msg)
+            raise ObjectHasExtraMigrationsError(migration_state[-1])
 
         return self._migration_groups[migration_state[-1]]
 
@@ -413,22 +447,37 @@ class Migrator(ABC, Generic[_M, _O]):
         # No migration means checkpoint too old, no migrations available.
         if migration_state is None:
             return False
+        return self._current_group(migration_state) == len(self._compatibility_groups) - 1
 
+    def fail_if_not_migratable(self, obj: _O) -> None:
+        """Checks whether the object can be migratable and fails if not.
+
+        Parameters
+        ----------
+        obj : _T
+            The object.
+
+        Raises
+        ------
+        IncompatibleObjectError
+            The object is not migratable.
+        """
+        if not self.is_compatible(obj):
+            first_incompatible_migration = self.get_first_incompatible_migration(obj)
+            assert first_incompatible_migration is not None
+            version_restrictions = [
+                f"{name} < {version}"
+                for name, version in first_incompatible_migration.metadata.versions.items()
+                if name != "migration"
+            ]
+            raise ObjectTooOldError(version_restrictions)
+        extra_migrations = self.extra_migrations(obj)
+        if len(extra_migrations):
+            raise ObjectHasExtraMigrationsError(", ".join([migration for migration in extra_migrations]))
         missing_older_migrations = self.missing_older_migrations(obj)
         if len(missing_older_migrations):
             missing_migrations = ", ".join([migration.name for migration in missing_older_migrations])
-            msg = (
-                "The checkpoint is missing some older migration scripts that are not part "
-                f"of the current object: {missing_migrations}."
-            )
-            raise IncompatibleObjectError(msg)
-        extra_migrations = self.extra_migrations(obj)
-        if len(extra_migrations):
-            extra_migrations = ", ".join([migration.name for migration in missing_older_migrations])
-            msg = f"The checkpoint has extra migrations scripts registered: {extra_migrations}."
-            raise IncompatibleObjectError(msg)
-
-        return self._current_group(migration_state) == len(self._compatibility_groups) - 1
+            raise ObjectMissingOlderMigrationsError(missing_migrations)
 
     def registered_migrations(self, obj: _O) -> list[_M]:
         """Lists the registered migrations in the object.
