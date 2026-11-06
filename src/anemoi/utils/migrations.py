@@ -13,7 +13,6 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import logging
-import shlex
 import subprocess
 import sys
 from abc import ABC
@@ -93,7 +92,7 @@ def get_migration_name(name: str) -> str:
 
 
 def added_migrations_compared_to_main_branch(root_folder: Path, migration_path: Path) -> list[str]:
-    """Finds the all now migration scripts that were added compared to origin/main.
+    """Finds the new migration scripts that were added compared to origin/main.
 
     Parameters
     ----------
@@ -107,15 +106,19 @@ def added_migrations_compared_to_main_branch(root_folder: Path, migration_path: 
     list[str]
         The list of added migration in this branch compared to origin/main.
     """
-    run_new_migrations = subprocess.run(
-        "git diff --name-only --diff-filter=A "
-        '$(git log -n 1 origin/main --pretty=format:"%H") '
-        f"HEAD {shlex.quote(str(migration_path.resolve()))}",
+    last_commit_on_main = subprocess.run(
+        ("git", "log", "-n", "1", "origin/main", '--pretty=fromat:"%H"'),
+        cwd=root_folder,
         check=True,
         capture_output=True,
-        shell=True,
-    )
-    new_migrations = [root_folder / file for file in run_new_migrations.stdout.decode("utf-8").split("\n")]
+    ).stdout.decode("utf-8")
+    run_new_migrations = subprocess.run(
+        ("git", "diff", "--name-only", "--diff-filter=A", last_commit_on_main, "HEAD", str(migration_path.resolve())),
+        cwd=root_folder,
+        check=True,
+        capture_output=True,
+    ).stdout.decode("utf-8")
+    new_migrations = [root_folder / file for file in run_new_migrations.split("\n")]
     new_migrations = [file.name for file in new_migrations if file.is_file() and file.name != "__init__.py"]
     return sorted(new_migrations)
 
