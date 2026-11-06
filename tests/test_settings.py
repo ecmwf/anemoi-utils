@@ -197,14 +197,14 @@ def isolated_settings(tmp_path, monkeypatch):
 class TestSettingsFromFile:
     """Settings values are read from the config file."""
 
-    def test_paramdb_default_origin_from_file(self, isolated_settings):
+    def test_paramdb_mode_from_file(self, isolated_settings):
         """A value written to settings.toml is picked up."""
         isolated_settings.toml.write_text(textwrap.dedent("""\
                 [paramdb]
-                default_origin = "destine"
+                mode = "offline"
             """))
         s = isolated_settings.load()
-        assert s.paramdb.default_origin == "destine"
+        assert s.paramdb.mode == "offline"
 
     def test_datasets_path_from_file(self, isolated_settings):
         """A list field is loaded correctly from TOML."""
@@ -218,7 +218,7 @@ class TestSettingsFromFile:
     def test_missing_file_uses_defaults(self, isolated_settings):
         """When no config file exists, built-in defaults are used."""
         s = isolated_settings.load()
-        assert s.paramdb.default_origin in ("ecmf")
+        assert s.paramdb.mode == "offline"
         assert s.paramdb.cache_length == 30
 
 
