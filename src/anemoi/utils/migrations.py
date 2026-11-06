@@ -371,7 +371,12 @@ class Migrator(ABC, Generic[_M, _O]):
         list[Migration]
             The migrations from the given path.
         """
-        files = sorted(filter(_is_valid_migration_file, Path(location).iterdir()))
+        location = Path(location)
+        files: list[Path] = []
+        if location.is_dir():
+            files = sorted(filter(_is_valid_migration_file, location.iterdir()))
+        else:
+            LOGGER.warning("%s path does not exist.", location)
         return cls._migrations_from_files(migration_type, files, package)
 
     @classmethod

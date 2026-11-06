@@ -8,6 +8,7 @@
 # nor does it submit to any jurisdiction.
 
 from collections.abc import MutableMapping
+from pathlib import Path
 from types import ModuleType
 from typing import Any
 from typing import Self
@@ -83,6 +84,22 @@ class MigrationFactory:
 @pytest.fixture
 def migration_factory() -> MigrationFactory:
     return MigrationFactory()
+
+
+HERE = Path(__file__).parent
+
+
+def test_making_migrations_from_path() -> None:
+    migration_files = HERE / "migrations"
+    migrations = DummyMigrator._migrations_from_path(DummyMigration, migration_files, "tests.migrations")
+    assert len(migrations) == 2
+    assert migrations[0].name == "0_migrations-1"
+
+
+def test_making_migrations_from_missing_path(tmpdir: Path) -> None:
+    migration_files = tmpdir / "migrations"  # test for path that does not exist
+    migrations = DummyMigrator._migrations_from_path(DummyMigration, migration_files, "tests.migrations")
+    assert len(migrations) == 0
 
 
 def test_missing_older_migration(migration_factory: MigrationFactory) -> None:
