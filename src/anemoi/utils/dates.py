@@ -59,7 +59,7 @@ def _no_time_zone(date: datetime.datetime) -> datetime.datetime:
     """
 
     if date.tzinfo is not None:
-        date = date.astimezone(datetime.timezone.utc)
+        date = date.astimezone(datetime.UTC)
     return date.replace(tzinfo=None)
 
 
@@ -447,7 +447,6 @@ class DateTimes:
                 and (date.day in self.day_of_month)
                 and (date.month in self.calendar_months)
             ):
-
                 yield date
             date += self.increment
 

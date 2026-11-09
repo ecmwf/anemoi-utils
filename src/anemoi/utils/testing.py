@@ -12,7 +12,7 @@ import os
 import shutil
 import warnings
 from collections.abc import Callable
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 import pytest
@@ -123,9 +123,8 @@ class GetTestData:
             import gzip
 
             gunzipped = target + ".gunzipped.part"
-            with gzip.open(partial, "rb") as f_in:
-                with open(gunzipped, "wb") as f_out:
-                    shutil.copyfileobj(f_in, f_out)
+            with gzip.open(partial, "rb") as f_in, open(gunzipped, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
             os.remove(partial)
             partial = gunzipped
 
@@ -246,7 +245,7 @@ def _missing_packages(*names: str) -> list[str]:
     return missing
 
 
-@lru_cache(maxsize=None)
+@cache
 def _offline() -> bool:
     """Check if we are offline."""
     from urllib import request
@@ -330,7 +329,7 @@ def cli_testing(package: str, cmd: str, *args: str) -> None:
     """
 
     package = package.replace("-", ".")
-    COMMANDS = getattr(__import__(f"{package}.commands", fromlist=["COMMANDS"]), "COMMANDS")
+    COMMANDS = __import__(f"{package}.commands", fromlist=["COMMANDS"]).COMMANDS
     version = getattr(__import__(f"{package}._version", fromlist=["__version__"]), "__version__", "0.1.0")
 
     from anemoi.utils.cli import cli_main

@@ -50,7 +50,6 @@ def call_process(*args: str) -> str:
 
 
 class SshBaseUpload(BaseUpload):
-
     def _parse_target(self, target: str) -> tuple[str, str]:
         """Parse the SSH target string into hostname and path.
 
@@ -127,14 +126,12 @@ class SshBaseUpload(BaseUpload):
         target : str
             The target path to delete.
         """
-        pass
         # hostname, path = self._parse_target(target)
         # LOGGER.info(f"Deleting {target}")
         # call_process("ssh", hostname, "rm", "-rf", shlex.quote(path))
 
 
 class RsyncUpload(SshBaseUpload):
-
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
     ) -> int:
@@ -184,7 +181,6 @@ class RsyncUpload(SshBaseUpload):
 
 
 class ScpUpload(SshBaseUpload):
-
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
     ) -> int:

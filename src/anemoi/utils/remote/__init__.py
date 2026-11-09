@@ -43,7 +43,6 @@ def _ignore(number_of_files: int, total_size: int, total_transferred: int, trans
     transfering : bool
         Whether the transfer is in progress.
     """
-    pass
 
 
 class Loader:
@@ -93,7 +92,6 @@ class Loader:
 
                 futures = []
                 for name in self.list_source(source):
-
                     futures.append(
                         executor.submit(
                             self.transfer_file,
@@ -108,7 +106,6 @@ class Loader:
                     total_size += self.source_size(name)
 
                     if len(futures) % 10000 == 0:
-
                         progress(len(futures), total_size, 0, False)
 
                         if verbosity > 0:
