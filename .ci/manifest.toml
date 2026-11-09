@@ -43,7 +43,11 @@ repo = "ecmwf/anemoi-inference"
 ref = "main"
 
 [[trigger-downstream]]
-repo = "ecmwf/anemoi-registry anemoi-plugins"
+repo = "ecmwf/anemoi-registry"
+ref = "main"
+
+[[trigger-downstream]]
+repo = "ecmwf/anemoi-plugins"
 ref = "main"
 
 [downstream]
