@@ -25,8 +25,7 @@ import subprocess
 import sys
 import sysconfig
 from functools import cache
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import distribution
+from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from typing import Any
 
@@ -96,8 +95,7 @@ def lookup_git_repo(path: str) -> Any | None:
         The git repository if found, otherwise None.
     """
     try:
-        from git import InvalidGitRepositoryError
-        from git import Repo
+        from git import InvalidGitRepositoryError, Repo
     except ImportError:
         return None
 
@@ -162,8 +160,7 @@ def _check_for_git(paths: list[tuple[str, str]], full: bool) -> dict[str, Any]:
 
 
 def _package_version(name: str) -> str | None:
-    from importlib.metadata import PackageNotFoundError
-    from importlib.metadata import version
+    from importlib.metadata import PackageNotFoundError, version
 
     # This the recommended way to get the version of a package
     try:

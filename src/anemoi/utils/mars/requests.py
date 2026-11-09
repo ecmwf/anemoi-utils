@@ -6,8 +6,7 @@
 # nor does it submit to any jurisdiction.
 
 import sys
-from typing import Any
-from typing import TextIO
+from typing import Any, TextIO
 
 
 def print_request(verb: str, request: dict[str, Any], file: TextIO = sys.stdout) -> None:

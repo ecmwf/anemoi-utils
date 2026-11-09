@@ -14,20 +14,16 @@ import shutil
 import threading
 from importlib import resources
 from pathlib import Path
-from typing import Any
-from typing import get_args
-from typing import get_origin
-from typing import get_type_hints
-from typing import overload
+from typing import Any, get_args, get_origin, get_type_hints, overload
 
-from pydantic import BaseModel
-from pydantic import Field
-from pydantic import SecretStr
-from pydantic_settings import BaseSettings
-from pydantic_settings import PydanticBaseSettingsSource
-from pydantic_settings import SettingsConfigDict
-from pydantic_settings import TomlConfigSettingsSource
-from pydantic_settings import YamlConfigSettingsSource
+from pydantic import BaseModel, Field, SecretStr
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+    YamlConfigSettingsSource,
+)
 
 from anemoi.utils.config import LOG
 

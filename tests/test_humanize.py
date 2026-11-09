@@ -11,8 +11,7 @@ import datetime
 
 import pytest
 
-from anemoi.utils.humanize import make_list_int
-from anemoi.utils.humanize import when
+from anemoi.utils.humanize import make_list_int, when
 
 UTC = datetime.timezone.utc
 
