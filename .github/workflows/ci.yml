@@ -96,6 +96,30 @@ jobs:
           package: anemoi-utils
           cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
 
+      # Only the leg with pytest-args --cov (see .ci/manifest.toml) writes coverage.md and
+      # coverage.xml. Both steps below run after failed tests too, never fail the job
+      # (continue-on-error) and skip when the file is missing.
+      - name: Coverage summary
+        if: ${{ !cancelled() && hashFiles('coverage.md') != '' }}
+        continue-on-error: true
+        run: cat coverage.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() && hashFiles('coverage.xml') != '' }}
+        # An upload problem (Codecov down, token missing) must not fail the CI.
+        continue-on-error: true
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_UPLOAD_TOKEN }}
+          files: coverage.xml
+          flags: pr-cpu
+          disable_search: true
+          fail_ci_if_error: false
+          # Fork PRs run here on pull_request_target, where GITHUB_SHA is the base commit:
+          # tell Codecov the PR head commit and number. Empty (the default) for other events.
+          override_commit: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || '' }}
+          override_pr: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.number || '' }}
+
       - name: Publish the wheel
         uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
         with:

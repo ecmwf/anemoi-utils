@@ -22,6 +22,8 @@ python-version = "3.11"
 
 [[matrix.test.include]]
 python-version = "3.12"
+# Only this leg measures coverage: one upload per commit, and the other legs stay fast.
+pytest-args = "--cov --cov-report=xml --cov-report=markdown:coverage.md --cov-report=term"
 
 [[matrix.test.include]]
 python-version = "3.13"
