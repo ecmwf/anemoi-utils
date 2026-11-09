@@ -189,7 +189,6 @@ def test_transfer_zarr_local_to_s3(tmpdir: pytest.TempPathFactory) -> None:
     target = ROOT_S3_WRITE + f"/{uuid.uuid4()}/test.zarr"
 
     try:
-
         transfer(fixture, source)
         transfer(source, target)
 
@@ -262,7 +261,6 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
     local2 = LOCAL_TEST_DATA + "-copy-" + path
 
     try:
-
         transfer(local, remote, overwrite=True)
         transfer(local, remote, resume=True)
         with pytest.raises(ValueError, match="already exists"):
