@@ -56,7 +56,8 @@ class Metadata(Command):
             "--load",
             action="store_true",
             help=(
-                "Set the metadata in the checkpoint from the content of a file specified by the ``--input`` argument."
+                "Set the metadata in the checkpoint from the content"
+                " of a file specified by the ``--input`` argument."
             ),
         )
 
@@ -237,6 +238,7 @@ class Metadata(Command):
             kwargs = {"default_flow_style": False}
 
         with TemporaryDirectory() as temp_dir:
+
             path = os.path.join(temp_dir, f"checkpoint.{ext}")
             metadata = load_metadata(args.path)
 

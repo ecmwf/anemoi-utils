@@ -176,7 +176,7 @@ class TestDisambiguationByDissemination:
         grib = _grib()
         result = grib.shortname_to_paramid("2t")
         assert result == 167, (
-            "Should pick the entry with 'dissemination' access (id=167), not the first entry (id=500167)"
+            "Should pick the entry with 'dissemination' access (id=167), " "not the first entry (id=500167)"
         )
 
 
@@ -270,9 +270,9 @@ class TestExplicitOriginFilter:
         # The dissemination filter would pick it, but with an explicit origin
         # the API is called with origin= directly and returns only that entry.
         result_ecmf = grib.shortname_to_paramid("2t")
-        assert result_ecmf == 167, (
-            "Filtering by nothing should return the ECMF entry with id 167, as it is set by default"
-        )
+        assert (
+            result_ecmf == 167
+        ), "Filtering by nothing should return the ECMF entry with id 167, as it is set by default"
 
         result_ecmf = grib.shortname_to_paramid("2t", origin="ecmf")
         assert result_ecmf == 167
@@ -631,6 +631,6 @@ class TestLocalCacheSearch:
             for shortname, expected_id in expected.items():
                 results = grib._local_search_param(shortname)
                 assert len(results) == 1
-                assert results[0]["id"] == expected_id, (
-                    f"Expected {shortname} -> id={expected_id}, got {results[0]['id']}"
-                )
+                assert (
+                    results[0]["id"] == expected_id
+                ), f"Expected {shortname} -> id={expected_id}, got {results[0]['id']}"

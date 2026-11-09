@@ -9,6 +9,7 @@
 
 
 from pathlib import Path
+from typing import Optional
 
 from .base import AnemoiBaseSettingsSchema
 
@@ -19,7 +20,7 @@ class UtilsConfig(AnemoiBaseSettingsSchema):
     Used by ``anemoi.utils.grids`` for custom grid file paths.
     """
 
-    grids_path: Path | None = None
+    grids_path: Optional[Path] = None
     """Custom path to a directory containing precomputed grid files (grid-<name>.npz).
 
     When set, grids are loaded from this directory before falling back to the

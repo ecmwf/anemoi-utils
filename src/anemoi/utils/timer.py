@@ -13,6 +13,7 @@
 import logging
 import time
 from collections import defaultdict
+from typing import Any
 
 from .humanize import seconds_to_human
 
@@ -59,7 +60,7 @@ class Timer:
         """Float: The elapsed time in seconds."""
         return time.time() - self.start
 
-    def __exit__(self, *args: object) -> None:
+    def __exit__(self, *args: Any) -> None:
         """Exit the runtime context related to this object.
 
         Parameters
@@ -88,7 +89,7 @@ class _Timer:
         self.start()
         return self
 
-    def __exit__(self, *args: object) -> None:
+    def __exit__(self, *args: Any) -> None:
         """Exit the runtime context related to this object.
 
         Parameters

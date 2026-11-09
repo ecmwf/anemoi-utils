@@ -7,6 +7,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+from typing import Optional
 
 from pydantic import SecretStr
 
@@ -19,5 +20,5 @@ class NexusConfig(AnemoiBaseSettingsSchema):
     api_url: str | None = None
     """API URL to nexus."""
 
-    api_token: SecretStr | None = None
+    api_token: Optional[SecretStr] = None
     """API token for authenticating with nexus."""

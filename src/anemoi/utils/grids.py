@@ -17,6 +17,7 @@ from io import BytesIO
 import deprecation
 import numpy as np
 import requests
+
 from anemoi.utils._version import __version__
 
 from .caching import cached
