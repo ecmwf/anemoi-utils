@@ -15,13 +15,15 @@ import pytest
 
 from anemoi.utils.remote import az
 from anemoi.utils.testing import skip_missing_packages
-from tests.helpers.azurite import AZURITE_ACCOUNT_NAME
-from tests.helpers.azurite import AZURITE_BLOB_BODY
-from tests.helpers.azurite import AZURITE_BLOB_NAME
-from tests.helpers.azurite import AZURITE_BLOB_URL
-from tests.helpers.azurite import AZURITE_CONTAINER
-from tests.helpers.azurite import AZURITE_ENDPOINT
-from tests.helpers.azurite import azurite_reachable
+from tests.helpers.azurite import (
+    AZURITE_ACCOUNT_NAME,
+    AZURITE_BLOB_BODY,
+    AZURITE_BLOB_NAME,
+    AZURITE_BLOB_URL,
+    AZURITE_CONTAINER,
+    AZURITE_ENDPOINT,
+    azurite_reachable,
+)
 
 IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("IN_CI_HPC") is not None)
 pytestmark = [

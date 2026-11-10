@@ -22,15 +22,16 @@ from importlib import resources
 from unittest.mock import patch
 
 import pytest
-from pydantic import SecretStr
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 import anemoi.utils.settings as settings_mod
-from anemoi.utils.settings import AnemoiSettings
-from anemoi.utils.settings import _collect_secret_paths
-from anemoi.utils.settings import _split_secrets
-from anemoi.utils.settings import convert_to_secret
-from anemoi.utils.settings import copy_default_settings
+from anemoi.utils.settings import (
+    AnemoiSettings,
+    _collect_secret_paths,
+    _split_secrets,
+    convert_to_secret,
+    copy_default_settings,
+)
 from anemoi.utils.settings_schema.object_storage import ObjectStorageConfig
 from anemoi.utils.settings_schema.paramdb import ParamDBConfig
 

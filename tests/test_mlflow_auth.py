@@ -16,11 +16,7 @@ import time
 
 import pytest
 
-from anemoi.utils.mlflow.auth import NoAuth
-from anemoi.utils.mlflow.auth import ServerConfig
-from anemoi.utils.mlflow.auth import ServerStore
-from anemoi.utils.mlflow.auth import TokenAuth
-from anemoi.utils.mlflow.auth import UserInfo
+from anemoi.utils.mlflow.auth import NoAuth, ServerConfig, ServerStore, TokenAuth, UserInfo
 
 
 def mocks(

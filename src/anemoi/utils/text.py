@@ -12,8 +12,7 @@
 
 import re
 from collections import defaultdict
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
 
 # https://en.wikipedia.org/wiki/Box-drawing_character
 

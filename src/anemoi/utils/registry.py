@@ -15,11 +15,7 @@ import sys
 import warnings
 from collections.abc import Callable
 from functools import cached_property
-from typing import Any
-from typing import Generic
-from typing import Optional
-from typing import TypeVar
-from typing import overload
+from typing import Any, Generic, Optional, TypeVar, overload
 
 import entrypoints
 

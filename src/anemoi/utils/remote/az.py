@@ -50,26 +50,18 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
-from typing import TYPE_CHECKING
-from typing import Any
-from typing import Literal
-from typing import overload
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 import obstore
 import tqdm  # type: ignore[import-untyped]
 
 from ..humanize import bytes_to_human
 from ..settings import SETTINGS
-from ..settings_schema.object_storage import AZURE_CLIENT_FIELDS
-from ..settings_schema.object_storage import ObjectStorageBucketConfig
-from . import BaseDownload
-from . import BaseUpload
-from . import Loader
-from . import transfer
+from ..settings_schema.object_storage import AZURE_CLIENT_FIELDS, ObjectStorageBucketConfig
+from . import BaseDownload, BaseUpload, Loader, transfer
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
     # obstore.ObjectMeta not importable at runtime, must be within TYPE_CHECKING
     from obstore import ObjectMeta

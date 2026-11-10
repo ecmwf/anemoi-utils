@@ -9,9 +9,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .base import AnemoiBaseSettingsSchema
 

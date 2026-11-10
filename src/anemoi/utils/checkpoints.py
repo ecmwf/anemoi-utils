@@ -19,8 +19,7 @@ import time
 import zipfile
 from collections.abc import Callable
 from tempfile import TemporaryDirectory
-from typing import Literal
-from typing import overload
+from typing import Literal, overload
 
 import numpy as np
 import tqdm
