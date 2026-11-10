@@ -26,19 +26,28 @@ def health_check(tracking_uri: str) -> None:
         If the server is not reachable.
 
     """
+    username = os.getenv("MLFLOW_TRACKING_USERNAME")
+    password = os.getenv("MLFLOW_TRACKING_PASSWORD")
     token = os.getenv("MLFLOW_TRACKING_TOKEN")
 
-    headers = {"Authorization": f"Bearer {token}"}
+    # Authenticate health probe the same way the MLflow client does: HTTP basic auth
+    # when MLFLOW_TRACKING_USERNAME / MLFLOW_TRACKING_PASSWORD are set, otherwise bearer token.
+    request_kwargs: dict = {"timeout": 60}
+    if username and password:
+        request_kwargs["auth"] = (username, password)
+    elif token:
+        request_kwargs["headers"] = {"Authorization": f"Bearer {token}"}
+
     response = robust(requests.get, retry_after=30, maximum_tries=10)(
         f"{tracking_uri}/health",
-        headers=headers,
-        timeout=60,
+        **request_kwargs,
     )
 
-    if response.text == "OK":
+    # response.text might vary between MLflow deployments, use status code.
+    if response.ok:
         return
 
     error_msg = f"Could not connect to MLflow server at {tracking_uri}. "
-    if not token:
+    if not (token or (username and password)):
         error_msg += "The server may require authentication, did you forget to turn it on?"
     raise ConnectionError(error_msg)
