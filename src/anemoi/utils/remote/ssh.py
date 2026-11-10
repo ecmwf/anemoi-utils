@@ -50,7 +50,6 @@ def call_process(*args: str) -> str:
 
 
 class SshBaseUpload(BaseUpload):
-
     def _parse_target(self, target: str) -> tuple[str, str]:
         """Parse the SSH target string into hostname and path.
 
@@ -134,7 +133,6 @@ class SshBaseUpload(BaseUpload):
 
 
 class RsyncUpload(SshBaseUpload):
-
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
     ) -> int:
@@ -184,7 +182,6 @@ class RsyncUpload(SshBaseUpload):
 
 
 class ScpUpload(SshBaseUpload):
-
     def _transfer_file(
         self, source: str, target: str, overwrite: bool, resume: bool, verbosity: int, threads: int, config: dict = None
     ) -> int:
