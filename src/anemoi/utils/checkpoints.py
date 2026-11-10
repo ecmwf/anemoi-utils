@@ -234,7 +234,6 @@ def save_metadata(
         The folder where the metadata file will be saved
     """
     with zipfile.ZipFile(path, "a") as zipf:
-
         directories = set()
 
         for b in zipf.namelist():
@@ -313,7 +312,6 @@ def _edit_metadata(path: str, name: str, callback: Callable, supporting_arrays: 
 
         with zipfile.ZipFile(new_path, "w", zipfile.ZIP_STORED) as new_zip:
             with tqdm.tqdm(total=total_files, desc="Rebuilding checkpoint") as pbar:
-
                 # Copy all files except those being replaced
                 for file_path in file_list:
                     if file_path not in skip_paths:
