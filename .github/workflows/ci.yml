@@ -65,6 +65,10 @@ jobs:
         with:
           matrix: test
           token: ${{ steps.mint.outputs.token }}
+      - name: Print dependency tables
+        uses: ecmwf/ci-infrastructure/actions/print-dep-table@main
+        with:
+          matrices: ${{ steps.r.outputs.json }}
 
   test:
     needs: [ci-approval, resolve]
@@ -110,11 +114,6 @@ jobs:
         with:
           install-path: ${{ steps.build.outputs.install-path }}
           artifact-name: ${{ matrix._resolved['own-artifact-name'] }}
-      - name: Print dependency table
-        if: always()
-        uses: ecmwf/ci-infrastructure/actions/print-dep-table@main
-        with:
-          resolved: ${{ toJSON(matrix._resolved) }}
 
   ci-result:
     name: collect results
