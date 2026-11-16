@@ -68,7 +68,6 @@ jobs:
 
   test:
     needs: [ci-approval, resolve]
-    if: ${{ !cancelled() && needs['ci-approval'].result == 'success' && needs['resolve'].result == 'success' }}
     name: test (${{ matrix._resolved['job-name'] }})
     runs-on: ${{ matrix['runs-on'] }}
     container:
