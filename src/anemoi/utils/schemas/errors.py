@@ -25,7 +25,6 @@ def convert_errors(e: ValidationError, custom_messages: dict[str, str]) -> list[
         custom_message = custom_messages.get(error["type"])
 
         if custom_message:
-
             ctx = error.get("ctx")
             error["msg"] = custom_message.format(**ctx) if ctx else custom_message
         new_errors.append(error)

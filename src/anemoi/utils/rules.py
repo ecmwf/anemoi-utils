@@ -12,7 +12,6 @@ from typing import Any
 
 
 class Rule:
-
     def __init__(self, match: dict[str, Any], result: Any):
         """Initialize a Rule object.
 
@@ -57,7 +56,6 @@ class Rule:
 
 
 class RuleSet:
-
     def __init__(self, rules: list[Rule | dict[str, Any] | list[Any]]):
         """Initialize a RuleSet object.
 
@@ -77,7 +75,6 @@ class RuleSet:
                 continue
 
             if isinstance(rule, dict):
-
                 assert len(rule) == 2, "Rule dictionary must contain exactly two key-value pair."
 
                 match = rule.get("match")

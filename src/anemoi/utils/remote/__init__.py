@@ -93,7 +93,6 @@ class Loader:
 
                 futures = []
                 for name in self.list_source(source):
-
                     futures.append(
                         executor.submit(
                             self.transfer_file,
@@ -108,7 +107,6 @@ class Loader:
                     total_size += self.source_size(name)
 
                     if len(futures) % 10000 == 0:
-
                         progress(len(futures), total_size, 0, False)
 
                         if verbosity > 0:

@@ -199,19 +199,23 @@ class TestSettingsFromFile:
 
     def test_paramdb_default_origin_from_file(self, isolated_settings):
         """A value written to settings.toml is picked up."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [paramdb]
                 default_origin = "destine"
-            """))
+            """)
+        )
         s = isolated_settings.load()
         assert s.paramdb.default_origin == "destine"
 
     def test_datasets_path_from_file(self, isolated_settings):
         """A list field is loaded correctly from TOML."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [datasets]
                 path = ["/data/a", "/data/b"]
-            """))
+            """)
+        )
         s = isolated_settings.load()
         assert s.datasets.path == ["/data/a", "/data/b"]
 
@@ -232,10 +236,12 @@ class TestEnvVarOverrides:
 
     def test_env_overrides_file_value(self, isolated_settings):
         """An env var should override the same key from the config file."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [paramdb]
                 default_origin = "ecmf"
-            """))
+            """)
+        )
         s = isolated_settings.load(ANEMOI_SETTINGS_PARAMDB__DEFAULT_ORIGIN="destine")
         assert s.paramdb.default_origin == "destine"
 
@@ -269,10 +275,12 @@ class TestEnvPrefixIsolation:
 
     def test_bare_field_named_env_var_does_not_override_file(self, isolated_settings):
         """A bare env var must not override a value coming from the config file."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [paramdb]
                 default_origin = "destine"
-            """))
+            """)
+        )
         s = isolated_settings.load(PARAMDB="not-json")
         assert s.paramdb.default_origin == "destine"
 
@@ -292,11 +300,13 @@ class TestSecretsSeparation:
 
     def test_secrets_loaded_from_secrets_file(self, isolated_settings):
         """SecretStr fields in the secrets file are loaded."""
-        isolated_settings.secrets_toml.write_text(textwrap.dedent("""\
+        isolated_settings.secrets_toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 access_key_id = "AKIAIOSFODNN7EXAMPLE"
                 secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-            """))
+            """)
+        )
         isolated_settings.secrets_toml.chmod(0o600)
         s = isolated_settings.load()
         assert isinstance(s.object_storage.access_key_id, SecretStr)
@@ -305,10 +315,12 @@ class TestSecretsSeparation:
     @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions only")
     def test_secrets_in_config_file_allowed_when_secure(self, isolated_settings):
         """SecretStr fields in the main config file are accepted if it is 0600."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 access_key_id = "AKIAIOSFODNN7EXAMPLE"
-            """))
+            """)
+        )
         isolated_settings.toml.chmod(0o600)
         s = isolated_settings.load()
         assert s.object_storage.access_key_id.get_secret_value() == "AKIAIOSFODNN7EXAMPLE"
@@ -316,23 +328,27 @@ class TestSecretsSeparation:
     @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions only")
     def test_secrets_in_world_readable_config_file_raise(self, isolated_settings):
         """A secret in a world-readable config file is a fatal error."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 access_key_id = "AKIAIOSFODNN7EXAMPLE"
-            """))
+            """)
+        )
         isolated_settings.toml.chmod(0o644)
         with pytest.raises(PermissionError, match="0o600"):
             isolated_settings.load()
 
     def test_non_secrets_in_secrets_file_are_loaded(self, isolated_settings):
         """Non-secret keys in the secrets file are loaded, not partitioned away."""
-        isolated_settings.secrets_toml.write_text(textwrap.dedent("""\
+        isolated_settings.secrets_toml.write_text(
+            textwrap.dedent("""\
                 [paramdb]
                 default_origin = "from-secrets-file"
 
                 [object-storage]
                 access_key_id = "AKIAEXAMPLE"
-            """))
+            """)
+        )
         isolated_settings.secrets_toml.chmod(0o600)
         s = isolated_settings.load()
         # Keys may live anywhere; the non-secret key is applied.
@@ -351,10 +367,12 @@ class TestSecretsFilePermissions:
     @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions only")
     def test_secrets_file_with_wrong_permissions_raises(self, isolated_settings):
         """A secrets file readable by group/other should be rejected."""
-        isolated_settings.secrets_toml.write_text(textwrap.dedent("""\
+        isolated_settings.secrets_toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 access_key_id = "AKIAEXAMPLE"
-            """))
+            """)
+        )
         isolated_settings.secrets_toml.chmod(0o644)
         with pytest.raises(PermissionError, match="0o600"):
             isolated_settings.load()
@@ -362,10 +380,12 @@ class TestSecretsFilePermissions:
     @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions only")
     def test_secrets_file_with_correct_permissions_loads(self, isolated_settings):
         """A secrets file with 0600 permissions should load normally."""
-        isolated_settings.secrets_toml.write_text(textwrap.dedent("""\
+        isolated_settings.secrets_toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 access_key_id = "AKIAEXAMPLE"
-            """))
+            """)
+        )
         isolated_settings.secrets_toml.chmod(0o600)
         s = isolated_settings.load()
         assert s.object_storage.access_key_id.get_secret_value() == "AKIAEXAMPLE"
@@ -383,19 +403,23 @@ class TestSourcePriority:
 
     def test_env_beats_config_file(self, isolated_settings):
         """Env var wins over the same key in the TOML file."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [paramdb]
                 cache_length = 60
-            """))
+            """)
+        )
         s = isolated_settings.load(ANEMOI_SETTINGS_PARAMDB__CACHE_LENGTH="1")
         assert s.paramdb.cache_length == 1
 
     def test_config_file_beats_default(self, isolated_settings):
         """A file value wins over the built-in default."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [paramdb]
                 cache_length = 99
-            """))
+            """)
+        )
         s = isolated_settings.load()
         assert s.paramdb.cache_length == 99
 
@@ -410,10 +434,12 @@ class TestAliasHandling:
 
     def test_toml_uses_hyphens(self, isolated_settings):
         """TOML sections written with hyphens are loaded correctly."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 endpoint_url = "https://hyphen.example.com"
-            """))
+            """)
+        )
         s = isolated_settings.load()
         assert s.object_storage.endpoint_url == "https://hyphen.example.com"
 
@@ -435,14 +461,16 @@ class TestBucketOverrides:
 
     def test_bucket_override_applied(self, isolated_settings):
         """A bucket-specific endpoint should override the global one."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 endpoint_url = "https://global.example.com"
 
                 [object-storage."my-bucket"]
                 endpoint_url = "https://private.example.com"
                 skip_signature = true
-            """))
+            """)
+        )
         s = isolated_settings.load()
         assert s.object_storage.endpoint_url == "https://global.example.com"
         bucket_cfg = getattr(s.object_storage, "my-bucket")
@@ -451,13 +479,15 @@ class TestBucketOverrides:
 
     def test_bucket_override_inherits_global(self, isolated_settings):
         """A bucket override that omits a key should not affect the global value."""
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [object-storage]
                 endpoint_url = "https://global.example.com"
 
                 [object-storage."other-bucket"]
                 skip_signature = true
-            """))
+            """)
+        )
         s = isolated_settings.load()
         bucket_cfg = getattr(s.object_storage, "other-bucket")
         # The bucket config has its own fields; endpoint_url defaults to ""
@@ -571,10 +601,12 @@ class TestReloadSettings:
         """After writing a new config and calling reload_settings, the global changes."""
         from anemoi.utils.settings import reload_settings
 
-        isolated_settings.toml.write_text(textwrap.dedent("""\
+        isolated_settings.toml.write_text(
+            textwrap.dedent("""\
                 [paramdb]
                 cache_length = 42
-            """))
+            """)
+        )
         reload_settings()
 
         from anemoi.utils.settings import SETTINGS as reloaded

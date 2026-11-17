@@ -160,9 +160,9 @@ class Registry(Generic[T]):
         aliases = aliases or []
 
         name = name.replace("_", "-")
-        assert (
-            name not in self._aliases
-        ), f"'{name}' is already registered for '{self._aliases[name]}' in {self.package}"
+        assert name not in self._aliases, (
+            f"'{name}' is already registered for '{self._aliases[name]}' in {self.package}"
+        )
         assert name not in aliases, f"'{name}' cannot be an alias for itself in {self.package}"
 
         if factory is None:
@@ -178,9 +178,9 @@ class Registry(Generic[T]):
             warnings.warn(f"New: {source}")
 
         for alias in aliases:
-            assert (
-                alias not in self.__registered
-            ), f"Alias '{alias}' is already registered as a factory in {self.package}"
+            assert alias not in self.__registered, (
+                f"Alias '{alias}' is already registered as a factory in {self.package}"
+            )
             alias = alias.replace("_", "-")
             if alias in self._aliases:
                 warnings.warn(f"Alias '{alias}' is already registered for '{self._aliases[alias]}' in {self.package}")
@@ -259,7 +259,6 @@ class Registry(Generic[T]):
 
         factory = factories.get(name)
         if factory is None:
-
             LOG.error(f"Cannot find '{name}' in {self.package}")
             for e in self.factories:
                 LOG.info(f"Registered: {e} ({self._sources.get(e)})")
@@ -274,7 +273,6 @@ class Registry(Generic[T]):
         directory = sys.modules[self.package].__path__[0]
 
         for file in os.listdir(directory):
-
             if file[0] == ".":
                 continue
 

@@ -135,7 +135,6 @@ def _check_for_git(paths: list[tuple[str, str]], full: bool) -> dict[str, Any]:
             continue
 
         try:
-
             if not full:
                 versions[name] = dict(
                     git=dict(

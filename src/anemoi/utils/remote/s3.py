@@ -554,7 +554,6 @@ def upload(source: str, target: str, *args, **kwargs) -> None:
 # Generic transfer classes
 ##########################
 class S3Upload(BaseUpload):
-
     def get_temporary_target(self, target: str, pattern: str) -> str:
         """Get temporary target path for upload.
 
@@ -623,7 +622,6 @@ class S3Upload(BaseUpload):
 
 
 class S3Download(BaseDownload):
-
     def copy(self, source: str, target: str, **kwargs) -> None:
         """Copy file or folder from S3.
 

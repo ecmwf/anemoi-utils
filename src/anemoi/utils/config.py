@@ -497,7 +497,6 @@ def _load_config(
         config = merge_configs(config, override_config)
 
     for env, value in os.environ.items():
-
         if not env.startswith("ANEMOI_CONFIG_"):
             continue
         rest = env[len("ANEMOI_CONFIG_") :]
@@ -649,10 +648,9 @@ def check_config_mode(name: str = "settings.toml", secrets_name: str = None, sec
             if secrets_name:
                 secret_path = config_path(secrets_name)
                 raise SystemError(
-                    f"Configuration file {conf} should not hold entries {secrets}.\n"
-                    f"Please move them to {secret_path}."
+                    f"Configuration file {conf} should not hold entries {secrets}.\nPlease move them to {secret_path}."
                 )
-            raise SystemError(f"Configuration file {conf} is not secure.\n" f"Please run `chmod 600 {conf}`.")
+            raise SystemError(f"Configuration file {conf} is not secure.\nPlease run `chmod 600 {conf}`.")
 
         CHECKED[name] = True
 

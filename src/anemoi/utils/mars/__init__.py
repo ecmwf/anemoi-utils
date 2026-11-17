@@ -67,7 +67,6 @@ def _lookup_mars_stream(request: dict[str, Any]) -> dict[str, Any] | None:
     global STREAMS
 
     if STREAMS is None:
-
         with open(os.path.join(os.path.dirname(__file__), "mars.yaml")) as f:
             STREAMS = yaml.safe_load(f)
 

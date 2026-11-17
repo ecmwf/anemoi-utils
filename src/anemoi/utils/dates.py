@@ -447,7 +447,6 @@ class DateTimes:
                 and (date.day in self.day_of_month)
                 and (date.month in self.calendar_months)
             ):
-
                 yield date
             date += self.increment
 
