@@ -24,6 +24,8 @@ def health_check(tracking_uri: str) -> None:
     ------
     ConnectionError
         If the server is not reachable.
+    ValueError
+        If both basic auth (username/password) and a tracking token are configured.
 
     """
     username = os.getenv("MLFLOW_TRACKING_USERNAME")
@@ -32,6 +34,14 @@ def health_check(tracking_uri: str) -> None:
 
     # Authenticate health probe the same way the MLflow client does: HTTP basic auth
     # when MLFLOW_TRACKING_USERNAME / MLFLOW_TRACKING_PASSWORD are set, otherwise bearer token.
+    # Reject ambiguous configuration where both are provided.
+    if username and password and token:
+        raise ValueError(
+            "Ambiguous MLflow authentication: both basic auth "
+            "(MLFLOW_TRACKING_USERNAME / MLFLOW_TRACKING_PASSWORD) and a tracking token "
+            "(MLFLOW_TRACKING_TOKEN) are set. Please configure only one."
+        )
+
     request_kwargs: dict = {"timeout": 60}
     if username and password:
         request_kwargs["auth"] = (username, password)
