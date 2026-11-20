@@ -12,13 +12,9 @@ import uuid
 
 import pytest
 
-from anemoi.utils.remote import TransferMethodNotImplementedError
-from anemoi.utils.remote import _find_transfer_class
-from anemoi.utils.remote import transfer
+from anemoi.utils.remote import TransferMethodNotImplementedError, _find_transfer_class, transfer
 from anemoi.utils.testing import skip_missing_packages
-from tests.helpers.azurite import AZURITE_CONTAINER
-from tests.helpers.azurite import AZURITE_ENDPOINT
-from tests.helpers.azurite import azurite_reachable
+from tests.helpers.azurite import AZURITE_CONTAINER, AZURITE_ENDPOINT, azurite_reachable
 
 IN_CI = (os.environ.get("GITHUB_WORKFLOW") is not None) or (os.environ.get("IN_CI_HPC") is not None)
 
@@ -252,9 +248,7 @@ def test_transfer_local_to_s3_to_local(path: str) -> None:
         The path to the file or directory
     """
 
-    from anemoi.utils.remote.s3 import delete
-    from anemoi.utils.remote.s3 import list_folder
-    from anemoi.utils.remote.s3 import object_exists
+    from anemoi.utils.remote.s3 import delete, list_folder, object_exists
 
     local = LOCAL_TEST_DATA + "/" + path
     remote = ROOT_S3_WRITE + f"/{uuid.uuid4()}/" + path
@@ -301,9 +295,7 @@ def test_transfer_local_to_az_to_local(azurite: None, path: str) -> None:
         Path to the file or directory to round-trip.
 
     """
-    from anemoi.utils.remote.az import delete
-    from anemoi.utils.remote.az import list_folder
-    from anemoi.utils.remote.az import object_exists
+    from anemoi.utils.remote.az import delete, list_folder, object_exists
 
     local = LOCAL_TEST_DATA + "/" + path
     remote = f"abfs://{AZURITE_CONTAINER}" + f"/{uuid.uuid4()}/" + path

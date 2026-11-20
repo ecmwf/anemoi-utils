@@ -15,13 +15,15 @@ from pydantic import SecretStr
 from anemoi.utils.remote import az
 from anemoi.utils.settings import SETTINGS
 from anemoi.utils.settings_schema.object_storage import ObjectStorageConfig
-from tests.helpers.azurite import AZURITE_ACCOUNT_KEY
-from tests.helpers.azurite import AZURITE_ACCOUNT_NAME
-from tests.helpers.azurite import AZURITE_BLOB_BODY
-from tests.helpers.azurite import AZURITE_BLOB_NAME
-from tests.helpers.azurite import AZURITE_CONTAINER
-from tests.helpers.azurite import AZURITE_ENDPOINT
-from tests.helpers.azurite import create_container
+from tests.helpers.azurite import (
+    AZURITE_ACCOUNT_KEY,
+    AZURITE_ACCOUNT_NAME,
+    AZURITE_BLOB_BODY,
+    AZURITE_BLOB_NAME,
+    AZURITE_CONTAINER,
+    AZURITE_ENDPOINT,
+    create_container,
+)
 
 
 @pytest.fixture(scope="session")

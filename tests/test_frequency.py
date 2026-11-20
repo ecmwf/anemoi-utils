@@ -10,8 +10,7 @@
 
 import datetime
 
-from anemoi.utils.dates import frequency_to_string
-from anemoi.utils.dates import frequency_to_timedelta
+from anemoi.utils.dates import frequency_to_string, frequency_to_timedelta
 
 
 def test_frequency_to_string() -> None:

@@ -37,11 +37,8 @@ import tqdm
 
 from ..humanize import bytes_to_human
 from ..settings import SETTINGS
-from ..settings_schema.object_storage import S3_CLIENT_FIELDS
-from ..settings_schema.object_storage import ObjectStorageBucketConfig
-from . import BaseDownload
-from . import BaseUpload
-from . import transfer
+from ..settings_schema.object_storage import S3_CLIENT_FIELDS, ObjectStorageBucketConfig
+from . import BaseDownload, BaseUpload, transfer
 
 LOG = logging.getLogger(__name__)
 

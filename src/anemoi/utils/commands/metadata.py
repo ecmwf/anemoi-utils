@@ -13,8 +13,7 @@ import logging
 import os
 import shutil
 import subprocess
-from argparse import ArgumentParser
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 from tempfile import TemporaryDirectory
 from typing import Any
 
@@ -217,8 +216,7 @@ class Metadata(Command):
         cmd : str
             The command to use for editing or viewing.
         """
-        from anemoi.utils.checkpoints import load_metadata
-        from anemoi.utils.checkpoints import replace_metadata
+        from anemoi.utils.checkpoints import load_metadata, replace_metadata
 
         kwargs: dict[str, Any] = {}
 
@@ -356,9 +354,7 @@ class Metadata(Command):
         args : Namespace
             The arguments passed to the command.
         """
-        from anemoi.utils.checkpoints import has_metadata
-        from anemoi.utils.checkpoints import replace_metadata
-        from anemoi.utils.checkpoints import save_metadata
+        from anemoi.utils.checkpoints import has_metadata, replace_metadata, save_metadata
 
         if args.input is None:
             raise ValueError("Please specify a value for --input")

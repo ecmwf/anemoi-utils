@@ -15,8 +15,7 @@ import json
 import re
 import warnings
 from collections import defaultdict
-from collections.abc import Callable
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from typing import Any
 
 from anemoi.utils.dates import as_datetime

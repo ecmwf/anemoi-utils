@@ -13,12 +13,10 @@ import hmac
 import os
 import socket
 import uuid
-from datetime import UTC
-from datetime import datetime
+from datetime import UTC, datetime
 from urllib.error import HTTPError
 from urllib.parse import urlparse
-from urllib.request import Request
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 # Azurite defaults
 AZURITE_ENDPOINT = os.environ.get("AZURITE_BLOB_ENDPOINT", "http://127.0.0.1:10000/")

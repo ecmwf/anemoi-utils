@@ -7,11 +7,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from argparse import ArgumentParser
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 
-from ..settings import ANEMOI_SETTINGS_FILE_LOCATION
-from ..settings import SETTINGS
+from ..settings import ANEMOI_SETTINGS_FILE_LOCATION, SETTINGS
 from . import Command
 
 
