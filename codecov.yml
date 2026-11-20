@@ -1,0 +1,43 @@
+# (C) Copyright 2026- Anemoi contributors.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
+# Codecov configuration. Report only: no status may fail a pull request.
+#
+# One flag per kind of test run:
+#   pr-cpu       the tests of the pull-request workflow (python 3.12 leg) and pushes to main
+# More flags (with `carryforward: true` for runs that do not happen on every commit) can be added below.
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# CI runs the tests against the installed wheel, so coverage.xml has paths such as
+# `<prefix>/venv/lib/python3.12/site-packages/anemoi/utils/dates.py`. Map them back to the repository files.
+fixes:
+  - "**/site-packages/::src/"
+
+flag_management:
+  default_rules:
+    carryforward: false
+  individual_flags:
+    - name: pr-cpu
+      paths:
+        - src/anemoi/utils/
+
+ignore:
+  - tests/
+
+comment:
+  layout: "condensed_header, condensed_files, condensed_footer"
+  require_base: false

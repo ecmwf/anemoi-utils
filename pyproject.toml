@@ -67,7 +67,7 @@ optional-dependencies.mlflow = [ "mlflow-skinny>=2.11.1", "requests" ]
 optional-dependencies.provenance = [ "gitpython", "nvsmi" ]
 optional-dependencies.remote = [ "obstore" ]
 optional-dependencies.s3 = [ "anemoi-utils[remote]" ]  # deprecated, use "remote"
-optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance]", "pytest", "pytest-mock>=3" ]
+optional-dependencies.tests = [ "anemoi-utils[mlflow,provenance]", "pytest", "pytest-cov>=7", "pytest-mock>=3" ]
 optional-dependencies.text = [ "termcolor", "wcwidth" ]
 urls.Documentation = "https://anemoi-utils.readthedocs.io/"
 urls.Homepage = "https://github.com/ecmwf/anemoi-utils/"
@@ -103,6 +103,19 @@ strict = false
 ini_options.markers = [
   "skip_on_hpc: mark a test that should not be run on HPC",
 ]
+
+# Coverage is report only: it is measured with `pytest --cov` and does not change a plain `pytest` run.
+[tool.coverage]
+run.branch = true
+run.omit = [ "*/anemoi/utils/_version.py" ]
+run.relative_files = true
+run.source_pkgs = [ "anemoi.utils" ]
+report.exclude_also = [
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
+report.show_missing = true
+report.skip_empty = true
 
 [tool.pydocstringformatter]
 write = true
