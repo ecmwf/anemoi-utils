@@ -4,6 +4,7 @@ repo = "ecmwf/anemoi-utils"
 visibility = "public"
 # Approved fork pull requests run ci.yml through the generated ci-fork.yml.
 fork-pull-requests = true
+allow-stale-deps = true
 compiler-inputs = []
 ci-schedule = "9 2 * * 0"
 ci-pre-commit = false
