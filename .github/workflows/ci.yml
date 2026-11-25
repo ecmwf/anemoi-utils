@@ -50,7 +50,7 @@ jobs:
       - id: mint
         uses: ecmwf/ci-infrastructure/actions/mint-token@main
         with:
-          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
           private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
           repositories: anemoi-utils
           permissions: contents:read actions:read
@@ -80,7 +80,7 @@ jobs:
       - id: mint
         uses: ecmwf/ci-infrastructure/actions/mint-token@main
         with:
-          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
           private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
           repositories: anemoi-utils
           permissions: contents:read actions:read
