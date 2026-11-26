@@ -111,9 +111,7 @@ def _support_metadata_name_deprecation(path: str, name: str) -> str:
 
 # TODO: Refactor this function to reduce complexity
 @overload
-def load_metadata(
-    path: str, *, supporting_arrays: Literal[False] = False, name: str = DEFAULT_NAME
-) -> dict:  # type: ignore[reportOverlappingOverload]
+def load_metadata(path: str, *, supporting_arrays: Literal[False] = False, name: str = DEFAULT_NAME) -> dict:  # type: ignore[reportOverlappingOverload]
     ...
 
 
