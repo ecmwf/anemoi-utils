@@ -10,8 +10,7 @@
 
 import numpy as np
 
-from anemoi.utils.caching import cached
-from anemoi.utils.caching import clean_cache
+from anemoi.utils.caching import cached, clean_cache
 
 
 class Data(dict):

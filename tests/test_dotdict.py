@@ -8,9 +8,7 @@
 # nor does it submit to any jurisdiction.
 
 
-from anemoi.utils.config import DotDict
-from anemoi.utils.config import _merge_dicts
-from anemoi.utils.config import _set_defaults
+from anemoi.utils.config import DotDict, _merge_dicts, _set_defaults
 
 
 def test_dotdict() -> None:

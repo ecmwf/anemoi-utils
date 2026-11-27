@@ -15,14 +15,16 @@ import zipfile
 import numpy as np
 import pytest
 
-from anemoi.utils.checkpoints import DEFAULT_NAME
-from anemoi.utils.checkpoints import DEPRECATED_NAME
-from anemoi.utils.checkpoints import _edit_metadata
-from anemoi.utils.checkpoints import has_metadata
-from anemoi.utils.checkpoints import load_metadata
-from anemoi.utils.checkpoints import remove_metadata
-from anemoi.utils.checkpoints import replace_metadata
-from anemoi.utils.checkpoints import save_metadata
+from anemoi.utils.checkpoints import (
+    DEFAULT_NAME,
+    DEPRECATED_NAME,
+    _edit_metadata,
+    has_metadata,
+    load_metadata,
+    remove_metadata,
+    replace_metadata,
+    save_metadata,
+)
 
 
 @pytest.fixture
